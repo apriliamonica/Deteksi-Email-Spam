@@ -5,76 +5,31 @@ import LoginPage from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import DataCollection from './pages/DataCollection';
 import PreprocessingPage from './pages/Preprocessing';
-import Pengaturan from './pages/Pengaturan';
-import Pelatihan from './pages/Pelatihan';
-import Validasi from './pages/Validasi';
+import ProcessingPage from './pages/Processing';
 import Testing from './pages/Testing';
 import Evaluasi from './pages/Evaluasi';
 import './index.css';
 
-function ProtectedRoute({ user, children, adminOnly = false }) {
+function Guard({ user, children, admin = false }) {
   if (!user) return <Navigate to="/login" replace />;
-  if (adminOnly && user.role !== 'admin') return <Navigate to="/beranda" replace />;
-  return children;
-}
-
-function AppLayout({ user, onLogout, children }) {
-  return (
-    <div className="app-layout">
-      <Sidebar user={user} onLogout={onLogout} />
-      <main className="main-content">{children}</main>
-    </div>
-  );
-}
-
-function Wrap({ user, onLogout, children, adminOnly = false }) {
-  return (
-    <ProtectedRoute user={user} adminOnly={adminOnly}>
-      <AppLayout user={user} onLogout={onLogout}>{children}</AppLayout>
-    </ProtectedRoute>
-  );
+  if (admin && user.role !== 'admin') return <Navigate to="/beranda" replace />;
+  return <div className="app-layout"><Sidebar user={user} onLogout={() => { localStorage.removeItem('user'); window.location.href = '/login'; }} /><main className="main-content">{children}</main></div>;
 }
 
 export default function App() {
   const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('user');
-    if (saved) setUser(JSON.parse(saved));
-  }, []);
-
-  const handleLogin = (userData) => setUser(userData);
-  const handleLogout = () => { localStorage.removeItem('user'); setUser(null); };
-  const p = { user, onLogout: handleLogout };
+  useEffect(() => { const s = localStorage.getItem('user'); if (s) setUser(JSON.parse(s)); }, []);
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={user ? <Navigate to="/beranda" replace /> : <LoginPage onLogin={handleLogin} />} />
-
-        {/* Beranda */}
-        <Route path="/beranda" element={<Wrap {...p}><Dashboard user={user} /></Wrap>} />
-
-        {/* Data Collection (admin) */}
-        <Route path="/data-collection" element={<Wrap {...p} adminOnly><DataCollection /></Wrap>} />
-
-        {/* Pre-Processing (admin) */}
-        <Route path="/preprocessing/dataset-baru" element={<Wrap {...p} adminOnly><PreprocessingPage step="dataset-baru" /></Wrap>} />
-        <Route path="/preprocessing/case-folding" element={<Wrap {...p} adminOnly><PreprocessingPage step="case-folding" /></Wrap>} />
-        <Route path="/preprocessing/tokenisasi" element={<Wrap {...p} adminOnly><PreprocessingPage step="tokenisasi" /></Wrap>} />
-        <Route path="/preprocessing/stemming" element={<Wrap {...p} adminOnly><PreprocessingPage step="stemming" /></Wrap>} />
-        <Route path="/preprocessing/stopword" element={<Wrap {...p} adminOnly><PreprocessingPage step="stopword" /></Wrap>} />
-        <Route path="/preprocessing/hasil" element={<Wrap {...p} adminOnly><PreprocessingPage step="hasil" /></Wrap>} />
-
-        {/* Processing (admin) */}
-        <Route path="/processing/pengaturan" element={<Wrap {...p} adminOnly><Pengaturan /></Wrap>} />
-        <Route path="/processing/pelatihan" element={<Wrap {...p} adminOnly><Pelatihan /></Wrap>} />
-        <Route path="/processing/validasi" element={<Wrap {...p} adminOnly><Validasi /></Wrap>} />
-
-        {/* Testing & Evaluasi (all users) */}
-        <Route path="/testing" element={<Wrap {...p}><Testing /></Wrap>} />
-        <Route path="/evaluasi" element={<Wrap {...p}><Evaluasi /></Wrap>} />
-
+        <Route path="/login" element={user ? <Navigate to="/beranda" replace /> : <LoginPage onLogin={u => setUser(u)} />} />
+        <Route path="/beranda" element={<Guard user={user}><Dashboard user={user} /></Guard>} />
+        <Route path="/data-collection" element={<Guard user={user} admin><DataCollection /></Guard>} />
+        <Route path="/preprocessing" element={<Guard user={user} admin><PreprocessingPage /></Guard>} />
+        <Route path="/processing" element={<Guard user={user} admin><ProcessingPage /></Guard>} />
+        <Route path="/testing" element={<Guard user={user}><Testing /></Guard>} />
+        <Route path="/evaluasi" element={<Guard user={user}><Evaluasi /></Guard>} />
         <Route path="*" element={<Navigate to={user ? '/beranda' : '/login'} replace />} />
       </Routes>
     </BrowserRouter>
