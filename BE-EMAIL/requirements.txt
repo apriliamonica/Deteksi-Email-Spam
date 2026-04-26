@@ -1,0 +1,37 @@
+# Web Framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+
+# Database
+sqlalchemy==2.0.35
+psycopg2-binary==2.9.9
+alembic==1.13.2
+
+# ML - PyTorch
+torch==2.4.1
+torchvision==0.19.1
+
+# ML - Transformers (IndoBERT)
+transformers==4.44.2
+tokenizers==0.19.1
+
+# ML - Graph Neural Network (GAT)
+torch-geometric==2.6.1
+
+# Data Processing
+numpy==1.26.4
+pandas==2.2.2
+scikit-learn==1.5.2
+scipy==1.14.1
+
+# Text Preprocessing
+Sastrawi==1.0.1
+regex==2024.9.11
+
+# Environment & Utils
+python-dotenv==1.0.1
+pydantic-settings==2.5.2
+
+# CORS
+python-jose==3.3.0
