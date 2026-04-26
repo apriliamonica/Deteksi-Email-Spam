@@ -207,6 +207,22 @@ a:hover { color: var(--primary-300); }
   flex-shrink: 0;
 }
 
+.nav-link.nav-indent {
+  padding-left: 36px;
+  font-size: 0.8rem;
+}
+
+.nav-link.nav-indent svg {
+  width: 14px;
+  height: 14px;
+}
+
+.nav-group-children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .sidebar-footer {
   padding: 16px;
   border-top: 1px solid var(--surface-700);

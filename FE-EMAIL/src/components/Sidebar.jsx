@@ -1,7 +1,39 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import {
-  LayoutDashboard, Mail, Brain, Database, LogOut, Shield,
+  LayoutDashboard, Database, FileText, Type, SplitSquareHorizontal,
+  Scissors, Hash, Filter, CheckSquare, Settings, Brain, ShieldCheck,
+  FlaskConical, BarChart3, LogOut, ChevronDown, ChevronRight,
 } from 'lucide-react';
+
+function NavSection({ title }) {
+  return <div className="sidebar-section">{title}</div>;
+}
+
+function NavItem({ to, icon: Icon, label, indent = false }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) => `nav-link ${isActive ? 'active' : ''} ${indent ? 'nav-indent' : ''}`}
+    >
+      <Icon size={indent ? 14 : 18} /> {label}
+    </NavLink>
+  );
+}
+
+function NavGroup({ icon: Icon, label, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button className="nav-link" onClick={() => setOpen(!open)}>
+        <Icon size={18} />
+        <span style={{ flex: 1 }}>{label}</span>
+        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+      </button>
+      {open && <div className="nav-group-children">{children}</div>}
+    </div>
+  );
+}
 
 export default function Sidebar({ user, onLogout }) {
   const navigate = useNavigate();
@@ -26,29 +58,37 @@ export default function Sidebar({ user, onLogout }) {
       </div>
 
       <nav className="sidebar-nav">
-        <div className="sidebar-section">Menu Utama</div>
-
-        <NavLink to="/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-          <LayoutDashboard /> Dashboard
-        </NavLink>
-
-        <NavLink to="/classify" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-          <Mail /> Klasifikasi Email
-        </NavLink>
+        {/* Beranda */}
+        <NavItem to="/beranda" icon={LayoutDashboard} label="Beranda" />
 
         {user?.role === 'admin' && (
           <>
-            <div className="sidebar-section">Admin</div>
+            {/* Data Collection */}
+            <NavItem to="/data-collection" icon={Database} label="Data Collection" />
 
-            <NavLink to="/training" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-              <Brain /> Training Model
-            </NavLink>
+            {/* Pre-Processing */}
+            <NavSection title="Pre-Processing" />
+            <NavItem to="/preprocessing/dataset-baru" icon={FileText} label="Dataset Baru" indent />
+            <NavItem to="/preprocessing/case-folding" icon={Type} label="Case Folding" indent />
+            <NavItem to="/preprocessing/tokenisasi" icon={SplitSquareHorizontal} label="Tokenisasi" indent />
+            <NavItem to="/preprocessing/stemming" icon={Scissors} label="Stemming" indent />
+            <NavItem to="/preprocessing/stopword" icon={Filter} label="Stopword Removal" indent />
+            <NavItem to="/preprocessing/hasil" icon={CheckSquare} label="Hasil Pre-processing" indent />
 
-            <NavLink to="/dataset" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-              <Database /> Dataset
-            </NavLink>
+            {/* Processing */}
+            <NavSection title="Processing" />
+            <NavItem to="/processing/pengaturan" icon={Settings} label="Pengaturan" indent />
+            <NavItem to="/processing/pelatihan" icon={Brain} label="Pelatihan" indent />
+            <NavItem to="/processing/validasi" icon={ShieldCheck} label="Validasi" indent />
           </>
         )}
+
+        {/* Testing */}
+        <NavSection title="" />
+        <NavItem to="/testing" icon={FlaskConical} label="Testing" />
+
+        {/* Evaluasi */}
+        <NavItem to="/evaluasi" icon={BarChart3} label="Evaluasi Performa" />
       </nav>
 
       <div className="sidebar-footer">
