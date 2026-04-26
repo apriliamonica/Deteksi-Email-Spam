@@ -13,12 +13,12 @@ router = APIRouter()
 
 @router.get("/status", response_model=ModelStatusResponse)
 async def get_model_status(db: Session = Depends(get_db)):
-    """Cek status model (loaded/not loaded)."""
+    """Cek status model (loaded/not loaded) dan metrik terakhir."""
     latest_training = EmailService.get_latest_training(db)
 
     return ModelStatusResponse(
         is_loaded=prediction_service.is_loaded,
-        model_type="IndoBERT + GAT",
+        model_type="IndoBERT + GAT + UMAP",
         indobert_model="indobenchmark/indobert-base-p1",
         last_training=latest_training.created_at if latest_training else None,
         metrics={
@@ -36,9 +36,15 @@ async def train_model(
     db: Session = Depends(get_db),
 ):
     """
-    Training model IndoBERT + GAT dengan data dari database.
+    Training model hybrid IndoBERT + GAT + UMAP.
 
-    Pastikan sudah ada data training di database sebelum menjalankan.
+    Pipeline:
+    1. Fine-tune IndoBERT (default 5 epoch, lr=2e-5, AdamW)
+    2. Generate embeddings (768d)
+    3. UMAP reduction (768d → 128d)
+    4. Build graph (cosine similarity)
+    5. Train GAT (default 30 epoch, lr=5e-3, Adam)
+    6. Evaluasi (accuracy, precision, recall, f1)
     """
     try:
         # Ambil data training dari database
@@ -53,19 +59,26 @@ async def train_model(
         texts = [e.body for e in training_data]
         labels = [1 if e.label == "spam" else 0 for e in training_data]
 
-        # Training
-        metrics = prediction_service.train(
+        # Training pipeline lengkap
+        result = prediction_service.train(
             texts=texts,
             labels=labels,
-            epochs=request.epochs,
-            learning_rate=request.learning_rate,
-            batch_size=request.batch_size,
+            finetune_epochs=request.finetune_epochs,
+            finetune_lr=request.finetune_lr,
+            finetune_batch_size=request.finetune_batch_size,
+            weight_decay=request.weight_decay,
+            umap_components=request.umap_components,
+            gat_epochs=request.gat_epochs,
+            gat_lr=request.gat_lr,
+            gat_weight_decay=request.gat_weight_decay,
             test_split=request.test_split,
         )
 
+        metrics = result["metrics"]
+
         # Simpan history
         EmailService.save_training_history(db, {
-            "model_name": "IndoBERT + GAT",
+            "model_name": "IndoBERT + GAT + UMAP",
             "accuracy": metrics["accuracy"],
             "precision": metrics["precision"],
             "recall": metrics["recall"],
@@ -73,14 +86,15 @@ async def train_model(
             "total_data": metrics["total_data"],
             "train_size": metrics["train_size"],
             "test_size": metrics["test_size"],
-            "epochs": metrics["epochs"],
-            "learning_rate": metrics["learning_rate"],
+            "epochs": metrics["gat_epochs"],
+            "learning_rate": request.gat_lr,
         })
 
         return TrainingResponse(
             status="success",
             message="Training model selesai",
             metrics=metrics,
+            visualization=result.get("visualization"),
         )
 
     except HTTPException:
@@ -120,7 +134,7 @@ async def upload_dataset(
         # Simpan ke database
         count = 0
         for _, row in df.iterrows():
-            label = row["label"].strip().lower()
+            label = str(row["label"]).strip().lower()
             if label not in ("spam", "ham"):
                 continue
 
