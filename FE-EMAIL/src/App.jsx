@@ -5,7 +5,10 @@ import LoginPage from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import DataCollection from './pages/DataCollection';
 import PreprocessingPage from './pages/Preprocessing';
+import RiwayatPreprocessingPage from './pages/RiwayatPreprocessing';
 import ProcessingPage from './pages/Processing';
+import RiwayatModelPage from './pages/RiwayatModel';
+import ManageAccountsPage from './pages/ManageAccounts';
 import Testing from './pages/Testing';
 import Evaluasi from './pages/Evaluasi';
 import './index.css';
@@ -27,7 +30,10 @@ export default function App() {
         <Route path="/beranda" element={<Guard user={user}><Dashboard user={user} /></Guard>} />
         <Route path="/data-collection" element={<Guard user={user} admin><DataCollection /></Guard>} />
         <Route path="/preprocessing" element={<Guard user={user} admin><PreprocessingPage /></Guard>} />
+        <Route path="/riwayat-preprocessing" element={<Guard user={user} admin><RiwayatPreprocessingPage /></Guard>} />
         <Route path="/processing" element={<Guard user={user} admin><ProcessingPage /></Guard>} />
+        <Route path="/riwayat-model" element={<Guard user={user} admin><RiwayatModelPage /></Guard>} />
+        <Route path="/manage-accounts" element={<Guard user={user} admin><ManageAccountsPage /></Guard>} />
         <Route path="/testing" element={<Guard user={user}><Testing /></Guard>} />
         <Route path="/evaluasi" element={<Guard user={user}><Evaluasi /></Guard>} />
         <Route path="*" element={<Navigate to={user ? '/beranda' : '/login'} replace />} />

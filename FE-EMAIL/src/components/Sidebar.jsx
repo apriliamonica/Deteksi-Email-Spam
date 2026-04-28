@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Database, Layers, Brain, FlaskConical, BarChart3, LogOut } from 'lucide-react';
+import { LayoutDashboard, Database, Layers, Brain, FlaskConical, BarChart3, LogOut, Users } from 'lucide-react';
 
 export default function Sidebar({ user, onLogout }) {
   const navigate = useNavigate();
@@ -22,10 +22,22 @@ export default function Sidebar({ user, onLogout }) {
             <Database /> Data Collection
           </NavLink>
           <NavLink to="/preprocessing" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <Layers /> Pre-Processing
+            <Layers size={18} /> Pre-Processing
           </NavLink>
+          <NavLink to="/riwayat-preprocessing" className={({ isActive }) => `nav-link sub-link ${isActive ? 'active' : ''}`} style={{ paddingLeft: 40, fontSize: '0.85rem' }}>
+            Riwayat Pre-Processing
+          </NavLink>
+          
           <NavLink to="/processing" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <Brain /> Processing
+            <Brain size={18} /> Processing
+          </NavLink>
+          <NavLink to="/riwayat-model" className={({ isActive }) => `nav-link sub-link ${isActive ? 'active' : ''}`} style={{ paddingLeft: 40, fontSize: '0.85rem' }}>
+            Riwayat Model
+          </NavLink>
+          
+          <div className="sidebar-section">Pengguna</div>
+          <NavLink to="/manage-accounts" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            <Users size={18} /> Kelola Akun
           </NavLink>
         </>)}
         <div className="sidebar-section">Uji</div>
