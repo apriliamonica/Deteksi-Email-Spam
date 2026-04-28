@@ -22,7 +22,7 @@ class GATClassifier(nn.Module):
     │  - num_heads: 8 (layer 1), 1 (layer 2)                 │
     │  - in_features: 768 / sesuai UMAP                      │
     │  - out_features: 128                                    │
-    │  - concat: True (layer 1), False (layer 2)              │
+    │  - concat: True (layer 1), False (layer 298)              │
     │  - activation: ELU                                      │
     │  - negative_slope: 0.2                                  │
     ├──────────────────────────────────────────────────────────┤

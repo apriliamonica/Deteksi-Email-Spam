@@ -78,6 +78,34 @@ class ModelStatusResponse(BaseModel):
     metrics: Optional[dict] = None
 
 
+class TrainingMetrics(BaseModel):
+    accuracy: float
+    precision: float
+    recall: float
+    f1_score: float
+    
+    # Advanced Metrics
+    macro_avg: dict[str, float]
+    weighted_avg: dict[str, float]
+    mcc: float
+    roc_auc: float
+    mean_loss: float
+    std_loss: float
+    
+    confusion_matrix: List[List[int]]
+    total_data: int
+    train_size: int
+    test_size: int
+    
+    # SMOTE info
+    applied_smote: bool
+    original_counts: dict[str, int]
+    oversampled_counts: dict[str, int]
+    
+    finetune_loss_history: List[float]
+    gat_loss_history: List[float]
+
+
 class DashboardStats(BaseModel):
     """Schema response untuk statistik dashboard."""
     total_emails: int

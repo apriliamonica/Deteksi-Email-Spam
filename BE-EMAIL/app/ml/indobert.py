@@ -37,9 +37,9 @@ class IndoBERTClassifier(nn.Module):
     └─────────────────────────────────────────────────────────┘
 
     Parameter Fine-Tuning:
-    - learning_rate: 2e-5
-    - batch_size: 16
-    - epoch: 3-5 (fine-tune IndoBERT saja)
+    - learning_rate: 2e-5 – 5e-5
+    - batch_size: 8 / 16 / 32
+    - epoch: 3 – 5
     - optimizer: AdamW
     - weight_decay: 0.01
     """
@@ -55,11 +55,22 @@ class IndoBERTClassifier(nn.Module):
         self.model_name = model_name or settings.INDOBERT_MODEL
         self.num_labels = num_labels
 
-        # Load pre-trained IndoBERT
+        # Load pre-trained IndoBERT with specific configuration
         self.config = AutoConfig.from_pretrained(self.model_name)
+        
+        # Override hidden layer parameters based on user specification
+        self.config.hidden_dropout_prob = 0.1
+        self.config.attention_probs_dropout_prob = 0.1
+        self.config.hidden_act = "gelu"
+        self.config.hidden_size = 768
+        self.config.num_hidden_layers = 12
+        self.config.num_attention_heads = 12
+        self.config.intermediate_size = 3072
+
         self.bert = AutoModel.from_pretrained(self.model_name, config=self.config)
 
         # Classification Head (Output Layer)
+        # dropout: 0.1 – 0.3
         self.dropout = nn.Dropout(classifier_dropout)
         self.classifier = nn.Linear(self.config.hidden_size, num_labels)  # 768 → 2
 

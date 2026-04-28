@@ -6,10 +6,10 @@ from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFacto
 
 # Inisialisasi Sastrawi (singleton)
 _stemmer_factory = StemmerFactory()
-_stemmer = _stemmer_factory.createStemmer()
+_stemmer = _stemmer_factory.create_stemmer()
 
 _stopword_factory = StopWordRemoverFactory()
-_stopword_remover = _stopword_factory.createStopWordRemover()
+_stopword_remover = _stopword_factory.create_stop_word_remover()
 
 # Daftar stopwords tambahan khusus email
 EMAIL_STOPWORDS = {
