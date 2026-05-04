@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GATConv
+from torch_geometric.nn import GATConv, global_mean_pool
 from torch_geometric.data import Data
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -116,6 +116,14 @@ class GATClassifier(nn.Module):
         x = self.bn2(x)
         x = F.elu(x, inplace=True)
 
+        # Global Pooling (Mean Pool) - Menggabungkan representasi token menjadi representasi email
+        # Penting untuk klasifikasi graf (Word Graph)
+        if hasattr(data, 'batch') and data.batch is not None:
+            x = global_mean_pool(x, data.batch)
+        else:
+            # Jika hanya satu graf, pooling semua node
+            x = x.mean(dim=0, keepdim=True)
+
         # Classification head
         out = self.classifier(x)
         return out
@@ -174,62 +182,64 @@ class GATClassifier(nn.Module):
         return attention_weights
 
 
-def build_graph(
+def build_word_graph(
+    tokens: list[str],
     embeddings: torch.Tensor,
-    threshold: float = 0.5,
-    include_weights: bool = False,
+    window_size: int = 2,
 ) -> Data:
     """
-    Membangun graph dari embedding email.
-
-    Graph & Input Representation:
-    - Node: setiap email = 1 node
-    - Node features: embedding (768 atau UMAP-reduced)
-    - Edge: koneksi berdasarkan cosine similarity > threshold
-    - Edge weight: similarity score (opsional)
-
-    Args:
-        embeddings: Tensor (n_emails, embedding_dim)
-        threshold: Minimum similarity untuk membuat edge
-        include_weights: Apakah menyertakan edge weights
-
-    Returns:
-        PyG Data object
+    Membangun Graph of Words (Word Graph) sesuai metodologi user.
     """
-    # Hitung cosine similarity matrix
-    emb_np = embeddings.cpu().numpy()
-    sim_matrix = cosine_similarity(emb_np)
-
-    # Buat edge list berdasarkan threshold
+    unique_tokens = []
+    token_to_idx = {}
+    for token in tokens:
+        if token not in token_to_idx:
+            token_to_idx[token] = len(unique_tokens)
+            unique_tokens.append(token)
+    
     edges_src = []
     edges_dst = []
-    edge_weights = []
+    for i in range(len(tokens)):
+        for j in range(i + 1, min(i + 1 + window_size, len(tokens))):
+            u = token_to_idx[tokens[i]]
+            v = token_to_idx[tokens[j]]
+            if u != v:
+                edges_src.extend([u, v])
+                edges_dst.extend([v, u])
+    
+    edge_index = torch.tensor([edges_src, edges_dst], dtype=torch.long)
+    if edge_index.numel() > 0:
+        from torch_geometric.utils import coalesce
+        edge_index = coalesce(edge_index)
+    
+    return Data(x=embeddings, edge_index=edge_index)
 
+def build_sample_graph(
+    embeddings: torch.Tensor,
+    threshold: float = 0.5,
+) -> Data:
+    """
+    Membangun graph antar sampel (email) - Metodologi lama.
+    """
+    emb_np = embeddings.cpu().numpy()
+    sim_matrix = cosine_similarity(emb_np)
+    edges_src = []
+    edges_dst = []
     n = sim_matrix.shape[0]
     for i in range(n):
         for j in range(i + 1, n):
             if sim_matrix[i][j] > threshold:
-                # Undirected: tambah kedua arah
                 edges_src.extend([i, j])
                 edges_dst.extend([j, i])
-                if include_weights:
-                    edge_weights.extend([sim_matrix[i][j], sim_matrix[i][j]])
-
-    # Self-loops
-    for i in range(n):
-        edges_src.append(i)
-        edges_dst.append(i)
-        if include_weights:
-            edge_weights.append(1.0)
-
+    
     edge_index = torch.tensor([edges_src, edges_dst], dtype=torch.long)
+    return Data(x=embeddings, edge_index=edge_index)
 
-    data = Data(x=embeddings, edge_index=edge_index)
-
-    if include_weights and edge_weights:
-        data.edge_attr = torch.tensor(edge_weights, dtype=torch.float)
-
-    return data
+# Alias untuk kompatibilitas
+def build_graph(*args, **kwargs):
+    if len(args) > 0 and isinstance(args[0], list):
+        return build_word_graph(*args, **kwargs)
+    return build_sample_graph(*args, **kwargs)
 
 
 def build_single_prediction_graph(
