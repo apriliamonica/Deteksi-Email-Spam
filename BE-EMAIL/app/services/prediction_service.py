@@ -34,6 +34,14 @@ class PredictionService:
             else "cpu"
         )
         self._is_model_loaded = False
+        self.training_status = {
+            "status": "idle", # idle, training, success, error
+            "current_step": "",
+            "progress": 0,
+            "epoch": 0,
+            "total_epochs": 0,
+            "loss": 0.0
+        }
 
     @property
     def is_loaded(self) -> bool:
@@ -116,158 +124,203 @@ class PredictionService:
               umap_components: int = 128, gat_epochs: int = 30,
               gat_lr: float = 5e-3, gat_weight_decay: float = 5e-4, test_split: float = 0.2) -> dict:
         
-        if not indobert_embedder.is_loaded:
-            indobert_embedder.load_model()
-
-        # Step 1: Preprocessing & IndoBERT FT
-        processed_texts = [preprocess_email(t) for t in texts]
-        ft_result = indobert_embedder.fine_tune(
-            texts=processed_texts, labels=labels, epochs=finetune_epochs,
-            learning_rate=finetune_lr, batch_size=finetune_batch_size, weight_decay=weight_decay,
-        )
-
-        # Step 2: Extract Embeddings (768d)
-        embeddings = indobert_embedder.get_batch_embeddings(processed_texts, batch_size=finetune_batch_size)
-        labels_np = np.array(labels)
-
-        # Step 3: Handle Imbalance with SMOTE (on embeddings)
-        spam_count = sum(labels)
-        ham_count = len(labels) - spam_count
-        imbalance_ratio = max(spam_count, ham_count) / max(min(spam_count, ham_count), 1)
-        
-        applied_smote = False
-        original_counts = {"spam": spam_count, "ham": ham_count}
-        oversampled_counts = {"spam": spam_count, "ham": ham_count}
-
-        if imbalance_ratio > 1.2:
-            print(f"[SMOTE] Imbalance detected! Ratio: {imbalance_ratio:.2f}. Applying SMOTE oversampling...")
-            smote = SMOTE(random_state=42)
-            emb_np = embeddings.cpu().numpy()
-            emb_resampled, labels_resampled = smote.fit_resample(emb_np, labels_np)
-            
-            embeddings = torch.tensor(emb_resampled, dtype=torch.float32)
-            labels_tensor = torch.tensor(labels_resampled, dtype=torch.long)
-            labels_np = labels_resampled
-            applied_smote = True
-            
-            oversampled_spam = sum(labels_resampled)
-            oversampled_counts = {"spam": int(oversampled_spam), "ham": int(len(labels_resampled) - oversampled_spam)}
-            print(f"[SMOTE] New distribution - Spam: {oversampled_counts['spam']}, Ham: {oversampled_counts['ham']}")
-        else:
-            labels_tensor = torch.tensor(labels, dtype=torch.long)
-
-        # Step 4: UMAP Reduction
-        self.umap_gat = create_umap_for_gat(n_components=umap_components)
-        embeddings_reduced = self.umap_gat.fit_transform(embeddings)
-        
-        self.umap_viz = create_umap_for_visualization()
-        embeddings_2d = self.umap_viz.fit_transform(embeddings)
-
-        # Step 5: Split & Graph
-        indices = list(range(len(labels_tensor)))
-        train_idx, test_idx = train_test_split(indices, test_size=test_split, stratify=labels_np, random_state=42)
-
-        train_emb = embeddings_reduced[train_idx]
-        train_labels = labels_tensor[train_idx]
-        test_emb = embeddings_reduced[test_idx]
-        test_labels = labels_tensor[test_idx]
-
-        train_graph = build_graph(train_emb).to(self.device)
-        train_graph.y = train_labels
-
-        # Step 6: Train GAT
-        self.gat_model = GATClassifier(in_channels=umap_components).to(self.device)
-        optimizer = torch.optim.Adam(self.gat_model.parameters(), lr=gat_lr, weight_decay=gat_weight_decay)
-        criterion = nn.CrossEntropyLoss()
-
-        self.gat_model.train()
-        gat_loss_history = []
-        for epoch in range(gat_epochs):
-            optimizer.zero_grad()
-            out = self.gat_model(train_graph)
-            loss = criterion(out, train_graph.y)
-            loss.backward()
-            optimizer.step()
-            gat_loss_history.append(loss.item())
-
-        # Step 7: Evaluate
-        test_graph = build_graph(test_emb).to(self.device)
-        test_graph.y = test_labels
-
-        predicted, conf = self.gat_model.predict(test_graph)
-        pred_np = predicted.cpu().numpy()
-        true_np = test_labels.cpu().numpy()
-
-        # Advanced Metrics Calculation
-        p_macro, r_macro, f1_macro, _ = precision_recall_fscore_support(true_np, pred_np, average='macro', zero_division=0)
-        p_weight, r_weight, f1_weight, _ = precision_recall_fscore_support(true_np, pred_np, average='weighted', zero_division=0)
+        self.training_status.update({
+            "status": "training",
+            "current_step": "Initializing models...",
+            "progress": 5,
+            "epoch": 0,
+            "loss": 0.0
+        })
         
         try:
-            roc_auc = roc_auc_score(true_np, conf.cpu().numpy())
-        except ValueError:
-            roc_auc = 0.5 # fallback if only one class present in test set
+            if not indobert_embedder.is_loaded:
+                indobert_embedder.load_model()
+
+            # Step 1: Preprocessing & IndoBERT FT
+            # texts sudah berisi data yang di-preprocess dari model.py
+            processed_texts = texts
+
+            self.training_status.update({"current_step": "Fine-tuning IndoBERT...", "progress": 15})
+            ft_result = indobert_embedder.fine_tune(
+                texts=processed_texts, labels=labels, epochs=finetune_epochs,
+                learning_rate=finetune_lr, batch_size=finetune_batch_size, weight_decay=weight_decay,
+            )
+
+            # Step 2: Extract Embeddings (768d)
+            self.training_status.update({"current_step": "Generating Embeddings...", "progress": 40})
+            embeddings = indobert_embedder.get_batch_embeddings(processed_texts, batch_size=finetune_batch_size)
+            labels_np = np.array(labels)
+
+            # Step 3: Handle Imbalance with SMOTE (on embeddings)
+            spam_count = sum(labels)
+            ham_count = len(labels) - spam_count
+            imbalance_ratio = max(spam_count, ham_count) / max(min(spam_count, ham_count), 1)
             
-        mcc = matthews_corrcoef(true_np, pred_np)
+            applied_smote = False
+            original_counts = {"spam": spam_count, "ham": ham_count}
+            oversampled_counts = {"spam": spam_count, "ham": ham_count}
 
-        # Calculate Mean and Std Deviation of GAT validation loss (simulated by last 5 epochs loss stability)
-        last_5_loss = gat_loss_history[-5:] if len(gat_loss_history) >= 5 else gat_loss_history
-        mean_loss = float(np.mean(last_5_loss))
-        std_loss = float(np.std(last_5_loss))
+            if imbalance_ratio > 1.2:
+                print(f"[SMOTE] Imbalance detected! Ratio: {imbalance_ratio:.2f}. Applying SMOTE oversampling...")
+                smote = SMOTE(random_state=42)
+                emb_np = embeddings.cpu().numpy()
+                emb_resampled, labels_resampled = smote.fit_resample(emb_np, labels_np)
+                
+                embeddings = torch.tensor(emb_resampled, dtype=torch.float32)
+                labels_tensor = torch.tensor(labels_resampled, dtype=torch.long)
+                labels_np = labels_resampled
+                applied_smote = True
+                
+                oversampled_spam = sum(labels_resampled)
+                oversampled_counts = {"spam": int(oversampled_spam), "ham": int(len(labels_resampled) - oversampled_spam)}
+                print(f"[SMOTE] New distribution - Spam: {oversampled_counts['spam']}, Ham: {oversampled_counts['ham']}")
+            else:
+                labels_tensor = torch.tensor(labels, dtype=torch.long)
 
-        metrics = {
-            "accuracy": float(accuracy_score(true_np, pred_np)),
-            "precision": float(precision_score(true_np, pred_np, average="binary", zero_division=0)),
-            "recall": float(recall_score(true_np, pred_np, average="binary", zero_division=0)),
-            "f1_score": float(f1_score(true_np, pred_np, average="binary", zero_division=0)),
+            # Step 4: UMAP Reduction
+            self.umap_gat = create_umap_for_gat(n_components=umap_components)
+            embeddings_reduced = self.umap_gat.fit_transform(embeddings)
             
-            # New Advanced Metrics
-            "macro_avg": {"precision": p_macro, "recall": r_macro, "f1": f1_macro},
-            "weighted_avg": {"precision": p_weight, "recall": r_weight, "f1": f1_weight},
-            "mcc": float(mcc),
-            "roc_auc": float(roc_auc),
-            "mean_loss": mean_loss,
-            "std_loss": std_loss,
+            self.umap_viz = create_umap_for_visualization()
+            embeddings_2d = self.umap_viz.fit_transform(embeddings)
+
+            # Step 5: Split & Graph
+            indices = list(range(len(labels_tensor)))
+            train_idx, test_idx = train_test_split(indices, test_size=test_split, stratify=labels_np, random_state=42)
+
+            train_emb = embeddings_reduced[train_idx]
+            train_labels = labels_tensor[train_idx]
+            test_emb = embeddings_reduced[test_idx]
+            test_labels = labels_tensor[test_idx]
+
+            train_graph = build_graph(train_emb).to(self.device)
+            train_graph.y = train_labels
+
+            # Step 6: Train GAT
+            self.gat_model = GATClassifier(in_channels=umap_components).to(self.device)
+            optimizer = torch.optim.Adam(self.gat_model.parameters(), lr=gat_lr, weight_decay=gat_weight_decay)
+            criterion = nn.CrossEntropyLoss()
+
+            self.gat_model.train()
+            gat_loss_history = []
+            self.training_status.update({
+                "status": "training",
+                "current_step": "Training GAT model...",
+                "total_epochs": gat_epochs
+            })
             
-            "confusion_matrix": confusion_matrix(true_np, pred_np).tolist(),
-            "total_data": len(labels_tensor),
-            "train_size": len(train_idx),
-            "test_size": len(test_idx),
+            for epoch in range(gat_epochs):
+                optimizer.zero_grad()
+                out = self.gat_model(train_graph)
+                loss = criterion(out, train_graph.y)
+                loss.backward()
+                optimizer.step()
+                
+                loss_val = loss.item()
+                gat_loss_history.append(loss_val)
+                
+                # Update live status
+                self.training_status.update({
+                    "epoch": epoch + 1,
+                    "loss": round(loss_val, 6),
+                    "progress": 70 + int((epoch + 1) / gat_epochs * 25) # 70% to 95%
+                })
+                
+                # Log to terminal as requested
+                if (epoch + 1) % 5 == 0 or epoch == 0:
+                    print(f"[Training] Epoch {epoch+1}/{gat_epochs} - Loss: {loss_val:.6f}")
+
+            # Step 7: Evaluate
+            test_graph = build_graph(test_emb).to(self.device)
+            test_graph.y = test_labels
+
+            predicted, conf = self.gat_model.predict(test_graph)
+            pred_np = predicted.cpu().numpy()
+            true_np = test_labels.cpu().numpy()
+
+            # Advanced Metrics Calculation
+            p_macro, r_macro, f1_macro, _ = precision_recall_fscore_support(true_np, pred_np, average='macro', zero_division=0)
+            p_weight, r_weight, f1_weight, _ = precision_recall_fscore_support(true_np, pred_np, average='weighted', zero_division=0)
             
-            # SMOTE info
-            "applied_smote": applied_smote,
-            "original_counts": original_counts,
-            "oversampled_counts": oversampled_counts,
-            
-            "finetune_loss_history": ft_result["loss_history"],
-            "gat_loss_history": gat_loss_history,
-        }
+            try:
+                roc_auc = roc_auc_score(true_np, conf.cpu().numpy())
+            except ValueError:
+                roc_auc = 0.5 # fallback if only one class present in test set
+                
+            mcc = matthews_corrcoef(true_np, pred_np)
 
-        # Step 8: Save
-        os.makedirs(settings.MODEL_DIR, exist_ok=True)
-        torch.save(self.gat_model.state_dict(), os.path.join(settings.MODEL_DIR, "gat_model.pt"))
-        import pickle
-        with open(os.path.join(settings.MODEL_DIR, "umap_gat.pt"), "wb") as f: pickle.dump(self.umap_gat, f)
-        with open(os.path.join(settings.MODEL_DIR, "umap_viz.pt"), "wb") as f: pickle.dump(self.umap_viz, f)
-        torch.save({
-            "embeddings": embeddings,
-            "embeddings_reduced": embeddings_reduced,
-            "labels": labels_tensor,
-        }, os.path.join(settings.MODEL_DIR, "training_data.pt"))
+            # Calculate Mean and Std Deviation of GAT validation loss (simulated by last 5 epochs loss stability)
+            last_5_loss = gat_loss_history[-5:] if len(gat_loss_history) >= 5 else gat_loss_history
+            mean_loss = float(np.mean(last_5_loss))
+            std_loss = float(np.std(last_5_loss))
 
-        self.training_embeddings = embeddings
-        self.training_embeddings_reduced = embeddings_reduced
-        self.training_labels = labels_tensor
-        self._is_model_loaded = True
+            metrics = {
+                "accuracy": float(accuracy_score(true_np, pred_np)),
+                "precision": float(precision_score(true_np, pred_np, average="binary", zero_division=0)),
+                "recall": float(recall_score(true_np, pred_np, average="binary", zero_division=0)),
+                "f1_score": float(f1_score(true_np, pred_np, average="binary", zero_division=0)),
+                
+                # New Advanced Metrics
+                "macro_avg": {"precision": p_macro, "recall": r_macro, "f1": f1_macro},
+                "weighted_avg": {"precision": p_weight, "recall": r_weight, "f1": f1_weight},
+                "mcc": float(mcc),
+                "roc_auc": float(roc_auc),
+                "mean_loss": mean_loss,
+                "std_loss": std_loss,
+                
+                "confusion_matrix": confusion_matrix(true_np, pred_np).tolist(),
+                "total_data": len(labels_tensor),
+                "train_size": len(train_idx),
+                "test_size": len(test_idx),
+                
+                # SMOTE info
+                "applied_smote": applied_smote,
+                "original_counts": original_counts,
+                "oversampled_counts": oversampled_counts,
+                
+                "finetune_loss_history": ft_result["loss_history"],
+                "gat_loss_history": gat_loss_history,
+            }
 
-        viz_data = {
-            "coordinates": embeddings_2d.numpy().tolist(),
-            "labels": labels_tensor.tolist()
-        }
+            # Step 8: Save
+            os.makedirs(settings.MODEL_DIR, exist_ok=True)
+            torch.save(self.gat_model.state_dict(), os.path.join(settings.MODEL_DIR, "gat_model.pt"))
+            import pickle
+            with open(os.path.join(settings.MODEL_DIR, "umap_gat.pt"), "wb") as f: pickle.dump(self.umap_gat, f)
+            with open(os.path.join(settings.MODEL_DIR, "umap_viz.pt"), "wb") as f: pickle.dump(self.umap_viz, f)
+            torch.save({
+                "embeddings": embeddings,
+                "embeddings_reduced": embeddings_reduced,
+                "labels": labels_tensor,
+            }, os.path.join(settings.MODEL_DIR, "training_data.pt"))
 
-        # Step 9: Print results to terminal in table format
-        self._print_metrics_table(metrics)
+            self.training_embeddings = embeddings
+            self.training_embeddings_reduced = embeddings_reduced
+            self.training_labels = labels_tensor
+            self._is_model_loaded = True
+            self.training_status.update({
+                "status": "success",
+                "current_step": "Training completed!",
+                "progress": 100
+            })
 
-        return {"metrics": metrics, "visualization": viz_data}
+            viz_data = {
+                "coordinates": embeddings_2d.detach().cpu().numpy().tolist(),
+                "labels": labels_tensor.tolist()
+            }
+
+            # Step 9: Print results to terminal in table format
+            self._print_metrics_table(metrics)
+
+            return {"metrics": metrics, "visualization": viz_data}
+
+        except Exception as e:
+            self.training_status.update({
+                "status": "error",
+                "current_step": f"Error: {str(e)}",
+                "progress": 0
+            })
+            raise e
 
     def _print_metrics_table(self, metrics: dict):
         """Mencetak hasil evaluasi ke terminal dalam format tabel."""
