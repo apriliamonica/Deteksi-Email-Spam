@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layers, Play, CheckCircle, Database, ChevronRight, Activity, ArrowDown, ShieldAlert, Settings } from 'lucide-react';
-import { emailAPI } from '../services/api';
+import { Layers, Play, CheckCircle, Database, ChevronRight, Activity, ShieldAlert, Settings } from 'lucide-react';
+import { emailAPI, modelAPI } from '../services/api';
 
 const STEPS = [
   { key: 'raw', label: 'Dataset Baru', desc: 'Memuat data email mentah dari database.' },
-  { key: 'case', label: 'Case Folding', desc: 'Mengubah semua huruf menjadi lowercase (huruf kecil).' },
-  { key: 'token', label: 'Tokenisasi', desc: 'Memecah kalimat menjadi token kata (WordPiece).' },
-  { key: 'stem', label: 'Stemming', desc: 'Mengubah kata berimbuhan ke bentuk dasar (Sastrawi).' },
-  { key: 'stop', label: 'Stopword', desc: 'Menghapus kata hubung/umum yang tidak bermakna.' },
-  { key: 'result', label: 'Hasil Akhir', desc: 'Data telah bersih dan siap dimasukkan ke model IndoBERT.' },
+  { key: 'html', label: 'Pembersihan HTML', desc: 'Menghapus tag HTML (<div>, <a>, dll) agar teks bersih.' },
+  { key: 'mask', label: 'Masking URL/Email', desc: 'Mengubah link menjadi [URL] dan email menjadi [EMAIL].' },
+  { key: 'norm', label: 'Normalisasi', desc: 'Menghapus simbol aneh dan merapikan spasi (Whitespace).' },
+  { key: 'case', label: 'Case Folding', desc: 'Mengubah huruf menjadi kecil untuk konsistensi IndoBERT.' },
+  { key: 'result', label: 'Hasil Akhir', desc: 'Data bersih dan siap untuk Tokenisasi & Graf GAT.' },
 ];
 
 export default function PreprocessingPage() {
@@ -24,16 +24,30 @@ export default function PreprocessingPage() {
   };
 
   const [selectedDataset, setSelectedDataset] = useState(() => getInitial('selectedDataset', ''));
+  const [datasets, setDatasets] = useState([]);
   const [currentStep, setCurrentStep] = useState(() => getInitial('step', -1));
   const [isProcessing, setIsProcessing] = useState(false);
+  const [preprocStatus, setPreprocStatus] = useState(null);
   const [globalLock, setGlobalLock] = useState(null);
+
+  const fetchDatasets = async () => {
+    try {
+      const res = await modelAPI.listDatasets();
+      setDatasets(res.data);
+    } catch (err) {
+      console.error("Gagal mengambil daftar dataset:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDatasets();
+  }, []);
 
   // Handle incoming state from DataCollection
   useEffect(() => {
     if (location.state?.selectedDatasetId) {
-      setSelectedDataset('db-01'); // Mock auto-select to database
+      setSelectedDataset(location.state.selectedDatasetId.toString());
       if (currentStep === -1) {
-        // Automatically start if coming from Data Collection
         handleStart();
       }
     }
@@ -70,11 +84,17 @@ export default function PreprocessingPage() {
     fetchStats();
   }, []);
 
-  const handleStart = () => {
-    setCurrentStep(0);
-    setIsProcessing(true);
-    localStorage.setItem('preproc_running', 'true');
-    localStorage.setItem('global_process_active', 'preprocessing');
+  const handleStart = async () => {
+    try {
+      await modelAPI.startPreprocess();
+      setCurrentStep(1);
+      setIsProcessing(true);
+      localStorage.setItem('preproc_running', 'true');
+      localStorage.setItem('global_process_active', 'preprocessing');
+    } catch (err) {
+      alert(err.response?.data?.detail || "Gagal memulai pre-processing");
+      console.error(err);
+    }
   };
 
   // Resume Simulation Logic
@@ -86,19 +106,41 @@ export default function PreprocessingPage() {
     }
   }, []);
 
+  // Real Polling Logic
   useEffect(() => {
-    let timer;
-    if (isProcessing && currentStep < STEPS.length - 1) {
-      timer = setTimeout(() => {
-        setCurrentStep(prev => prev + 1);
-      }, 2000); 
-    } else if (isProcessing && currentStep === STEPS.length - 1) {
-      setIsProcessing(false); 
-      localStorage.removeItem('preproc_running');
-      localStorage.removeItem('global_process_active');
+    let pollInterval;
+    if (isProcessing) {
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await modelAPI.getPreprocessStatus();
+          const status = res.data;
+          setPreprocStatus(status);
+          
+          if (status.progress > 0 && status.progress < 100) {
+            // Map progress to steps 1-4
+            const stepMapping = Math.min(4, Math.floor(status.progress / 25) + 1);
+            setCurrentStep(stepMapping);
+          }
+
+          if (!status.is_running && status.progress === 100) {
+            setIsProcessing(false);
+            setCurrentStep(5); // Hasil Akhir
+            localStorage.removeItem('preproc_running');
+            localStorage.removeItem('global_process_active');
+            fetchStats(); // Update stats (total_processed)
+            clearInterval(pollInterval);
+          } else if (!status.is_running && status.message.includes("Error")) {
+            setIsProcessing(false);
+            alert(status.message);
+            clearInterval(pollInterval);
+          }
+        } catch (err) {
+          console.error("Polling error:", err);
+        }
+      }, 1000);
     }
-    return () => clearTimeout(timer);
-  }, [currentStep, isProcessing]);
+    return () => clearInterval(pollInterval);
+  }, [isProcessing]);
 
   const handleReset = () => {
     localStorage.removeItem('preproc_step');
@@ -163,7 +205,14 @@ export default function PreprocessingPage() {
                 style={{ maxWidth: 280, fontWeight: 600, background: isProcessing ? 'var(--gray-50)' : 'white' }}
               >
                 <option value="" disabled>-- Pilih Dataset Aktif --</option>
-                {hasDataset && <option value="db-01">Database Utama ({dbStats.total_emails.toLocaleString()} Email)</option>}
+                {datasets.map(ds => (
+                  <option key={ds.id} value={ds.id}>
+                    {ds.name} ({(ds.total_rows || 0).toLocaleString()} Email)
+                  </option>
+                ))}
+                {datasets.length === 0 && hasDataset && (
+                  <option value="db-01">Database Utama ({dbStats.total_emails.toLocaleString()} Email)</option>
+                )}
               </select>
           </div>
           {selectedDataset && hasDataset && (
@@ -271,16 +320,16 @@ export default function PreprocessingPage() {
           {currentStep === 0 && dbStats && (
             <div style={{ display: 'flex', gap: 16, animation: 'fadeIn 0.5s ease-out' }}>
               <div style={{ flex: 1, padding: 20, background: 'var(--gray-50)', borderRadius: 12, textAlign: 'center', border: '1px solid var(--gray-200)' }}>
-                <div style={{ fontSize: '0.8rem', color: 'var(--gray-500)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: 1, marginBottom: 8 }}>Total Keseluruhan</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--gray-500)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: 1, marginBottom: 8 }}>Total Email</div>
                 <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--black)' }}>{dbStats.total_emails.toLocaleString()}</div>
               </div>
-              <div style={{ flex: 1, padding: 20, background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 12, textAlign: 'center' }}>
-                <div style={{ fontSize: '0.8rem', color: '#ef4444', textTransform: 'uppercase', fontWeight: 600, letterSpacing: 1, marginBottom: 8 }}>Terindikasi Spam</div>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#ef4444' }}>{dbStats.total_spam.toLocaleString()}</div>
+              <div style={{ flex: 1, padding: 20, background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: 12, textAlign: 'center' }}>
+                <div style={{ fontSize: '0.8rem', color: '#3b82f6', textTransform: 'uppercase', fontWeight: 600, letterSpacing: 1, marginBottom: 8 }}>Sudah Diproses</div>
+                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6' }}>{dbStats.total_processed.toLocaleString()}</div>
               </div>
-              <div style={{ flex: 1, padding: 20, background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: 12, textAlign: 'center' }}>
-                <div style={{ fontSize: '0.8rem', color: '#10b981', textTransform: 'uppercase', fontWeight: 600, letterSpacing: 1, marginBottom: 8 }}>Email Aman (Ham)</div>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>{dbStats.total_ham.toLocaleString()}</div>
+              <div style={{ flex: 1, padding: 20, background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 12, textAlign: 'center' }}>
+                <div style={{ fontSize: '0.8rem', color: '#ef4444', textTransform: 'uppercase', fontWeight: 600, letterSpacing: 1, marginBottom: 8 }}>Spam</div>
+                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#ef4444' }}>{dbStats.total_spam.toLocaleString()}</div>
               </div>
             </div>
           )}
@@ -290,8 +339,16 @@ export default function PreprocessingPage() {
             <div style={{ padding: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--gray-50)', borderRadius: 12, border: '1px dashed var(--gray-300)' }}>
               {isProcessing ? (
                 <>
-                  <Activity size={32} className="spinner" style={{ color: 'var(--gray-400)', marginBottom: 16 }} />
-                  <p style={{ color: 'var(--gray-500)', margin: 0, fontWeight: 500 }}>Sistem sedang menerapkan {STEPS[currentStep].label.toLowerCase()} pada seluruh dataset...</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: 400, marginBottom: 12 }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{preprocStatus?.message || "Sedang memproses..."}</span>
+                    <span style={{ fontWeight: 700 }}>{preprocStatus?.progress || 0}%</span>
+                  </div>
+                  <div style={{ width: '100%', maxWidth: 400, height: 8, background: 'var(--gray-200)', borderRadius: 4, overflow: 'hidden', marginBottom: 20 }}>
+                    <div style={{ width: `${preprocStatus?.progress || 0}%`, height: '100%', background: 'var(--black)', transition: 'width 0.3s ease' }} />
+                  </div>
+                  <p style={{ color: 'var(--gray-500)', margin: 0, fontSize: '0.8rem' }}>
+                    Sistem sedang menerapkan {STEPS[currentStep].label.toLowerCase()} pada {preprocStatus?.total_items?.toLocaleString() || '...'} email.
+                  </p>
                 </>
               ) : (
                 <CheckCircle size={32} style={{ color: '#10b981', marginBottom: 16 }} />
