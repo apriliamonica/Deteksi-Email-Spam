@@ -42,6 +42,7 @@ class UMAPReducer:
             min_dist=min_dist,
             metric=metric,
             random_state=random_state,
+            verbose=True,
         )
         self._is_fitted = False
 

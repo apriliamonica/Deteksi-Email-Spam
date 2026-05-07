@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock } from 'lucide-react';
 
 export default function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');

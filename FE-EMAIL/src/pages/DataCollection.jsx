@@ -1,22 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Database, Upload, FileSpreadsheet, CheckCircle, Clock, Trash2, Layers, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
-import { emailAPI } from '../services/api';
+import { emailAPI, modelAPI } from '../services/api';
 
 export default function DataCollection() {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [estimatedTime, setEstimatedTime] = useState(0);
+  const [error, setError] = useState(null);
   
-  // Mock data for datasets with Status and Pagination
-  const [datasets, setDatasets] = useState([
-    { id: 1, name: 'Dataset Email 2024.csv', total: 12500, spam: 4100, ham: 8400, date: '29/04/26', status: 'Completed' },
-    { id: 2, name: 'Koleksi Spam Lokal.csv', total: 3200, spam: 3200, ham: 0, date: '28/04/26', status: 'Completed' },
-    { id: 3, name: 'Email Promosi Market.csv', total: 890, spam: 450, ham: 440, date: '27/04/26', status: 'Pending' },
-    { id: 4, name: 'Bahan Training GAT.csv', total: 5600, spam: 2100, ham: 3500, date: '26/04/26', status: 'Pending' },
-    { id: 5, name: 'Dataset Dummy.csv', total: 100, spam: 50, ham: 50, date: '25/04/26', status: 'Pending' },
-    { id: 6, name: 'Email Baru Mei.csv', total: 1200, spam: 300, ham: 900, date: '01/05/26', status: 'Pending' },
-  ]);
+  const [datasets, setDatasets] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDatasets();
+  }, []);
+
+  const fetchDatasets = async () => {
+    try {
+      setLoading(true);
+      const response = await modelAPI.listDatasets();
+      setDatasets(response.data);
+    } catch (err) {
+      console.error("Gagal mengambil dataset:", err);
+      setError("Gagal mengambil daftar dataset dari server.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -33,36 +47,134 @@ export default function DataCollection() {
   const handleUpload = async () => {
     if (!file) return;
     setUploadStatus('uploading');
-    await new Promise(r => setTimeout(r, 1500));
-    const newDataset = {
-      id: Date.now(),
-      name: file.name,
-      total: 750,
-      spam: 300,
-      ham: 450,
-      date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' }),
-      status: 'Pending'
-    };
-    setDatasets(prev => [newDataset, ...prev]);
-    setUploadStatus('success');
-    setFile(null);
+    setUploadProgress(0);
+    setError(null);
+
+    // Basic estimation: 1MB takes about 3-5 seconds to process on average
+    const fileSizeMB = file.size / (1024 * 1024);
+    const estimatedSeconds = Math.max(2, Math.ceil(fileSizeMB * 3));
+    setEstimatedTime(estimatedSeconds);
     
-    // Auto-prompt for pre-processing after upload
-    setSelectedForPre(newDataset);
-    setShowConfirm(true);
+    try {
+      const response = await modelAPI.uploadDataset(file, (progressEvent) => {
+        if (progressEvent.total) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(percentCompleted * 0.7); // 0-70% for actual upload
+        } else {
+          // If total is not available, just show some progress based on loaded bytes
+          // but cap it at 65% until finished
+          const loadedMB = progressEvent.loaded / (1024 * 1024);
+          setUploadProgress(Math.min(65, loadedMB * 10)); 
+        }
+      });
+
+      // Once upload is done (response received), move to 70% and start simulation for backend processing
+      setUploadProgress(70);
+      let currentProgress = 70;
+      const interval = setInterval(() => {
+        currentProgress += 2;
+        if (currentProgress >= 98) {
+          clearInterval(interval);
+        } else {
+          setUploadProgress(currentProgress);
+        }
+      }, 500);
+
+      const data = response.data;
+      
+      if (data.status === 'success') {
+        clearInterval(interval);
+        setUploadProgress(100);
+        
+        const newDataset = {
+          id: data.metrics.dataset_id,
+          name: file.name,
+          total_rows: data.metrics.total_uploaded,
+          spam_count: data.metrics.spam,
+          ham_count: data.metrics.ham,
+          created_at: new Date().toISOString(),
+          status: 'Uploaded'
+        };
+        
+        setTimeout(() => {
+          setDatasets(prev => [newDataset, ...prev]);
+          setUploadStatus('success');
+          setFile(null);
+          setSelectedForPre(newDataset);
+          setShowConfirm(true);
+        }, 500);
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+      setError(err.response?.data?.detail || "Gagal mengunggah file. Pastikan format CSV benar dan server aktif.");
+      setUploadStatus(null);
+    }
+  };
+
+  const handleSeedLocal = async () => {
+    setUploadStatus('uploading');
+    setUploadProgress(0);
+    setError(null);
+    setEstimatedTime(5); // Fast for local files
+
+    try {
+      // Simulate some progress since it's server-side
+      let currentProgress = 0;
+      const interval = setInterval(() => {
+        currentProgress += 10;
+        if (currentProgress >= 90) {
+          clearInterval(interval);
+        } else {
+          setUploadProgress(currentProgress);
+        }
+      }, 200);
+
+      const response = await modelAPI.seedLocal();
+      const data = response.data;
+
+      if (data.status === 'success') {
+        clearInterval(interval);
+        setUploadProgress(100);
+
+        const newDataset = {
+          id: data.metrics.dataset_id,
+          name: "dataset_translated.csv (Local Server)",
+          total_rows: data.metrics.total_uploaded,
+          spam_count: data.metrics.spam,
+          ham_count: data.metrics.ham,
+          created_at: new Date().toISOString(),
+          status: 'Uploaded'
+        };
+
+        setTimeout(() => {
+          setDatasets(prev => [newDataset, ...prev]);
+          setUploadStatus('success');
+          setSelectedForPre(newDataset);
+          setShowConfirm(true);
+        }, 500);
+      }
+    } catch (err) {
+      console.error("Seed error:", err);
+      setError(err.response?.data?.detail || "Gagal mengimport dataset lokal. Pastikan file ada di folder 'app/data/'.");
+      setUploadStatus(null);
+    }
   };
 
   const confirmPreProcessing = () => {
-    // Update local status to "Processing"
-    setDatasets(prev => prev.map(d => d.id === selectedForPre.id ? { ...d, status: 'Processing' } : d));
     setShowConfirm(false);
     // Navigate to preprocessing page
     navigate('/preprocessing', { state: { selectedDatasetId: selectedForPre.id, datasetName: selectedForPre.name } });
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Apakah Anda yakin ingin menghapus dataset ini? Data yang dihapus tidak dapat dikembalikan.")) {
-      setDatasets(prev => prev.filter(d => d.id !== id));
+      try {
+        await modelAPI.deleteDataset(id);
+        setDatasets(prev => prev.filter(d => d.id !== id));
+      } catch (err) {
+        console.error("Gagal menghapus dataset:", err);
+        alert("Gagal menghapus dataset. Silakan coba lagi.");
+      }
     }
   };
 
@@ -86,32 +198,92 @@ export default function DataCollection() {
             <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
               <Upload size={18} /> Upload Dataset Baru
             </h3>
-            <div className={`file-upload ${file ? 'active' : ''}`}
-              onClick={() => document.getElementById('fileInput').click()}
-              style={{ padding: '40px 20px', borderStyle: 'dashed' }}>
+            <div 
+              className={`file-upload ${file ? 'active' : ''}`}
+              onClick={() => {
+                console.log("Upload box clicked");
+                fileInputRef.current?.click();
+              }}
+              style={{ padding: '40px 20px', borderStyle: 'dashed' }}
+            >
               <FileSpreadsheet size={48} style={{ color: file ? 'var(--black)' : 'var(--gray-300)', marginBottom: 16, transition: 'all 0.3s ease' }} />
               <p style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 8 }}>
                 {file ? file.name : 'Pilih file CSV'}
               </p>
               <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
-                Klik untuk mencari file (.csv)
+                {file ? 'File terpilih' : 'Klik untuk mencari file (.csv)'}
               </p>
-              <input id="fileInput" type="file" accept=".csv" onChange={e => setFile(e.target.files[0])} style={{ display: 'none' }} />
             </div>
+            <input 
+              ref={fileInputRef}
+              type="file" 
+              accept=".csv" 
+              onChange={e => {
+                const selectedFile = e.target.files?.[0];
+                console.log("File selected:", selectedFile?.name);
+                if (selectedFile) {
+                  setFile(selectedFile);
+                  setError(null);
+                  setUploadStatus(null);
+                }
+              }} 
+              style={{ display: 'none' }} 
+            />
             
-            {file && (
+            {file && uploadStatus !== 'uploading' && (
               <div style={{ marginTop: 24, display: 'flex', gap: 12, animation: 'fadeIn 0.3s ease' }}>
-                <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleUpload} disabled={uploadStatus === 'uploading'}>
-                  {uploadStatus === 'uploading' ? <><Activity size={16} className="spinner" /> Mengirim...</>
-                    : <><Upload size={16} /> Upload Sekarang</>}
+                <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleUpload}>
+                  <Upload size={16} /> Upload Sekarang
                 </button>
                 <button className="btn btn-outline" onClick={() => setFile(null)}>Batal</button>
+              </div>
+            )}
+
+            {uploadStatus === 'uploading' && (
+              <div style={{ marginTop: 24, animation: 'fadeIn 0.3s ease' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: '0.8rem' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--gray-600)' }}>
+                    {uploadProgress < 70 ? 'Mengunggah file...' : 'Memproses dataset di server...'}
+                  </span>
+                  <span style={{ fontWeight: 800 }}>{Math.round(uploadProgress)}%</span>
+                </div>
+                <div style={{ height: 6, background: 'var(--gray-100)', borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
+                  <div 
+                    style={{ 
+                      height: '100%', 
+                      width: `${uploadProgress}%`, 
+                      background: 'var(--black)', 
+                      transition: 'width 0.3s ease' 
+                    }} 
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', color: 'var(--gray-400)' }}>
+                  <Clock size={12} /> Estimasi waktu: ~{estimatedTime} detik
+                </div>
+              </div>
+            )}
+
+            {!file && uploadStatus !== 'uploading' && (
+              <div style={{ marginTop: 16 }}>
+                <button 
+                  className="btn btn-outline" 
+                  style={{ width: '100%', borderStyle: 'dashed', color: 'var(--gray-600)' }}
+                  onClick={handleSeedLocal}
+                >
+                  <Activity size={16} /> Gunakan Dataset Lokal (Server)
+                </button>
               </div>
             )}
 
             {uploadStatus === 'success' && (
               <div style={{ marginTop: 16, padding: 12, background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <CheckCircle size={14} /> Berhasil ditambahkan!
+              </div>
+            )}
+
+            {error && (
+              <div style={{ marginTop: 16, padding: 12, background: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', borderRadius: 8, fontSize: '0.75rem', lineHeight: 1.4 }}>
+                <strong>Gagal Upload:</strong> {error}
               </div>
             )}
           </div>
@@ -148,17 +320,19 @@ export default function DataCollection() {
                       </td>
                       <td>
                         <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{d.name}</div>
-                        <div style={{ fontSize: '0.65rem', color: 'var(--gray-400)' }}>{d.date}</div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--gray-400)' }}>
+                          {new Date(d.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </td>
                       <td>
-                        <span className="badge badge-spam" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>{d.spam.toLocaleString()}</span>
+                        <span className="badge badge-spam" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>{d.spam_count?.toLocaleString() || 0}</span>
                       </td>
                       <td>
-                        <span className="badge badge-ham" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>{d.ham.toLocaleString()}</span>
+                        <span className="badge badge-ham" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>{d.ham_count?.toLocaleString() || 0}</span>
                       </td>
-                      <td style={{ fontWeight: 700, fontSize: '0.85rem' }}>{d.total.toLocaleString()}</td>
+                      <td style={{ fontWeight: 700, fontSize: '0.85rem' }}>{d.total_rows?.toLocaleString() || 0}</td>
                       <td>
-                        {isBalanced(d.spam, d.ham) ? (
+                        {isBalanced(d.spam_count, d.ham_count) ? (
                           <span className="badge badge-ham" style={{ background: '#10b981', color: 'white', border: 'none', fontSize: '0.65rem' }}>
                             Balanced
                           </span>

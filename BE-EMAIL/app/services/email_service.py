@@ -17,6 +17,12 @@ class EmailService:
         return email
 
     @staticmethod
+    def bulk_create_emails(db: Session, emails_list: list[dict]):
+        """Simpan banyak email sekaligus ke database (optimized)."""
+        db.bulk_insert_mappings(Email, emails_list)
+        db.commit()
+
+    @staticmethod
     def get_emails(
         db: Session,
         skip: int = 0,
@@ -40,29 +46,30 @@ class EmailService:
         return db.query(Email).filter(Email.id == email_id).first()
 
     @staticmethod
-    def get_training_data(db: Session) -> list[Email]:
-        """Ambil semua data training (bukan prediksi)."""
-        return (
-            db.query(Email)
-            .filter(Email.is_prediction == False)
-            .all()
-        )
+    def get_training_data(db: Session, dataset_id: Optional[int] = None) -> list[Email]:
+        """Ambil data training (bukan prediksi), opsional filter berdasarkan dataset_id."""
+        query = db.query(Email).filter(Email.is_prediction == False)
+        if dataset_id:
+            query = query.filter(Email.dataset_id == dataset_id)
+        return query.all()
 
     @staticmethod
-    def get_stats(db: Session) -> dict:
-        """Hitung statistik email."""
-        total = db.query(func.count(Email.id)).scalar()
-        total_spam = (
-            db.query(func.count(Email.id)).filter(Email.label == "spam").scalar()
-        )
-        total_ham = (
-            db.query(func.count(Email.id)).filter(Email.label == "ham").scalar()
-        )
+    def get_stats(db: Session, dataset_id: Optional[int] = None) -> dict:
+        """Hitung statistik email, opsional filter berdasarkan dataset_id."""
+        query = db.query(Email)
+        if dataset_id:
+            query = query.filter(Email.dataset_id == dataset_id)
+            
+        total = query.count()
+        total_spam = query.filter(Email.label == "spam").count()
+        total_ham = query.filter(Email.label == "ham").count()
+        total_processed = query.filter(Email.processed_body != None).count()
 
         return {
             "total_emails": total or 0,
             "total_spam": total_spam or 0,
             "total_ham": total_ham or 0,
+            "total_processed": total_processed or 0,
             "spam_percentage": round((total_spam / total * 100), 2) if total > 0 else 0,
         }
 

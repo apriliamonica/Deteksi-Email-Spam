@@ -20,22 +20,44 @@ api.interceptors.request.use((config) => {
 export const emailAPI = {
   classify: (data) => api.post('/email/classify', data),
   list: (params) => api.get('/email/list', { params }),
-  stats: () => api.get('/email/stats'),
+  stats: (dataset_id = null) => api.get('/email/stats', { params: { dataset_id } }),
   getById: (id) => api.get(`/email/${id}`),
 };
 
 // === Model API ===
 export const modelAPI = {
-  status: () => api.get('/model/status'),
-  train: (params) => api.post('/model/train', params),
-  uploadDataset: (file) => {
+  getStatus: () => api.get('/model/status'),
+  getProgress: () => api.get('/model/progress'),
+  cancelTrain: () => api.post('/model/cancel-train'),
+  listDatasets: () => api.get('/model/datasets'),
+  deleteDataset: (id) => api.delete(`/model/datasets/${id}`),
+  train: (params) => api.post('/model/train', {
+    dataset_id: params.dataset_id,
+    model_name: params.model_name,
+    test_split: params.test_split || 0.2,
+    finetune_epochs: params.finetune_epochs || 2,
+    finetune_lr: params.finetune_lr || 2e-5,
+    finetune_batch_size: params.finetune_batch_size || 16,
+    weight_decay: params.weight_decay || 0.01,
+    umap_components: params.umap_components || 128,
+    gat_epochs: params.gat_epochs || 30,
+    gat_lr: params.gat_lr || 0.001,
+    gat_weight_decay: params.gat_weight_decay || 5e-4
+  }),
+  uploadDataset: (file, onUploadProgress) => {
     const formData = new FormData();
     formData.append('file', file);
     return api.post('/model/upload-dataset', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress
     });
   },
+  seedLocal: () => api.post('/model/seed-local'),
+  startPreprocess: (dataset_id = null, force = false) => api.post('/model/preprocess', { dataset_id, force }),
+  getPreprocessStatus: () => api.get('/model/preprocess-status'),
   load: () => api.post('/model/load'),
+  getHistory: () => api.get('/model/history'),
+  getHistoryDetail: (id) => api.get(`/model/history/${id}`),
 };
 
 // === Auth API ===

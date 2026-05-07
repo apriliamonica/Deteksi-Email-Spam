@@ -1,11 +1,25 @@
-import { useState } from 'react';
-import { Mail, ShieldAlert, ShieldCheck, Play, Send, History, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Mail, ShieldAlert, ShieldCheck, Send, History, Sparkles } from 'lucide-react';
 import { emailAPI } from '../services/api';
 
 export default function Dashboard({ user }) {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [stats, setStats] = useState({ total_emails: 0, total_spam: 0, total_ham: 0 });
+
+  const fetchStats = async () => {
+    try {
+      const res = await emailAPI.stats();
+      setStats(res.data);
+    } catch (err) {
+      console.error("Gagal mengambil statistik:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
   const handleCheck = async (e) => {
     e.preventDefault();
@@ -23,7 +37,6 @@ export default function Dashboard({ user }) {
     }
   };
 
-  const stats = { total: 10240, spam: 4120, ham: 6120 };
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', minHeight: '80vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -111,9 +124,9 @@ export default function Dashboard({ user }) {
       {/* Footer Stats (Subtle) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 60 }}>
         {[
-          { label: 'Total Database', value: stats.total.toLocaleString(), icon: Mail },
-          { label: 'Terdeteksi Spam', value: stats.spam.toLocaleString(), icon: ShieldAlert },
-          { label: 'Email Aman', value: stats.ham.toLocaleString(), icon: ShieldCheck },
+          { label: 'Total Database', value: (stats.total_emails || 0).toLocaleString(), icon: Mail },
+          { label: 'Terdeteksi Spam', value: (stats.total_spam || 0).toLocaleString(), icon: ShieldAlert },
+          { label: 'Email Aman', value: (stats.total_ham || 0).toLocaleString(), icon: ShieldCheck },
         ].map((s, i) => (
           <div key={i} style={{ textAlign: 'center', padding: '16px', background: 'var(--gray-50)', borderRadius: 16, border: '1px solid var(--gray-100)' }}>
             <div style={{ fontSize: '0.7rem', color: 'var(--gray-400)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>{s.label}</div>

@@ -54,7 +54,7 @@ async def classify_email(email_input: EmailInput, db: Session = Depends(get_db))
 async def list_emails(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    label: Optional[str] = Query(None, regex="^(spam|ham)$"),
+    label: Optional[str] = Query(None, pattern="^(spam|ham)$"),
     is_prediction: Optional[bool] = None,
     db: Session = Depends(get_db),
 ):
@@ -64,9 +64,12 @@ async def list_emails(
 
 
 @router.get("/stats", response_model=DashboardStats)
-async def get_dashboard_stats(db: Session = Depends(get_db)):
+async def get_dashboard_stats(
+    dataset_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db)
+):
     """Ambil statistik dashboard."""
-    stats = EmailService.get_stats(db)
+    stats = EmailService.get_stats(db, dataset_id)
     recent = EmailService.get_emails(db, skip=0, limit=5, is_prediction=True)
     latest_training = EmailService.get_latest_training(db)
 

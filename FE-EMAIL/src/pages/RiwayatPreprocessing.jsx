@@ -1,16 +1,34 @@
-import { useState } from 'react';
-import { Layers, Calendar, Trash2, CheckCircle, FileText, Database } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calendar, Trash2, CheckCircle, FileText, Database, Loader2 } from 'lucide-react';
+import { modelAPI } from '../services/api';
 
 export default function RiwayatPreprocessingPage() {
-  const [history, setHistory] = useState([
-    { id: 1, date: "28/04/26", dataset: "dataset_spam_indo.csv", total: 10000, spam: 4200, ham: 5800, status: "Selesai" },
-    { id: 2, date: "27/04/26", dataset: "test_email_batch1.csv", total: 1500, spam: 600, ham: 900, status: "Selesai" },
-    { id: 3, date: "20/04/26", dataset: "dummy_data.csv", total: 500, spam: 200, ham: 300, status: "Selesai" },
-  ]);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleDelete = (id) => {
-    if (window.confirm("Hapus riwayat pre-processing ini?")) {
-      setHistory(history.filter(h => h.id !== id));
+  const fetchHistory = async () => {
+    try {
+      const res = await modelAPI.listDatasets();
+      setHistory(res.data);
+    } catch (err) {
+      console.error("Gagal mengambil riwayat:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Hapus dataset ini dari database?")) {
+      try {
+        await modelAPI.deleteDataset(id);
+        setHistory(history.filter(h => h.id !== id));
+      } catch (err) {
+        alert("Gagal menghapus dataset: " + (err.response?.data?.detail || err.message));
+      }
     }
   };
 
@@ -36,18 +54,33 @@ export default function RiwayatPreprocessingPage() {
               </tr>
             </thead>
             <tbody>
-              {history.map(item => (
-                <tr key={item.id}>
-                  <td style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>{item.date}</td>
-                  <td style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <FileText size={16} style={{ color: 'var(--gray-400)' }} /> {item.dataset}
+              {loading ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px 0' }}>
+                    <Loader2 size={24} className="spinner" style={{ margin: '0 auto 8px auto', color: 'var(--gray-400)' }} />
+                    <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem' }}>Memuat riwayat...</p>
                   </td>
-                  <td style={{ fontWeight: 600 }}>{item.total.toLocaleString()}</td>
-                  <td style={{ color: '#ef4444' }}>{item.spam.toLocaleString()}</td>
-                  <td style={{ color: '#10b981' }}>{item.ham.toLocaleString()}</td>
+                </tr>
+              ) : history.length === 0 ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px 0' }}>
+                    <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem' }}>Belum ada riwayat dataset.</p>
+                  </td>
+                </tr>
+              ) : history.map(item => (
+                <tr key={item.id}>
+                  <td style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>
+                    {new Date(item.created_at).toLocaleDateString('id-ID')}
+                  </td>
+                  <td style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <FileText size={16} style={{ color: 'var(--gray-400)' }} /> {item.name}
+                  </td>
+                  <td style={{ fontWeight: 600 }}>{(item.total_rows || 0).toLocaleString()}</td>
+                  <td style={{ color: '#ef4444' }}>{(item.spam_count || 0).toLocaleString()}</td>
+                  <td style={{ color: '#10b981' }}>{(item.ham_count || 0).toLocaleString()}</td>
                   <td>
                     <span className="badge badge-ham" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <CheckCircle size={12} /> {item.status}
+                      <CheckCircle size={12} /> {item.status || 'Selesai'}
                     </span>
                   </td>
                   <td>

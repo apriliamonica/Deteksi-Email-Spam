@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, UserPlus, Search, Edit2, Trash2, Shield, User } from 'lucide-react';
+import { UserPlus, Search, Edit2, Trash2, Shield, User } from 'lucide-react';
 
 export default function ManageAccounts() {
   const [users, setUsers] = useState([

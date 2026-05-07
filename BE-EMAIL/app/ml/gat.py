@@ -116,12 +116,16 @@ class GATClassifier(nn.Module):
         x = self.bn2(x)
         x = F.elu(x, inplace=True)
 
-        # Global Pooling (Mean Pool) - Menggabungkan representasi token menjadi representasi email
-        # Penting untuk klasifikasi graf (Word Graph)
+        # Global Pooling (Mean Pool) - Hanya untuk Klasifikasi Graf (Word Graph)
+        # Jika melakukan Klasifikasi Node (Sample Graph), kita lewati pooling
         if hasattr(data, 'batch') and data.batch is not None:
             x = global_mean_pool(x, data.batch)
+        elif hasattr(data, 'y') and data.y is not None and data.y.size(0) > 1:
+            # Jika ada banyak label untuk satu graf, ini adalah Klasifikasi Node
+            # Jangan lakukan pooling agar output tetap (num_nodes, classes)
+            pass
         else:
-            # Jika hanya satu graf, pooling semua node
+            # Untuk prediksi tunggal atau word graph tunggal
             x = x.mean(dim=0, keepdim=True)
 
         # Classification head
@@ -216,23 +220,36 @@ def build_word_graph(
 
 def build_sample_graph(
     embeddings: torch.Tensor,
-    threshold: float = 0.5,
+    k: int = 20,
 ) -> Data:
     """
-    Membangun graph antar sampel (email) - Metodologi lama.
+    Membangun graph antar sampel menggunakan Top-K Neighbors untuk stabilitas memori.
+    Setiap node hanya terhubung dengan K tetangga terdekatnya.
     """
-    emb_np = embeddings.cpu().numpy()
-    sim_matrix = cosine_similarity(emb_np)
-    edges_src = []
-    edges_dst = []
-    n = sim_matrix.shape[0]
-    for i in range(n):
-        for j in range(i + 1, n):
-            if sim_matrix[i][j] > threshold:
-                edges_src.extend([i, j])
-                edges_dst.extend([j, i])
+    n = embeddings.size(0)
+    print(f"  [Graph] Building Top-K graph (K={k}) for {n} nodes...")
     
-    edge_index = torch.tensor([edges_src, edges_dst], dtype=torch.long)
+    # Normalize embeddings
+    emb_norm = F.normalize(embeddings, p=2, dim=1)
+    
+    # Hitung Cosine Similarity Matrix
+    sim_matrix = torch.mm(emb_norm, emb_norm.t())
+    
+    # Ambil Top-K indices untuk setiap baris
+    # k+1 karena node itu sendiri pasti paling mirip (diagonal), kita akan buang nanti
+    topk_values, topk_indices = torch.topk(sim_matrix, k + 1, dim=1)
+    
+    # Buat edge_index
+    # Row indices: [0,0,0, 1,1,1, ...]
+    row = torch.arange(n).view(-1, 1).repeat(1, k).view(-1).to(embeddings.device)
+    
+    # Col indices: ambil dari topk_indices (abaikan kolom pertama jika itu self-loop)
+    # Untuk amannya, kita ambil kolom 1 sampai k+1
+    col = topk_indices[:, 1:].reshape(-1).to(embeddings.device)
+    
+    edge_index = torch.stack([row, col], dim=0)
+    
+    print(f"  [Graph] Done. Nodes: {n}, Edges: {edge_index.size(1)}")
     return Data(x=embeddings, edge_index=edge_index)
 
 # Alias untuk kompatibilitas

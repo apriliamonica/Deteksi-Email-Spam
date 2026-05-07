@@ -4,7 +4,7 @@ import pandas as pd
 import io
 
 from app.config.database import get_db
-from app.schemas.email import TrainingRequest, TrainingResponse, ModelStatusResponse
+from app.schemas.email import TrainingRequest, TrainingResponse, ModelStatusResponse, PreprocessRequest
 from app.schemas.dataset import DatasetResponse
 from app.models.dataset import Dataset
 from app.services.email_service import EmailService
@@ -12,6 +12,13 @@ from app.services.prediction_service import prediction_service
 from app.services.preprocessing_service import preprocessing_service
 
 router = APIRouter()
+
+
+@router.post("/cancel-train")
+async def cancel_training():
+    """Hentikan proses training yang sedang berjalan."""
+    prediction_service.stop_training()
+    return {"message": "Permintaan pembatalan training telah dikirim."}
 
 
 @router.get("/status", response_model=ModelStatusResponse)
@@ -40,16 +47,27 @@ async def get_training_progress():
 
 
 @router.post("/preprocess")
-async def start_preprocessing(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+async def start_preprocessing(
+    request: PreprocessRequest,
+    background_tasks: BackgroundTasks, 
+    db: Session = Depends(get_db)
+):
     """Mulai proses pre-processing semua data training di background."""
     if preprocessing_service.status["is_running"]:
         return {"status": "error", "message": "Proses pre-processing sedang berjalan."}
     
-    training_data = EmailService.get_training_data(db)
-    if not training_data:
-        raise HTTPException(status_code=400, detail="Tidak ada data untuk diproses.")
+    # Check if training is running
+    if prediction_service.training_status["status"] == "training":
+        raise HTTPException(
+            status_code=400, 
+            detail="Proses training sedang berjalan. Harap tunggu hingga selesai."
+        )
     
-    background_tasks.add_task(preprocessing_service.process_emails, db, training_data)
+    training_data = EmailService.get_training_data(db, request.dataset_id)
+    if not training_data:
+        raise HTTPException(status_code=400, detail="Tidak ada data untuk diproses pada dataset ini.")
+    
+    background_tasks.add_task(preprocessing_service.process_emails, db, training_data, request.force)
     return {"status": "success", "message": "Proses pre-processing dimulai di background."}
 
 
@@ -78,43 +96,16 @@ async def delete_dataset(dataset_id: int, db: Session = Depends(get_db)):
 
 
 
-@router.post("/train", response_model=TrainingResponse)
-async def train_model(
-    request: TrainingRequest,
-    db: Session = Depends(get_db),
-):
-    """
-    Training model hybrid IndoBERT + GAT + UMAP.
-
-    Pipeline:
-    1. Fine-tune IndoBERT (default 5 epoch, lr=2e-5, AdamW)
-    2. Generate embeddings (768d)
-    3. UMAP reduction (768d → 128d)
-    4. Build graph (cosine similarity)
-    5. Train GAT (default 30 epoch, lr=5e-3, Adam)
-    6. Evaluasi (accuracy, precision, recall, f1)
-    """
+def background_train(request: TrainingRequest, texts: list[str], labels: list[int]):
+    """Fungsi pembungkus untuk menjalankan training di background."""
+    from app.config.database import SessionLocal
+    db = SessionLocal()
     try:
-        # Ambil data training dari database
-        training_data = EmailService.get_training_data(db)
-
-        if len(training_data) < 10:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Data training tidak cukup ({len(training_data)} data). Minimal 10 data.",
-            )
-
-        texts = [e.processed_body if e.processed_body else e.body for e in training_data]
-        labels = [1 if e.label == "spam" else 0 for e in training_data]
-        
-        # Tambahan: Pastikan teks bersih dari simbol yang merusak training
-        from app.utils.preprocessing import preprocess_email
-        texts = [t if e.processed_body else preprocess_email(t) for t, e in zip(texts, training_data)]
-
         # Training pipeline lengkap
         result = prediction_service.train(
             texts=texts,
             labels=labels,
+            dataset_id=request.dataset_id,
             finetune_epochs=request.finetune_epochs,
             finetune_lr=request.finetune_lr,
             finetune_batch_size=request.finetune_batch_size,
@@ -128,8 +119,10 @@ async def train_model(
 
         metrics = result["metrics"]
 
-        # Simpan history
+        # Simpan history lengkap
+        import json
         EmailService.save_training_history(db, {
+            "dataset_id": request.dataset_id,
             "model_name": "IndoBERT + GAT + UMAP",
             "accuracy": metrics["accuracy"],
             "precision": metrics["precision"],
@@ -139,20 +132,60 @@ async def train_model(
             "train_size": metrics["train_size"],
             "test_size": metrics["test_size"],
             "epochs": metrics["gat_epochs"],
-            "learning_rate": request.gat_lr,
+            "learning_rate": metrics["learning_rate"],
+            "umap_components": request.umap_components,
+            "weight_decay": request.weight_decay,
+            "gat_weight_decay": request.gat_weight_decay,
+            "metrics_json": json.dumps(metrics),
+            "visualization_json": json.dumps(result["visualization"])
         })
+    except Exception as e:
+        print(f"[Background Train] Error: {str(e)}")
+    finally:
+        db.close()
 
-        return TrainingResponse(
-            status="success",
-            message="Training model selesai",
-            metrics=metrics,
-            visualization=result.get("visualization"),
+
+@router.post("/train", response_model=TrainingResponse)
+async def train_model(
+    request: TrainingRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Training model hybrid IndoBERT + GAT + UMAP (Background Task).
+    """
+    # Ambil data training dari database berdasarkan dataset_id
+    training_data = EmailService.get_training_data(db, request.dataset_id)
+
+    if len(training_data) < 10:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Data training tidak cukup ({len(training_data)} data). Minimal 10 data.",
+        )
+    
+    if prediction_service.training_status["status"] == "training":
+        raise HTTPException(
+            status_code=400,
+            detail="Proses training sedang berjalan. Harap tunggu selesai.",
         )
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Training gagal: {str(e)}")
+    texts = [e.processed_body if e.processed_body else e.body for e in training_data]
+    labels = [1 if e.label == "spam" else 0 for e in training_data]
+    
+    # Set status immediately to prevent frontend sync from resetting
+    prediction_service.training_status.update({
+        "status": "training",
+        "current_step": "Memulai pipeline pelatihan...",
+        "progress": 5
+    })
+
+    # Jalankan di background
+    background_tasks.add_task(background_train, request, texts, labels)
+
+    return TrainingResponse(
+        status="success",
+        message="Proses training dimulai di background. Pantau progres melalui endpoint progress.",
+    )
 
 
 @router.post("/upload-dataset", response_model=TrainingResponse)
@@ -194,10 +227,22 @@ async def upload_dataset(
         if text_col is None or "label" not in df.columns:
             raise HTTPException(status_code=400, detail="CSV harus memiliki kolom 'text'/'body' dan 'label'.")
 
+        spam_count = 0
+        ham_count = 0
+        new_dataset = Dataset(
+            name=file.filename,
+            total_rows=0, # Will update
+            spam_count=spam_count,
+            ham_count=ham_count,
+            status="Uploaded"
+        )
+        db.add(new_dataset)
+        db.flush() # Get ID
+        
+        emails_to_create = []
         total_count = 0
         spam_count = 0
         ham_count = 0
-        emails_to_create = []
 
         for _, row in df.iterrows():
             label = str(row["label"]).strip().lower()
@@ -208,6 +253,7 @@ async def upload_dataset(
                 continue
 
             emails_to_create.append({
+                "dataset_id": new_dataset.id,
                 "body": str(row[text_col])[:5000],
                 "subject": str(row.get("subject", "")) if "subject" in df.columns else None,
                 "label": label,
@@ -219,26 +265,18 @@ async def upload_dataset(
             else:
                 ham_count += 1
             
-            # Bulk create in batches of 1000 to save memory/db transactions
             if len(emails_to_create) >= 1000:
                 EmailService.bulk_create_emails(db, emails_to_create)
                 total_count += len(emails_to_create)
                 emails_to_create = []
-                print(f"Uploaded {total_count} rows...")
 
-        # Final batch
         if emails_to_create:
             EmailService.bulk_create_emails(db, emails_to_create)
             total_count += len(emails_to_create)
 
-        new_dataset = Dataset(
-            name=file.filename,
-            total_rows=total_count,
-            spam_count=spam_count,
-            ham_count=ham_count,
-            status="Uploaded"
-        )
-        db.add(new_dataset)
+        new_dataset.total_rows = total_count
+        new_dataset.spam_count = spam_count
+        new_dataset.ham_count = ham_count
         db.commit()
         db.refresh(new_dataset)
 
@@ -295,6 +333,19 @@ async def seed_local_dataset(db: Session = Depends(get_db)):
         if df_iterator is None:
             raise HTTPException(status_code=400, detail="Gagal membaca CSV lokal. Pastikan file ada dan format benar.")
 
+        spam_count = 0
+        ham_count = 0
+        # Metadata dataset
+        new_dataset = Dataset(
+            name="dataset_translated.csv (Local)",
+            total_rows=0,
+            spam_count=0,
+            ham_count=0,
+            status="Uploaded"
+        )
+        db.add(new_dataset)
+        db.flush()
+
         # Read in chunks to save memory
         for chunk_idx, df_chunk in enumerate(df_iterator):
             try:
@@ -306,15 +357,13 @@ async def seed_local_dataset(db: Session = Depends(get_db)):
                 emails_chunk = []
                 for _, row in df_chunk.iterrows():
                     label = str(row["label"]).strip().lower()
-                    # Support numeric labels: 1=spam, 0=ham
-                    if label == "1":
-                        label = "spam"
-                    elif label == "0":
-                        label = "ham"
+                    if label == "1": label = "spam"
+                    elif label == "0": label = "ham"
                     if label not in ("spam", "ham"):
                         continue
 
                     emails_chunk.append({
+                        "dataset_id": new_dataset.id,
                         "body": str(row[text_col])[:5000],
                         "subject": str(row.get("subject", "")) if "subject" in df_chunk.columns else None,
                         "label": label,
@@ -329,21 +378,13 @@ async def seed_local_dataset(db: Session = Depends(get_db)):
                 if emails_chunk:
                     EmailService.bulk_create_emails(db, emails_chunk)
                     total_count += len(emails_chunk)
-                    if (chunk_idx + 1) % 5 == 0 or total_count < 5000:
-                        print(f"Chunk {chunk_idx + 1}: Imported {len(emails_chunk)} rows. Total: {total_count}")
             except Exception as e:
                 print(f"Error processing local chunk {chunk_idx}: {str(e)}")
                 continue
 
-        # Metadata dataset
-        new_dataset = Dataset(
-            name="dataset_translated.csv (Local)",
-            total_rows=total_count,
-            spam_count=spam_count,
-            ham_count=ham_count,
-            status="Uploaded"
-        )
-        db.add(new_dataset)
+        new_dataset.total_rows = total_count
+        new_dataset.spam_count = spam_count
+        new_dataset.ham_count = ham_count
         db.commit()
         db.refresh(new_dataset)
 
@@ -372,3 +413,20 @@ async def load_model():
         return {"status": "success", "message": "Model berhasil di-load"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gagal load model: {str(e)}")
+
+
+@router.get("/history")
+async def get_training_history(db: Session = Depends(get_db)):
+    """Ambil semua riwayat pelatihan model."""
+    from app.models.email import TrainingHistory
+    return db.query(TrainingHistory).order_by(TrainingHistory.created_at.desc()).all()
+
+
+@router.get("/history/{history_id}")
+async def get_history_detail(history_id: int, db: Session = Depends(get_db)):
+    """Ambil detail riwayat pelatihan tertentu."""
+    from app.models.email import TrainingHistory
+    history = db.query(TrainingHistory).filter(TrainingHistory.id == history_id).first()
+    if not history:
+        raise HTTPException(status_code=404, detail="Riwayat tidak ditemukan")
+    return history

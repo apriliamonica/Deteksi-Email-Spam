@@ -138,6 +138,7 @@ class IndoBERTEmbedder:
         self.tokenizer = None
         self.model: IndoBERTClassifier = None
         self._is_loaded = False
+        self._stop_training = False
 
         # Input Layer Parameters
         self.max_length = 256
@@ -161,6 +162,10 @@ class IndoBERTEmbedder:
         print(f"[IndoBERT] Config: hidden_size={self.model.config.hidden_size}, "
               f"num_hidden_layers={self.model.config.num_hidden_layers}, "
               f"num_attention_heads={self.model.config.num_attention_heads}")
+
+    def stop_training(self):
+        """Hentikan proses training/embedding yang sedang berjalan."""
+        self._stop_training = True
 
     @property
     def is_loaded(self) -> bool:
@@ -240,6 +245,10 @@ class IndoBERTEmbedder:
         all_embeddings = []
 
         for i in range(0, len(texts), batch_size):
+            if self._stop_training:
+                print("  [IndoBERT] Batch processing interrupted.")
+                break
+                
             batch_texts = texts[i : i + batch_size]
             inputs = self.tokenize(batch_texts)
 
@@ -248,8 +257,8 @@ class IndoBERTEmbedder:
 
             all_embeddings.append(embeddings.cpu())
 
-            if (i // batch_size + 1) % 10 == 0:
-                print(f"  [IndoBERT] Batch {i // batch_size + 1}/{(len(texts) - 1) // batch_size + 1}")
+            if (i // batch_size + 1) % 5 == 0 or i + batch_size >= len(texts):
+                print(f"  [IndoBERT] Embedding Generation - Batch {i // batch_size + 1}/{(len(texts) + batch_size - 1) // batch_size}")
 
         return torch.cat(all_embeddings, dim=0)
 
@@ -261,6 +270,7 @@ class IndoBERTEmbedder:
         learning_rate: float = 2e-5,
         batch_size: int = 16,
         weight_decay: float = 0.01,
+        progress_callback: callable = None,
     ) -> dict:
         """
         Fine-tuning IndoBERT dengan data email.
@@ -301,12 +311,20 @@ class IndoBERTEmbedder:
         criterion = nn.CrossEntropyLoss()
 
         loss_history = []
+        self._stop_training = False
 
         for epoch in range(epochs):
+            if self._stop_training:
+                print(f"  [IndoBERT Fine-tune] Interrupted at epoch {epoch}")
+                break
+                
             total_loss = 0
             n_batches = 0
 
             for i in range(0, len(texts), batch_size):
+                if self._stop_training:
+                    break
+                    
                 batch_texts = texts[i : i + batch_size]
                 batch_labels = labels_tensor[i : i + batch_size]
                 inputs = self.tokenize(batch_texts)
@@ -319,6 +337,15 @@ class IndoBERTEmbedder:
 
                 total_loss += loss.item()
                 n_batches += 1
+                
+                # Print progress to terminal
+                if n_batches % 5 == 0 or i + batch_size >= len(texts):
+                    current_batch = n_batches
+                    total_batches = (len(texts) + batch_size - 1) // batch_size
+                    print(f"  [IndoBERT Fine-tune] Epoch {epoch + 1}/{epochs} - Batch {current_batch}/{total_batches} - Loss: {loss.item():.4f}")
+                
+                if progress_callback and (n_batches % 5 == 0 or i + batch_size >= len(texts)):
+                    progress_callback(epoch + 1, epochs, n_batches, (len(texts) + batch_size - 1) // batch_size)
 
             avg_loss = total_loss / n_batches
             loss_history.append(avg_loss)

@@ -22,45 +22,40 @@ class PreprocessingService:
             "progress": 0,
             "current_item": 0,
             "total_items": 0,
-            "message": "Idle"
+            "message": "Idle",
+            "is_force": False
         }
 
     def clean_text(self, text: str) -> str:
-        """Pipeline preprocessing sesuai metodologi user (IndoBERT + GAT)."""
-        if not text or not isinstance(text, str):
-            return ""
+        """Pipeline preprocessing (Forward to central utility)."""
+        from app.utils.preprocessing import preprocess_email
+        return preprocess_email(text)
 
-        # --- TAHAP 1: CLEANING ---
-        text = re.sub(r'<.*?>', '', text) # Hapus HTML
-        text = re.sub(r'http\S+|www\S+', '[URL]', text) # Masking URL
-        text = re.sub(r'\S+@\S+', '[EMAIL]', text) # Masking Email
-        text = re.sub(r'[^\w\s\?\.!]', '', text) # Hapus simbol aneh (kecuali tanda baca dasar)
-        
-        # --- TAHAP 2: NORMALISASI & CASE FOLDING ---
-        text = text.lower() # Case Folding
-        text = " ".join(text.split()) # Rapikan spasi
-        
-        # Catatan: Stemming dan Stopword Removal dilewati sesuai instruksi
-        # agar IndoBERT memahami konteks secara maksimal.
-
-        return text
-
-    def process_emails(self, db: Session, emails: list):
+    def process_emails(self, db: Session, emails: list, force: bool = False):
         """Proses list objek Email dari SQLAlchemy."""
-        from sqlalchemy import text
+        from app.services.prediction_service import prediction_service
         
+        # 1. Cek Lock Backend (Apakah Training sedang berjalan?)
+        if prediction_service.training_status["status"] == "training":
+            self.status.update({
+                "is_running": False,
+                "message": "Error: Proses Training sedang berjalan. Harap tunggu."
+            })
+            return
+
         total = len(emails)
         self.status.update({
             "is_running": True,
             "progress": 0,
             "current_item": 0,
             "total_items": total,
-            "message": "Memulai Pre-processing..."
+            "message": "Memulai Pre-processing...",
+            "is_force": force
         })
 
         try:
             for i, email in enumerate(emails):
-                if not email.processed_body:
+                if not email.processed_body or force:
                     # Gabungkan subjek dan body untuk hasil terbaik
                     full_text = f"{email.subject} {email.body}" if email.subject else email.body
                     cleaned = self.clean_text(full_text)

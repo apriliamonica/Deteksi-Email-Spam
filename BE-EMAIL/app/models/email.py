@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.config.database import Base
 
@@ -9,8 +10,10 @@ class Email(Base):
     __tablename__ = "emails"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    dataset_id = Column(Integer, ForeignKey("datasets.id"), nullable=True)
     subject = Column(String(500), nullable=True)
     body = Column(Text, nullable=False)
+    processed_body = Column(Text, nullable=True)
     sender = Column(String(255), nullable=True)
     label = Column(String(10), nullable=False, comment="spam atau ham")
     confidence = Column(Float, nullable=True, comment="Confidence score prediksi")
@@ -21,7 +24,7 @@ class Email(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     def __repr__(self):
-        return f"<Email(id={self.id}, label={self.label}, subject={self.subject[:30] if self.subject else 'N/A'})>"
+        return f"<Email(id={self.id}, dataset_id={self.dataset_id}, label={self.label}, subject={self.subject[:30] if self.subject else 'N/A'})>"
 
 
 class TrainingHistory(Base):
@@ -30,6 +33,7 @@ class TrainingHistory(Base):
     __tablename__ = "training_history"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    dataset_id = Column(Integer, ForeignKey("datasets.id"), nullable=True)
     model_name = Column(String(100), nullable=False)
     accuracy = Column(Float, nullable=True)
     precision = Column(Float, nullable=True)
@@ -40,6 +44,11 @@ class TrainingHistory(Base):
     test_size = Column(Integer, nullable=True)
     epochs = Column(Integer, nullable=True)
     learning_rate = Column(Float, nullable=True)
+    umap_components = Column(Integer, nullable=True)
+    weight_decay = Column(Float, nullable=True)
+    gat_weight_decay = Column(Float, nullable=True)
+    metrics_json = Column(Text, nullable=True, comment="Full metrics and loss history in JSON format")
+    visualization_json = Column(Text, nullable=True, comment="Visualization coordinates in JSON format")
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

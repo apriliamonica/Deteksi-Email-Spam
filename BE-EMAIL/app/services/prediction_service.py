@@ -28,19 +28,20 @@ class PredictionService:
         self.training_embeddings: torch.Tensor = None
         self.training_embeddings_reduced: torch.Tensor = None
         self.training_labels: torch.Tensor = None
-        self.device = torch.device(
-            "mps" if torch.backends.mps.is_available()
-            else "cuda" if torch.cuda.is_available()
-            else "cpu"
-        )
+        # Kita gunakan CPU untuk stabilitas, karena MPS (Mac) sering bermasalah 
+        # dengan operasi Scatter/GAT pada PyTorch Geometric
+        self.device = torch.device("cpu")
         self._is_model_loaded = False
+        self._stop_training = False
         self.training_status = {
-            "status": "idle", # idle, training, success, error
+            "status": "idle", # idle, training, success, error, cancelled
             "current_step": "",
             "progress": 0,
             "epoch": 0,
             "total_epochs": 0,
-            "loss": 0.0
+            "loss": 0.0,
+            "metrics": None,
+            "visualization": None
         }
 
     @property
@@ -78,6 +79,13 @@ class PredictionService:
             self._is_model_loaded = True
         else:
             print("[Service] No saved model found. Please train first.")
+
+    def stop_training(self):
+        """Hentikan proses training yang sedang berjalan."""
+        self._stop_training = True
+        indobert_embedder.stop_training()
+        self.training_status["status"] = "cancelled"
+        self.training_status["current_step"] = "Training dibatalkan oleh pengguna."
 
     def predict(self, text: str, subject: str = None) -> dict:
         if not self.is_loaded:
@@ -118,18 +126,21 @@ class PredictionService:
             },
         }
 
-    def train(self, texts: list[str], labels: list[int],
+    def train(self, texts: list[str], labels: list[int], dataset_id: int = None,
               finetune_epochs: int = 5, finetune_lr: float = 2e-5,
               finetune_batch_size: int = 16, weight_decay: float = 0.01,
               umap_components: int = 128, gat_epochs: int = 30,
               gat_lr: float = 5e-3, gat_weight_decay: float = 5e-4, test_split: float = 0.2) -> dict:
         
+        self._stop_training = False
         self.training_status.update({
             "status": "training",
             "current_step": "Initializing models...",
             "progress": 5,
             "epoch": 0,
-            "loss": 0.0
+            "loss": 0.0,
+            "metrics": None,
+            "visualization": None
         })
         
         try:
@@ -137,21 +148,49 @@ class PredictionService:
                 indobert_embedder.load_model()
 
             # Step 1: Preprocessing & IndoBERT FT
-            # texts sudah berisi data yang di-preprocess dari model.py
-            processed_texts = texts
+            # Check for checkpoint to skip slow stages if possible
+            checkpoint_path = os.path.join(settings.MODEL_DIR, f"checkpoint_emb_{dataset_id or 'default'}.pt")
+            
+            if os.path.exists(checkpoint_path):
+                print(f"[Resume] Found checkpoint embeddings at {checkpoint_path}. Loading...")
+                checkpoint = torch.load(checkpoint_path, map_location="cpu")
+                embeddings = checkpoint["embeddings"]
+                labels_tensor = checkpoint["labels"]
+                labels_np = labels_tensor.cpu().numpy()
+                print(f"[Resume] Successfully loaded {len(embeddings)} embeddings. Skipping IndoBERT Fine-tuning.")
+                self.training_status.update({"current_step": "Checkpoint found! Skipping BERT stages...", "progress": 40})
+                ft_result = {"loss_history": []} # placeholder
+            else:
+                self.training_status.update({"current_step": "Fine-tuning IndoBERT...", "progress": 15})
+                
+                def ft_progress(epoch, total_epochs, batch, total_batches):
+                    self.training_status.update({
+                        "current_step": f"Fine-tuning IndoBERT (Epoch {epoch}/{total_epochs}, Batch {batch}/{total_batches})",
+                        "progress": 15 + int((epoch-1 + batch/total_batches) / total_epochs * 25) # 15% to 40%
+                    })
 
-            self.training_status.update({"current_step": "Fine-tuning IndoBERT...", "progress": 15})
-            ft_result = indobert_embedder.fine_tune(
-                texts=processed_texts, labels=labels, epochs=finetune_epochs,
-                learning_rate=finetune_lr, batch_size=finetune_batch_size, weight_decay=weight_decay,
-            )
+                ft_result = indobert_embedder.fine_tune(
+                    texts=texts, labels=labels, epochs=finetune_epochs,
+                    learning_rate=finetune_lr, batch_size=finetune_batch_size, weight_decay=weight_decay,
+                    progress_callback=ft_progress
+                )
+                
+                if self._stop_training:
+                    return {"status": "cancelled"}
 
-            # Step 2: Extract Embeddings (768d)
-            self.training_status.update({"current_step": "Generating Embeddings...", "progress": 40})
-            embeddings = indobert_embedder.get_batch_embeddings(processed_texts, batch_size=finetune_batch_size)
-            labels_np = np.array(labels)
+                # Step 2: Extract Embeddings (768d)
+                self.training_status.update({"current_step": "Generating Embeddings...", "progress": 40})
+                embeddings = indobert_embedder.get_batch_embeddings(texts, batch_size=finetune_batch_size)
+                labels_tensor = torch.tensor(labels, dtype=torch.long)
+                labels_np = np.array(labels)
+
+                # Save Checkpoint for Resume
+                os.makedirs(settings.MODEL_DIR, exist_ok=True)
+                torch.save({"embeddings": embeddings, "labels": labels_tensor}, checkpoint_path)
+                print(f"[Checkpoint] Saved embeddings to {checkpoint_path} for future resume.")
 
             # Step 3: Handle Imbalance with SMOTE (on embeddings)
+            print(f"[SMOTE] Checking data balance...")
             spam_count = sum(labels)
             ham_count = len(labels) - spam_count
             imbalance_ratio = max(spam_count, ham_count) / max(min(spam_count, ham_count), 1)
@@ -161,7 +200,7 @@ class PredictionService:
             oversampled_counts = {"spam": spam_count, "ham": ham_count}
 
             if imbalance_ratio > 1.2:
-                print(f"[SMOTE] Imbalance detected! Ratio: {imbalance_ratio:.2f}. Applying SMOTE oversampling...")
+                print(f"[SMOTE] Imbalance detected (Ratio: {imbalance_ratio:.2f}). Applying SMOTE...")
                 smote = SMOTE(random_state=42)
                 emb_np = embeddings.cpu().numpy()
                 emb_resampled, labels_resampled = smote.fit_resample(emb_np, labels_np)
@@ -173,14 +212,17 @@ class PredictionService:
                 
                 oversampled_spam = sum(labels_resampled)
                 oversampled_counts = {"spam": int(oversampled_spam), "ham": int(len(labels_resampled) - oversampled_spam)}
-                print(f"[SMOTE] New distribution - Spam: {oversampled_counts['spam']}, Ham: {oversampled_counts['ham']}")
+                print(f"[SMOTE] Resampled: {len(labels_resampled)} samples (Spam: {oversampled_counts['spam']}, Ham: {oversampled_counts['ham']})")
             else:
+                print(f"[SMOTE] Data balanced. No oversampling needed.")
                 labels_tensor = torch.tensor(labels, dtype=torch.long)
 
             # Step 4: UMAP Reduction
+            print(f"[UMAP] Reducing embeddings to {umap_components}d for GAT...")
             self.umap_gat = create_umap_for_gat(n_components=umap_components)
             embeddings_reduced = self.umap_gat.fit_transform(embeddings)
             
+            print(f"[UMAP] Reducing embeddings to 2d for visualization...")
             self.umap_viz = create_umap_for_visualization()
             embeddings_2d = self.umap_viz.fit_transform(embeddings)
 
@@ -193,10 +235,17 @@ class PredictionService:
             test_emb = embeddings_reduced[test_idx]
             test_labels = labels_tensor[test_idx]
 
+            # Ensure embeddings are torch tensors and on correct device
+            if not isinstance(train_emb, torch.Tensor):
+                train_emb = torch.tensor(train_emb, dtype=torch.float32)
+            
             train_graph = build_graph(train_emb).to(self.device)
             train_graph.y = train_labels
 
             # Step 6: Train GAT
+            gat_lr = 0.005
+            epochs = 50
+            
             self.gat_model = GATClassifier(in_channels=umap_components).to(self.device)
             optimizer = torch.optim.Adam(self.gat_model.parameters(), lr=gat_lr, weight_decay=gat_weight_decay)
             criterion = nn.CrossEntropyLoss()
@@ -206,10 +255,14 @@ class PredictionService:
             self.training_status.update({
                 "status": "training",
                 "current_step": "Training GAT model...",
-                "total_epochs": gat_epochs
+                "total_epochs": epochs
             })
             
-            for epoch in range(gat_epochs):
+            print(f"[Training] Starting GAT training (LR={gat_lr}, Epochs={epochs})...")
+            for epoch in range(epochs):
+                if self._stop_training:
+                    return {"status": "cancelled"}
+                    
                 optimizer.zero_grad()
                 out = self.gat_model(train_graph)
                 loss = criterion(out, train_graph.y)
@@ -223,12 +276,12 @@ class PredictionService:
                 self.training_status.update({
                     "epoch": epoch + 1,
                     "loss": round(loss_val, 6),
-                    "progress": 70 + int((epoch + 1) / gat_epochs * 25) # 70% to 95%
+                    "progress": 70 + int((epoch + 1) / epochs * 25) # 70% to 95%
                 })
                 
                 # Log to terminal as requested
                 if (epoch + 1) % 5 == 0 or epoch == 0:
-                    print(f"[Training] Epoch {epoch+1}/{gat_epochs} - Loss: {loss_val:.6f}")
+                    print(f"[Training] Epoch {epoch+1}/{epochs} - Loss: {loss_val:.6f}")
 
             # Step 7: Evaluate
             test_graph = build_graph(test_emb).to(self.device)
@@ -280,6 +333,8 @@ class PredictionService:
                 
                 "finetune_loss_history": ft_result["loss_history"],
                 "gat_loss_history": gat_loss_history,
+                "gat_epochs": epochs,
+                "learning_rate": gat_lr
             }
 
             # Step 8: Save
@@ -298,16 +353,18 @@ class PredictionService:
             self.training_embeddings_reduced = embeddings_reduced
             self.training_labels = labels_tensor
             self._is_model_loaded = True
-            self.training_status.update({
-                "status": "success",
-                "current_step": "Training completed!",
-                "progress": 100
-            })
-
             viz_data = {
                 "coordinates": embeddings_2d.detach().cpu().numpy().tolist(),
                 "labels": labels_tensor.tolist()
             }
+
+            self.training_status.update({
+                "status": "success",
+                "current_step": "Training completed!",
+                "progress": 100,
+                "metrics": metrics,
+                "visualization": viz_data
+            })
 
             # Step 9: Print results to terminal in table format
             self._print_metrics_table(metrics)

@@ -12,6 +12,12 @@ class EmailInput(BaseModel):
     sender: Optional[str] = Field(None, max_length=255, description="Pengirim email")
 
 
+class PreprocessRequest(BaseModel):
+    """Schema request untuk preprocessing."""
+    dataset_id: Optional[int] = Field(None, description="ID Dataset yang akan diproses (jika kosong, proses semua)")
+    force: bool = Field(default=False, description="Paksa proses ulang walaupun data sudah diproses")
+
+
 class TrainingRequest(BaseModel):
     """Schema request untuk training model hybrid IndoBERT + GAT."""
 
@@ -30,6 +36,7 @@ class TrainingRequest(BaseModel):
     gat_weight_decay: float = Field(default=5e-4, ge=0, description="Weight decay GAT")
 
     # General
+    dataset_id: Optional[int] = Field(None, description="ID Dataset untuk training (jika kosong, gunakan semua data)")
     test_split: float = Field(default=0.2, gt=0, lt=1, description="Rasio data test")
 
 
@@ -111,6 +118,7 @@ class DashboardStats(BaseModel):
     total_emails: int
     total_spam: int
     total_ham: int
+    total_processed: int
     spam_percentage: float
     recent_predictions: List[EmailResponse]
     model_status: ModelStatusResponse

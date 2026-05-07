@@ -20,8 +20,20 @@ function Guard({ user, children, admin = false }) {
 }
 
 export default function App() {
-  const [user, setUser] = useState(null);
-  useEffect(() => { const s = localStorage.getItem('user'); if (s) setUser(JSON.parse(s)); }, []);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  useEffect(() => {
+    // Keep sync if needed, though direct state is better for initial load
+    const handleStorage = () => {
+      const saved = localStorage.getItem('user');
+      setUser(saved ? JSON.parse(saved) : null);
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   return (
     <BrowserRouter>

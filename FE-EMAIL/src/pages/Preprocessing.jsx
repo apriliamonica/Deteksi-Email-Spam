@@ -29,6 +29,7 @@ export default function PreprocessingPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [preprocStatus, setPreprocStatus] = useState(null);
   const [globalLock, setGlobalLock] = useState(null);
+  const [isForce, setIsForce] = useState(false);
 
   const fetchDatasets = async () => {
     try {
@@ -46,9 +47,11 @@ export default function PreprocessingPage() {
   // Handle incoming state from DataCollection
   useEffect(() => {
     if (location.state?.selectedDatasetId) {
-      setSelectedDataset(location.state.selectedDatasetId.toString());
+      const dsId = location.state.selectedDatasetId.toString();
+      setSelectedDataset(dsId);
+      // Auto set step to 0 to show stats
       if (currentStep === -1) {
-        handleStart();
+        setCurrentStep(0);
       }
     }
   }, [location.state]);
@@ -86,7 +89,8 @@ export default function PreprocessingPage() {
 
   const handleStart = async () => {
     try {
-      await modelAPI.startPreprocess();
+      const dsId = selectedDataset === "db-01" ? null : parseInt(selectedDataset);
+      await modelAPI.startPreprocess(dsId, isForce);
       setCurrentStep(1);
       setIsProcessing(true);
       localStorage.setItem('preproc_running', 'true');
@@ -197,8 +201,10 @@ export default function PreprocessingPage() {
                 className="form-select" 
                 value={selectedDataset} 
                 onChange={e => {
-                  setSelectedDataset(e.target.value);
-                  setCurrentStep(-1);
+                  const val = e.target.value;
+                  setSelectedDataset(val);
+                  localStorage.setItem('preproc_selectedDatasetId', val);
+                  setCurrentStep(0); // Show dataset stats
                   setIsProcessing(false);
                 }}
                 disabled={isProcessing}
@@ -214,6 +220,18 @@ export default function PreprocessingPage() {
                   <option value="db-01">Database Utama ({dbStats.total_emails.toLocaleString()} Email)</option>
                 )}
               </select>
+
+              {selectedDataset && !isProcessing && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.9rem', color: 'var(--gray-600)' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={isForce} 
+                    onChange={e => setIsForce(e.target.checked)}
+                    style={{ width: 16, height: 16 }}
+                  />
+                  Proses ulang data yang sudah ada (Force)
+                </label>
+              )}
           </div>
           {selectedDataset && hasDataset && (
             <div style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -346,8 +364,13 @@ export default function PreprocessingPage() {
                   <div style={{ width: '100%', maxWidth: 400, height: 8, background: 'var(--gray-200)', borderRadius: 4, overflow: 'hidden', marginBottom: 20 }}>
                     <div style={{ width: `${preprocStatus?.progress || 0}%`, height: '100%', background: 'var(--black)', transition: 'width 0.3s ease' }} />
                   </div>
-                  <p style={{ color: 'var(--gray-500)', margin: 0, fontSize: '0.8rem' }}>
-                    Sistem sedang menerapkan {STEPS[currentStep].label.toLowerCase()} pada {preprocStatus?.total_items?.toLocaleString() || '...'} email.
+                  <p style={{ color: 'var(--gray-500)', margin: 0, fontSize: '0.85rem', fontWeight: 500 }}>
+                    <span style={{ color: 'var(--black)' }}>{preprocStatus?.current_item?.toLocaleString() || '0'}</span> 
+                    {' dari '} 
+                    <span style={{ color: 'var(--black)' }}>{preprocStatus?.total_items?.toLocaleString() || '0'}</span> email selesai diproses.
+                  </p>
+                  <p style={{ color: 'var(--gray-400)', marginTop: 8, fontSize: '0.75rem' }}>
+                    Status: {preprocStatus?.message}
                   </p>
                 </>
               ) : (

@@ -3,111 +3,50 @@ import string
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
 
+class PreprocessingService:
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(PreprocessingService, cls).__new__(cls)
+            # Sastrawi tidak lagi digunakan (IndoBERT butuh konteks utuh)
+        return cls._instance
 
-# Inisialisasi Sastrawi (singleton)
-_stemmer_factory = StemmerFactory()
-_stemmer = _stemmer_factory.create_stemmer()
+    def preprocess_email(self, text: str) -> str:
+        """
+        Pipeline preprocessing untuk IndoBERT + GAT.
+        - Hapus HTML
+        - Masking URL & Email
+        - Case Folding
+        - Membersihkan simbol aneh tapi tetap menjaga tanda baca dasar
+        """
+        if not text or not isinstance(text, str):
+            return ""
 
-_stopword_factory = StopWordRemoverFactory()
-_stopword_remover = _stopword_factory.create_stop_word_remover()
+        # 1. Hapus HTML Tags
+        text = re.sub(r'<.*?>', ' ', text)
 
-# Daftar stopwords tambahan khusus email
-EMAIL_STOPWORDS = {
-    "dari", "ke", "cc", "bcc", "subject", "re", "fw", "fwd",
-    "sent", "received", "mailto", "http", "https", "www",
-}
+        # 2. Masking URL & Email
+        text = re.sub(r'http\S+|www\S+|https\S+', '[URL]', text)
+        text = re.sub(r'\S+@\S+', '[EMAIL]', text)
 
+        # 3. Case Folding
+        text = text.lower()
 
-def clean_html(text: str) -> str:
-    """Hapus HTML tags dari teks."""
-    return re.sub(r"<[^>]+>", " ", text)
+        # 4. Hapus Karakter Spesial (Kecuali tanda baca dasar ? . ! dan masking)
+        # Menjaga agar [URL] dan [EMAIL] tidak terhapus
+        # Kita hapus karakter yang bukan alphanumeric, spasi, atau ? . ! [ ]
+        text = re.sub(r'[^a-z0-9\s\?\.!\[\]]', ' ', text)
+        
+        # 5. Rapikan Whitespace
+        text = " ".join(text.split())
 
+        return text
 
-def clean_urls(text: str) -> str:
-    """Hapus URL dari teks."""
-    return re.sub(r"http\S+|www\.\S+", " ", text)
+# Singleton instance untuk digunakan di seluruh aplikasi
+_service = PreprocessingService()
 
-
-def clean_email_addresses(text: str) -> str:
-    """Hapus alamat email dari teks."""
-    return re.sub(r"\S+@\S+", " ", text)
-
-
-def normalize_whitespace(text: str) -> str:
-    """Normalisasi whitespace."""
-    return re.sub(r"\s+", " ", text).strip()
-
-
-def remove_punctuation(text: str) -> str:
-    """Hapus tanda baca."""
-    return text.translate(str.maketrans("", "", string.punctuation))
-
-
-def remove_numbers(text: str) -> str:
-    """Hapus angka."""
-    return re.sub(r"\d+", " ", text)
-
-
-def stem_text(text: str) -> str:
-    """Stemming teks Bahasa Indonesia menggunakan Sastrawi."""
-    return _stemmer.stem(text)
-
-
-def remove_stopwords(text: str) -> str:
-    """Hapus stopwords Bahasa Indonesia menggunakan Sastrawi."""
-    result = _stopword_remover.remove(text)
-    # Hapus juga stopwords email
-    words = result.split()
-    words = [w for w in words if w.lower() not in EMAIL_STOPWORDS]
-    return " ".join(words)
-
-
-def preprocess_email(
-    text: str,
-    do_stem: bool = True,
-    do_remove_stopwords: bool = True,
-) -> str:
-    """
-    Pipeline preprocessing lengkap untuk teks email Bahasa Indonesia.
-
-    Langkah-langkah:
-    1. Lowercase
-    2. Hapus HTML tags
-    3. Hapus URL
-    4. Hapus alamat email
-    5. Hapus angka
-    6. Hapus tanda baca
-    7. Normalisasi whitespace
-    8. Hapus stopwords (opsional)
-    9. Stemming (opsional)
-
-    Args:
-        text: Teks email mentah
-        do_stem: Apakah melakukan stemming
-        do_remove_stopwords: Apakah menghapus stopwords
-
-    Returns:
-        Teks yang sudah diproses
-    """
-    if not text or not text.strip():
-        return ""
-
-    # Lowercase
-    text = text.lower()
-
-    # Cleaning
-    text = clean_html(text)
-    text = clean_urls(text)
-    text = clean_email_addresses(text)
-    text = remove_numbers(text)
-    text = remove_punctuation(text)
-    text = normalize_whitespace(text)
-
-    # NLP processing
-    if do_remove_stopwords:
-        text = remove_stopwords(text)
-
-    if do_stem:
-        text = stem_text(text)
-
-    return normalize_whitespace(text)
+def preprocess_email(text: str, do_stem: bool = True) -> str:
+    """Fungsi wrapper agar kompatibel dengan kode lama."""
+    # Parameter do_stem diabaikan karena sekarang tidak menggunakan stemming
+    return _service.preprocess_email(text)
