@@ -42,6 +42,7 @@ export const modelAPI = {
     dataset_id: params.dataset_id,
     model_name: params.model_name,
     test_split: params.test_split || 0.2,
+    val_split: params.val_split || 0.1,
     finetune_epochs: params.finetune_epochs || 2,
     finetune_lr: params.finetune_lr || 2e-5,
     finetune_batch_size: params.finetune_batch_size || 16,

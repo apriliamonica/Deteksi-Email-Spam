@@ -20,6 +20,7 @@ class PreprocessRequest(BaseModel):
 
 class TrainingRequest(BaseModel):
     """Schema request untuk training model hybrid IndoBERT + GAT."""
+    model_name: Optional[str] = Field(default=None, description="Nama model custom")
 
     # IndoBERT Fine-tune params
     finetune_epochs: int = Field(default=3, ge=0, le=20, description="Epoch fine-tune IndoBERT (0 untuk skip)")

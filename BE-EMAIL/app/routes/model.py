@@ -186,7 +186,7 @@ def background_train(request: TrainingRequest, texts: list[str], labels: list[in
         import json
         history = EmailService.save_training_history(db, {
             "dataset_id": request.dataset_id,
-            "model_name": request.model_name or "IndoBERT + SpamGAT (Research)",
+            "model_name": request.model_name if request.model_name else "IndoBERT + SpamGAT (Research)",
             "accuracy": metrics["accuracy"],
             "precision": metrics["precision"],
             "recall": metrics["recall"],
