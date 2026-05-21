@@ -22,21 +22,19 @@ class TrainingRequest(BaseModel):
     """Schema request untuk training model hybrid IndoBERT + GAT."""
 
     # IndoBERT Fine-tune params
-    finetune_epochs: int = Field(default=5, ge=1, le=20, description="Epoch fine-tune IndoBERT")
+    finetune_epochs: int = Field(default=3, ge=0, le=20, description="Epoch fine-tune IndoBERT (0 untuk skip)")
     finetune_lr: float = Field(default=2e-5, gt=0, description="Learning rate IndoBERT (2e-5 ~ 5e-5)")
     finetune_batch_size: int = Field(default=16, ge=1, le=64, description="Batch size IndoBERT")
     weight_decay: float = Field(default=0.01, ge=0, description="Weight decay AdamW")
 
-    # UMAP params
-    umap_components: int = Field(default=128, ge=2, le=512, description="Dimensi output UMAP")
-
     # GAT params
-    gat_epochs: int = Field(default=30, ge=1, le=200, description="Epoch training GAT")
-    gat_lr: float = Field(default=5e-3, gt=0, description="Learning rate GAT")
-    gat_weight_decay: float = Field(default=5e-4, ge=0, description="Weight decay GAT")
+    gat_epochs: int = Field(default=100, ge=1, le=500, description="Epoch training GAT")
+    gat_lr: float = Field(default=0.001, gt=0, description="Learning rate GAT")
+    gat_weight_decay: float = Field(default=1e-4, ge=0, description="Weight decay GAT")
 
     # General
     dataset_id: Optional[int] = Field(None, description="ID Dataset untuk training (jika kosong, gunakan semua data)")
+    val_split: float = Field(default=0.1, gt=0, lt=1, description="Rasio data validasi")
     test_split: float = Field(default=0.2, gt=0, lt=1, description="Rasio data test")
 
 
@@ -64,7 +62,7 @@ class PredictionResponse(BaseModel):
     subject: Optional[str] = None
     body: str
     processing_detail: Optional[dict] = Field(
-        None, description="Detail proses: embedding, UMAP, GAT"
+        None, description="Detail proses: embedding, GAT"
     )
 
 
@@ -79,7 +77,7 @@ class TrainingResponse(BaseModel):
 class ModelStatusResponse(BaseModel):
     """Schema response untuk status model."""
     is_loaded: bool
-    model_type: str = "IndoBERT + GAT + UMAP"
+    model_type: str = "IndoBERT + GAT"
     indobert_model: str
     last_training: Optional[datetime] = None
     metrics: Optional[dict] = None
@@ -102,12 +100,8 @@ class TrainingMetrics(BaseModel):
     confusion_matrix: List[List[int]]
     total_data: int
     train_size: int
+    val_size: int
     test_size: int
-    
-    # SMOTE info
-    applied_smote: bool
-    original_counts: dict[str, int]
-    oversampled_counts: dict[str, int]
     
     finetune_loss_history: List[float]
     gat_loss_history: List[float]

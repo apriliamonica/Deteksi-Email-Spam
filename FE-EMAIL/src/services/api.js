@@ -19,6 +19,13 @@ api.interceptors.request.use((config) => {
 // === Email API ===
 export const emailAPI = {
   classify: (data) => api.post('/email/classify', data),
+  classifyBatch: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/email/classify-batch', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
   list: (params) => api.get('/email/list', { params }),
   stats: (dataset_id = null) => api.get('/email/stats', { params: { dataset_id } }),
   getById: (id) => api.get(`/email/${id}`),
@@ -39,10 +46,9 @@ export const modelAPI = {
     finetune_lr: params.finetune_lr || 2e-5,
     finetune_batch_size: params.finetune_batch_size || 16,
     weight_decay: params.weight_decay || 0.01,
-    umap_components: params.umap_components || 128,
-    gat_epochs: params.gat_epochs || 30,
+    gat_epochs: params.gat_epochs || 100,
     gat_lr: params.gat_lr || 0.001,
-    gat_weight_decay: params.gat_weight_decay || 5e-4
+    gat_weight_decay: params.gat_weight_decay || 1e-4
   }),
   uploadDataset: (file, onUploadProgress) => {
     const formData = new FormData();
@@ -54,10 +60,13 @@ export const modelAPI = {
   },
   seedLocal: () => api.post('/model/seed-local'),
   startPreprocess: (dataset_id = null, force = false) => api.post('/model/preprocess', { dataset_id, force }),
+  cancelPreprocess: () => api.post('/model/cancel-preprocess'),
   getPreprocessStatus: () => api.get('/model/preprocess-status'),
   load: () => api.post('/model/load'),
   getHistory: () => api.get('/model/history'),
   getHistoryDetail: (id) => api.get(`/model/history/${id}`),
+  activateModel: (id) => api.post(`/model/activate/${id}`),
+  getActiveModel: () => api.get('/model/active'),
 };
 
 // === Auth API ===

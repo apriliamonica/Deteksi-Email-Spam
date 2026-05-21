@@ -4,7 +4,9 @@ import { LayoutDashboard, Database, Layers, Brain, FlaskConical, BarChart3, LogO
 export default function Sidebar({ user, onLogout }) {
   const navigate = useNavigate();
   const handleLogout = () => { onLogout(); navigate('/login'); };
-  const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
+  const initials = (user?.name && typeof user.name === 'string') 
+    ? user.name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2) 
+    : 'U';
 
   return (
     <aside className="sidebar">

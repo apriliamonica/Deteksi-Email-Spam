@@ -191,12 +191,12 @@ export default function DataCollection() {
         <p className="page-subtitle">Upload dan kelola dataset email mentah sebelum masuk ke tahap pembersihan (Pre-processing).</p>
       </div>
 
-      <div className="grid-2" style={{ gridTemplateColumns: '1fr 1.5fr', gap: 32 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
         {/* Left: Upload Area */}
-        <div>
-          <div className="card" style={{ position: 'sticky', top: 20 }}>
-            <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Upload size={18} /> Upload Dataset Baru
+        <div style={{ maxWidth: 500 }}>
+          <div className="card" style={{ padding: 20 }}>
+            <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Upload size={16} /> Upload Dataset Baru
             </h3>
             <div 
               className={`file-upload ${file ? 'active' : ''}`}
@@ -204,20 +204,20 @@ export default function DataCollection() {
                 console.log("Upload box clicked");
                 fileInputRef.current?.click();
               }}
-              style={{ padding: '40px 20px', borderStyle: 'dashed' }}
+              style={{ padding: '24px 16px', borderStyle: 'dashed', borderRadius: 'var(--radius-md)' }}
             >
-              <FileSpreadsheet size={48} style={{ color: file ? 'var(--black)' : 'var(--gray-300)', marginBottom: 16, transition: 'all 0.3s ease' }} />
-              <p style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 8 }}>
-                {file ? file.name : 'Pilih file CSV'}
+              <FileSpreadsheet size={32} style={{ color: file ? 'var(--black)' : 'var(--gray-300)', marginBottom: 12, transition: 'all 0.3s ease' }} />
+              <p style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: 4 }}>
+                {file ? file.name : 'Pilih file CSV atau Excel'}
               </p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
-                {file ? 'File terpilih' : 'Klik untuk mencari file (.csv)'}
+              <p style={{ fontSize: '0.72rem', color: 'var(--gray-500)' }}>
+                {file ? 'File terpilih' : 'Klik untuk mencari file (.csv, .xlsx, .xls)'}
               </p>
             </div>
             <input 
               ref={fileInputRef}
               type="file" 
-              accept=".csv" 
+              accept=".csv, .xlsx, .xls" 
               onChange={e => {
                 const selectedFile = e.target.files?.[0];
                 console.log("File selected:", selectedFile?.name);

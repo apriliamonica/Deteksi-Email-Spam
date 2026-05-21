@@ -1,41 +1,89 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Send, ShieldAlert, ShieldCheck, Mail, Upload, Trash2, Search, FileText, Calendar, Activity } from 'lucide-react';
+import { modelAPI, emailAPI } from '../services/api';
 
 export default function Testing() {
   const [body, setBody] = useState('');
   const [activeResult, setActiveResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [testHistory, setTestHistory] = useState([
-    { id: 1, date: "28/04/26", text: "Segera klaim hadiah undian Anda di link ini", label: "spam", conf: 0.95 },
-    { id: 2, date: "28/04/26", text: "Rapat tim akan diadakan besok pagi jam 10", label: "ham", conf: 0.92 },
-    { id: 3, date: "27/04/26", text: "Anda terpilih sebagai pemenang iPhone 15 GRATIS", label: "spam", conf: 0.98 },
-  ]);
+  const [activeModel, setActiveModel] = useState(null);
+  const [activeModelLoading, setActiveModelLoading] = useState(true);
+  const [testHistory, setTestHistory] = useState([]);
+  const [uploadingBatch, setUploadingBatch] = useState(false);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    fetchActiveModel();
+  }, []);
+
+  const fetchActiveModel = async () => {
+    try {
+      setActiveModelLoading(true);
+      const res = await modelAPI.getActiveModel();
+      setActiveModel(res.data);
+    } catch (error) {
+      console.error("Gagal mengambil model aktif:", error);
+      setActiveModel(null);
+    } finally {
+      setActiveModelLoading(false);
+    }
+  };
 
   const handleManualTest = async (e) => {
     e.preventDefault();
     if (!body.trim()) return;
     setLoading(true);
     
-    await new Promise(r => setTimeout(r, 1500));
-    const isSpam = body.toLowerCase().match(/hadiah|gratis|menang|klik|transfer|undian|rekening/);
-    const label = isSpam ? 'spam' : 'ham';
-    const conf = isSpam ? 0.9234 : 0.8876;
-    
-    const newEntry = {
-      id: Date.now(),
-      date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' }),
-      text: body,
-      label,
-      conf
-    };
+    try {
+      const res = await emailAPI.classify({ body: body });
+      const data = res.data;
+      
+      const newEntry = {
+        id: Date.now(),
+        date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' }),
+        text: data.body || body,
+        label: data.label,
+        conf: data.confidence,
+        detail: data.processing_detail
+      };
 
-    setTestHistory(prev => [newEntry, ...prev]);
-    setActiveResult({
-      ...newEntry,
-      detail: { embedding: 768, umap: 128, nodes: 1251, edges: 8432 },
-    });
-    setBody('');
-    setLoading(false);
+      setTestHistory(prev => [newEntry, ...prev]);
+      setActiveResult(newEntry);
+      setBody('');
+    } catch (error) {
+      console.error("Gagal melakukan klasifikasi manual:", error);
+      alert("Gagal melakukan prediksi. Pastikan backend menyala dan model sudah dilatih.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setUploadingBatch(true);
+    try {
+      const res = await emailAPI.classifyBatch(file);
+      const results = res.data.results.map((r, i) => ({
+        id: r.id || Date.now() + i,
+        date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' }),
+        text: r.body,
+        label: r.label,
+        conf: r.confidence,
+        detail: r.processing_detail
+      }));
+      
+      setTestHistory(prev => [...results, ...prev]);
+      alert(`Berhasil menguji ${results.length} email!`);
+    } catch (error) {
+      console.error("Gagal klasifikasi batch:", error);
+      const errorMsg = error.response?.data?.detail || "Gagal menguji file CSV. Pastikan format benar.";
+      alert(`Error: ${errorMsg}`);
+    } finally {
+      setUploadingBatch(false);
+      if (fileInputRef.current) fileInputRef.current.value = null;
+    }
   };
 
   const handleDelete = (id) => {
@@ -46,17 +94,89 @@ export default function Testing() {
   };
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-      <div className="page-header" style={{ marginBottom: 32 }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 40 }}>
+      <div className="page-header" style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: '2rem', marginBottom: 8 }}>Testing & Klasifikasi Email</h1>
         <p style={{ color: 'var(--gray-500)' }}>Uji model IndoBERT + GAT Anda dengan teks manual atau unggah file CSV untuk pengujian batch.</p>
       </div>
+
+      {/* Active Model Indicator Banner */}
+      {activeModelLoading ? (
+        <div className="card" style={{ padding: 16, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gray-50)' }}>
+          <Activity size={18} className="spinner" style={{ color: 'var(--gray-500)' }} />
+          <span style={{ fontSize: '0.9rem', color: 'var(--gray-500)' }}>Memeriksa model yang aktif...</span>
+        </div>
+      ) : activeModel ? (
+        <div className="card" style={{ 
+          padding: '16px 24px', 
+          marginBottom: 24, 
+          display: 'flex', 
+          flexDirection: 'row',
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 16, 
+          borderLeft: '4px solid #10b981',
+          background: '#f0fdf4',
+          borderColor: '#10b981'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ background: '#dcfce7', padding: 8, borderRadius: '50%', color: '#15803d' }}>
+              <ShieldCheck size={22} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h4 style={{ margin: 0, fontWeight: 700, color: '#14532d', fontSize: '1rem' }}>Model Deteksi Aktif</h4>
+                <span className="badge badge-ham" style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', fontSize: '0.7rem', padding: '2px 8px', fontWeight: 700 }}>
+                  Ready
+                </span>
+              </div>
+              <p style={{ margin: '2px 0 0 0', fontSize: '0.85rem', color: '#166534' }}>
+                Model: <strong style={{ color: '#14532d' }}>{activeModel.model_name}</strong> | Dataset: <strong style={{ color: '#14532d' }}>{activeModel.dataset_name}</strong>
+              </p>
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ display: 'block', fontSize: '0.75rem', color: '#166534', fontWeight: 600 }}>AKURASI MODEL</span>
+              <strong style={{ fontSize: '1.2rem', color: '#14532d', fontWeight: 800 }}>{(activeModel.accuracy * 100).toFixed(2)}%</strong>
+            </div>
+            <div style={{ height: 28, width: 1, background: '#bbf7d0' }} />
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ display: 'block', fontSize: '0.75rem', color: '#166534', fontWeight: 600 }}>F1-SCORE MODEL</span>
+              <strong style={{ fontSize: '1.2rem', color: '#14532d', fontWeight: 800 }}>{(activeModel.f1_score * 100).toFixed(2)}%</strong>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="card" style={{ 
+          padding: '16px 24px', 
+          marginBottom: 24, 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 12, 
+          borderLeft: '4px solid #ef4444',
+          background: '#fef2f2',
+          borderColor: '#ef4444'
+        }}>
+          <div style={{ background: '#fee2e2', padding: 8, borderRadius: '50%', color: '#991b1b' }}>
+            <ShieldAlert size={22} />
+          </div>
+          <div>
+            <h4 style={{ margin: 0, fontWeight: 700, color: '#7f1d1d', fontSize: '1rem' }}>Tidak Ada Model Aktif</h4>
+            <p style={{ margin: '2px 0 0 0', fontSize: '0.85rem', color: '#991b1b' }}>
+              Silakan latih model baru atau pilih model yang ingin diaktifkan di halaman <strong style={{ color: '#7f1d1d' }}>Riwayat Model</strong>.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 24, alignItems: 'start' }}>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* Section 1: Input & Upload */}
-          <div className="grid-2" style={{ gap: 20 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div className="card" style={{ padding: 24 }}>
               <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><FileText size={18} /> Uji Teks Manual</h3>
               <form onSubmit={handleManualTest}>
@@ -77,10 +197,21 @@ export default function Testing() {
             </div>
 
             <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', border: '2px dashed var(--gray-300)', background: 'var(--gray-50)' }}>
-              <Upload size={40} style={{ color: 'var(--gray-400)', marginBottom: 16 }} />
-              <h3 style={{ marginBottom: 8 }}>Pengujian Batch (CSV)</h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 20 }}>Unggah file CSV berisi daftar email untuk klasifikasi massal.</p>
-              <button className="btn btn-outline" style={{ background: 'white' }}>Pilih File CSV</button>
+              {uploadingBatch ? (
+                <>
+                  <Activity size={40} className="spinner" style={{ color: 'var(--primary)', marginBottom: 16 }} />
+                  <h3 style={{ marginBottom: 8 }}>Memproses Batch...</h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 20 }}>Mohon tunggu, sedang memprediksi email dalam file.</p>
+                </>
+              ) : (
+                <>
+                  <Upload size={40} style={{ color: 'var(--gray-400)', marginBottom: 16 }} />
+                  <h3 style={{ marginBottom: 8 }}>Pengujian Batch (CSV)</h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 20 }}>Unggah file CSV berisi daftar email untuk klasifikasi massal.</p>
+                  <input type="file" accept=".csv, .xlsx, .xls" style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileChange} />
+                  <button className="btn btn-outline" style={{ background: 'white' }} onClick={() => fileInputRef.current?.click()}>Pilih File CSV</button>
+                </>
+              )}
             </div>
           </div>
 
@@ -106,7 +237,7 @@ export default function Testing() {
                 </thead>
                 <tbody>
                   {testHistory.map((item, index) => (
-                    <tr key={item.id} style={{ cursor: 'pointer', background: activeResult?.id === item.id ? 'var(--gray-50)' : 'transparent' }} onClick={() => setActiveResult({ ...item, detail: { embedding: 768, umap: 128, nodes: 1251, edges: 8432 } })}>
+                    <tr key={item.id} style={{ cursor: 'pointer', background: activeResult?.id === item.id ? 'var(--gray-50)' : 'transparent' }} onClick={() => setActiveResult(item)}>
                       <td>{index + 1}</td>
                       <td style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>{item.date}</td>
                       <td>

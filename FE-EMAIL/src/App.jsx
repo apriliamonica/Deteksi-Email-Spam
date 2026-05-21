@@ -21,8 +21,14 @@ function Guard({ user, children, admin = false }) {
 
 export default function App() {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error("Failed to parse user from localStorage:", e);
+      localStorage.removeItem('user');
+      return null;
+    }
   });
 
   useEffect(() => {

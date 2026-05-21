@@ -40,19 +40,19 @@ export default function Dashboard({ user }) {
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', minHeight: '80vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-      
+
       {/* Hero Section */}
       <div style={{ textAlign: 'center', marginBottom: 48 }}>
-        <div style={{ 
-          display: 'inline-flex', alignItems: 'center', gap: 8, 
-          padding: '6px 12px', background: 'rgba(0,0,0,0.05)', 
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '6px 12px', background: 'rgba(0,0,0,0.05)',
           borderRadius: 20, fontSize: '0.75rem', fontWeight: 600, color: 'var(--gray-600)',
           marginBottom: 16
         }}>
           <Sparkles size={14} style={{ color: '#f59e0b' }} /> AI-Powered Spam Detection
         </div>
         <h1 style={{ fontSize: '2.8rem', fontWeight: 800, letterSpacing: '-0.04em', marginBottom: 12 }}>
-          Halo, {user?.name.split(' ')[0]}
+          Halo, {user?.name ? user.name.split(' ')[0] : 'User'}
         </h1>
         <p style={{ fontSize: '1.1rem', color: 'var(--gray-500)', maxWidth: 500, margin: '0 auto' }}>
           Masukkan isi email di bawah ini untuk mendeteksi apakah email tersebut aman atau spam menggunakan model hibrida IndoBERT + GAT.
@@ -84,9 +84,9 @@ export default function Dashboard({ user }) {
                 <History size={14} /> Riwayat
               </button>
             </div>
-            <button 
-              type="submit" 
-              className="btn btn-primary" 
+            <button
+              type="submit"
+              className="btn btn-primary"
               disabled={loading || !inputText.trim()}
               style={{ padding: '10px 24px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 8 }}
             >
@@ -100,8 +100,8 @@ export default function Dashboard({ user }) {
       {result && (
         <div className={`result-card ${result.label.toLowerCase()}`} style={{ marginTop: 24, borderRadius: 20, animation: 'fadeIn 0.5s ease-out' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ 
-              width: 48, height: 48, borderRadius: '50%', 
+            <div style={{
+              width: 48, height: 48, borderRadius: '50%',
               background: result.label === 'SPAM' ? 'var(--black)' : 'var(--gray-200)',
               color: result.label === 'SPAM' ? 'white' : 'var(--black)',
               display: 'flex', alignItems: 'center', justifyContent: 'center'

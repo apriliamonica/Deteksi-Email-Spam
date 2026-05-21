@@ -77,15 +77,16 @@ export default function PreprocessingPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchStats = () => {
-    emailAPI.stats()
+  const fetchStats = (dsId = null) => {
+    emailAPI.stats(dsId)
       .then(res => setDbStats(res.data))
       .catch(err => console.error(err));
   };
 
   useEffect(() => {
-    fetchStats();
-  }, []);
+    const dsId = (selectedDataset && selectedDataset !== "db-01") ? parseInt(selectedDataset) : null;
+    fetchStats(dsId);
+  }, [selectedDataset]);
 
   const handleStart = async () => {
     try {
@@ -131,7 +132,8 @@ export default function PreprocessingPage() {
             setCurrentStep(5); // Hasil Akhir
             localStorage.removeItem('preproc_running');
             localStorage.removeItem('global_process_active');
-            fetchStats(); // Update stats (total_processed)
+            fetchStats((selectedDataset && selectedDataset !== "db-01") ? parseInt(selectedDataset) : null); // Update stats (total_processed)
+            fetchDatasets(); // Update datasets status
             clearInterval(pollInterval);
           } else if (!status.is_running && status.message.includes("Error")) {
             setIsProcessing(false);
@@ -146,12 +148,22 @@ export default function PreprocessingPage() {
     return () => clearInterval(pollInterval);
   }, [isProcessing]);
 
-  const handleReset = () => {
-    localStorage.removeItem('preproc_step');
-    localStorage.removeItem('preproc_selectedDataset');
-    localStorage.removeItem('preproc_running');
-    localStorage.removeItem('global_process_active');
-    window.location.reload();
+  const handleReset = async () => {
+    if (window.confirm("Apakah Anda yakin ingin membatalkan proses pre-processing?")) {
+      try {
+        await modelAPI.cancelPreprocess();
+        localStorage.removeItem('preproc_step');
+        localStorage.removeItem('preproc_selectedDataset');
+        localStorage.removeItem('preproc_running');
+        localStorage.removeItem('global_process_active');
+        window.location.reload();
+      } catch (err) {
+        console.error("Gagal membatalkan proses:", err);
+        // Tetap reset UI jika server gagal merespon
+        localStorage.removeItem('preproc_running');
+        window.location.reload();
+      }
+    }
   };
 
   const hasDataset = dbStats && dbStats.total_emails > 0;
@@ -233,9 +245,13 @@ export default function PreprocessingPage() {
                 </label>
               )}
           </div>
-          {selectedDataset && hasDataset && (
+          {selectedDataset && (
             <div style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircle size={16} style={{ color: '#10b981' }} /> Dataset siap diproses ke dalam model.
+              {datasets.find(ds => ds.id.toString() === selectedDataset.toString())?.status === "Preprocessed" || datasets.find(ds => ds.id.toString() === selectedDataset.toString())?.status === "Trained" ? (
+                <><CheckCircle size={16} style={{ color: '#10b981' }} /> Dataset ini sudah melewati tahap preprocessing.</>
+              ) : (
+                <><Activity size={16} style={{ color: '#3b82f6' }} /> Dataset siap diproses ke dalam model.</>
+              )}
             </div>
           )}
         </div>
@@ -246,20 +262,35 @@ export default function PreprocessingPage() {
               <ShieldAlert size={14} /> Harap tunggu, proses {globalLock} sedang berjalan.
             </div>
           )}
-          <button 
-            className="btn btn-primary" 
-            style={{ padding: '12px 24px', fontSize: '1rem' }}
-            disabled={!selectedDataset || isProcessing || currentStep === STEPS.length - 1 || !!globalLock}
-            onClick={handleStart}
-          >
-            {isProcessing ? (
-              <><Activity size={18} className="spinner" /> Memproses...</>
-            ) : currentStep === STEPS.length - 1 ? (
-              <><CheckCircle size={18} /> Selesai</>
-            ) : (
-              <><Play size={18} /> Mulai Pre-Processing</>
-            )}
-          </button>
+          {selectedDataset && (datasets.find(ds => ds.id.toString() === selectedDataset.toString())?.status === "Preprocessed" || datasets.find(ds => ds.id.toString() === selectedDataset.toString())?.status === "Trained") && !isForce ? (
+            <div style={{ 
+              padding: '12px 24px', 
+              background: '#ecfdf5', 
+              color: '#059669', 
+              border: '1px solid #d1fae5', 
+              borderRadius: 8,
+              fontSize: '1rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}>
+              <CheckCircle size={18} /> Sudah Diproses
+            </div>
+          ) : (
+            <button 
+              className="btn btn-primary" 
+              style={{ padding: '12px 24px', fontSize: '1rem' }}
+              disabled={!selectedDataset || isProcessing || !!globalLock}
+              onClick={handleStart}
+            >
+              {isProcessing ? (
+                <><Activity size={18} className="spinner" /> Memproses...</>
+              ) : (
+                <><Play size={18} /> Mulai Pre-Processing</>
+              )}
+            </button>
+          )}
         </div>
       </div>
 

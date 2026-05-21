@@ -14,39 +14,39 @@ class PreprocessingService:
 
     def preprocess_email(self, text: str) -> str:
         """
-        Pipeline preprocessing untuk IndoBERT + GAT.
-        - Hapus HTML
+        Pipeline preprocessing sesuai notebook SpamGAT.
         - Masking URL & Email
-        - Case Folding
-        - Membersihkan simbol aneh tapi tetap menjaga tanda baca dasar
+        - Membersihkan karakter non-alphanumeric (kecuali tanda baca dasar)
+        - Normalisasi whitespace
+        - Potong ke 512 karakter
         """
         if not text or not isinstance(text, str):
             return ""
 
-        # 1. Hapus HTML Tags
-        text = re.sub(r'<.*?>', ' ', text)
+        # 1. Masking URL & Email
+        text = re.sub(r"http\S+|www\S+", "[URL]", text)
+        text = re.sub(r"\S+@\S+", "[EMAIL]", text)
 
-        # 2. Masking URL & Email
-        text = re.sub(r'http\S+|www\S+|https\S+', '[URL]', text)
-        text = re.sub(r'\S+@\S+', '[EMAIL]', text)
-
-        # 3. Case Folding
-        text = text.lower()
-
-        # 4. Hapus Karakter Spesial (Kecuali tanda baca dasar ? . ! dan masking)
-        # Menjaga agar [URL] dan [EMAIL] tidak terhapus
-        # Kita hapus karakter yang bukan alphanumeric, spasi, atau ? . ! [ ]
-        text = re.sub(r'[^a-z0-9\s\?\.!\[\]]', ' ', text)
+        # 2. Hapus Karakter Aneh (Kecuali alphanumeric, spasi, [], ., ?, !)
+        text = re.sub(r"[^\w\s\[\].,!?]", " ", text)
         
-        # 5. Rapikan Whitespace
-        text = " ".join(text.split())
+        # 3. Rapikan Whitespace
+        text = re.sub(r"\s+", " ", text).strip()
 
-        return text
+        return text[:512]
 
-# Singleton instance untuk digunakan di seluruh aplikasi
+    def extract_domain(self, email_addr: str) -> str:
+        """Ekstrak domain dari alamat email."""
+        if not email_addr:
+            return "unknown"
+        match = re.search(r"@([\w.-]+)", str(email_addr))
+        return match.group(1) if match else "unknown"
+
+# Singleton instance
 _service = PreprocessingService()
 
-def preprocess_email(text: str, do_stem: bool = True) -> str:
-    """Fungsi wrapper agar kompatibel dengan kode lama."""
-    # Parameter do_stem diabaikan karena sekarang tidak menggunakan stemming
+def preprocess_email(text: str) -> str:
     return _service.preprocess_email(text)
+
+def extract_domain(email: str) -> str:
+    return _service.extract_domain(email)

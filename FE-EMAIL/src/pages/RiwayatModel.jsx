@@ -8,23 +8,60 @@ import {
 
 export default function RiwayatModelPage() {
   const [history, setHistory] = useState([]);
+  const [datasets, setDatasets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeId, setActiveId] = useState(null);
+  const [activatingId, setActivatingId] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchHistory();
+    fetchActiveModel();
   }, []);
+
+  const fetchActiveModel = async () => {
+    try {
+      const activeRes = await modelAPI.getActiveModel();
+      if (activeRes.data && activeRes.data.id) {
+        setActiveId(activeRes.data.id);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil model aktif:", error);
+    }
+  };
 
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const response = await modelAPI.getHistory();
-      setHistory(response.data);
+      const [historyRes, datasetsRes] = await Promise.all([
+        modelAPI.getHistory(),
+        modelAPI.listDatasets().catch(() => ({ data: [] }))
+      ]);
+      setHistory(historyRes.data);
+      setDatasets(datasetsRes.data || []);
     } catch (error) {
       console.error("Gagal mengambil riwayat:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleActivateModel = async (id) => {
+    try {
+      setActivatingId(id);
+      const res = await modelAPI.activateModel(id);
+      if (res.data.status === 'success') {
+        alert(`Model #${id} berhasil diaktifkan!`);
+        setActiveId(id);
+      } else {
+        alert("Gagal mengaktifkan model: " + (res.data.message || "Terjadi kesalahan"));
+      }
+    } catch (error) {
+      console.error("Gagal mengaktifkan model:", error);
+      alert("Gagal mengaktifkan model: " + (error.response?.data?.detail || error.message));
+    } finally {
+      setActivatingId(null);
     }
   };
 
@@ -73,54 +110,109 @@ export default function RiwayatModelPage() {
           ) : history.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center' }}>Belum ada riwayat pelatihan.</div>
           ) : (
-            <table style={{ margin: 0, minWidth: 1500 }}>
+            <table style={{ margin: 0 }}>
               <thead>
                 <tr style={{ background: 'white' }}>
                   <th style={{ width: 140 }}><Calendar size={14} /> Tanggal</th>
-                  <th>ID Dataset</th>
-                  <th style={{ textAlign: 'center' }}>Epoch</th>
-                  <th style={{ textAlign: 'center' }}>LR</th>
-                  <th style={{ textAlign: 'center' }}>UMAP</th>
-                  <th style={{ textAlign: 'center' }}>Weight Decay</th>
+                  <th>Dataset</th>
+                  <th>Nama Model</th>
+                  <th style={{ textAlign: 'center' }}>Jumlah Email</th>
+                  <th style={{ textAlign: 'center' }}>Spam</th>
+                  <th style={{ textAlign: 'center' }}>Ham</th>
                   <th style={{ background: 'rgba(0,0,0,0.02)', textAlign: 'center' }}>Akurasi</th>
-                  <th style={{ textAlign: 'center' }}>Presisi</th>
-                  <th style={{ textAlign: 'center' }}>Recall</th>
                   <th style={{ textAlign: 'center' }}>F1-Score</th>
-                  <th style={{ textAlign: 'center' }}>Total Data</th>
-                  <th style={{ textAlign: 'center' }}>Split (T/V)</th>
                   <th style={{ textAlign: 'center', width: 100 }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {history.map(item => (
-                  <tr key={item.id}>
-                    <td style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>{formatDate(item.created_at)}</td>
-                    <td style={{ fontWeight: 600 }}>Dataset #{item.dataset_id}</td>
-                    <td style={{ textAlign: 'center' }}><span className="badge" style={{ background: 'var(--gray-100)' }}>{item.epochs}</span></td>
-                    <td style={{ textAlign: 'center', fontSize: '0.85rem' }}>{item.learning_rate}</td>
-                    <td style={{ textAlign: 'center' }}>{item.umap_components}d</td>
-                    <td style={{ textAlign: 'center', fontSize: '0.85rem' }}>{item.weight_decay}</td>
-                    <td style={{ fontWeight: 800, color: 'var(--black)', background: 'rgba(0,0,0,0.02)', textAlign: 'center' }}>
-                      {(item.accuracy * 100).toFixed(2)}%
-                    </td>
-                    <td style={{ textAlign: 'center' }}>{(item.precision * 100).toFixed(2)}%</td>
-                    <td style={{ textAlign: 'center' }}>{(item.recall * 100).toFixed(2)}%</td>
-                    <td style={{ textAlign: 'center', fontWeight: 600 }}>{(item.f1_score * 100).toFixed(2)}%</td>
-                    <td style={{ textAlign: 'center' }}>{item.total_data}</td>
-                    <td style={{ textAlign: 'center', fontSize: '0.85rem' }}>{item.train_size}/{item.test_size}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                        <button 
-                          className="btn btn-outline btn-sm" 
-                          onClick={() => handleShowDetail(item)}
-                          title="Lihat Detail"
-                        >
-                          <BarChart2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {history.map(item => {
+                  // Get dataset details from map
+                  const ds = datasets.find(d => d.id === item.dataset_id);
+                  
+                  // Fallback calculation from confusion matrix if dataset not found
+                  let spamCount = ds ? ds.spam_count : null;
+                  let hamCount = ds ? ds.ham_count : null;
+                  
+                  if (spamCount === null || hamCount === null) {
+                    try {
+                      if (item.metrics_json) {
+                        const m = JSON.parse(item.metrics_json);
+                        const cm = m.confusion_matrix || [[0,0], [0,0]];
+                        const testHam = cm[0][0] + cm[0][1];
+                        const testSpam = cm[1][0] + cm[1][1];
+                        const testTotal = testHam + testSpam;
+                        if (testTotal > 0) {
+                          spamCount = Math.round((testSpam / testTotal) * item.total_data);
+                          hamCount = item.total_data - spamCount;
+                        }
+                      }
+                    } catch (e) {
+                      console.error("Error parsing metrics json for counts:", e);
+                    }
+                  }
+                  
+                  // Double fallback
+                  if (spamCount === null) spamCount = "-";
+                  if (hamCount === null) hamCount = "-";
+                  
+                  const isActive = item.id === activeId;
+
+                  return (
+                    <tr key={item.id} style={isActive ? { borderLeft: '4px solid #10b981', background: 'rgba(16, 185, 129, 0.02)' } : {}}>
+                      <td style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>{formatDate(item.created_at)}</td>
+                      <td style={{ fontWeight: 600 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {ds ? ds.name : `Dataset #${item.dataset_id}`}
+                          {isActive && (
+                            <span className="badge badge-ham" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontSize: '0.7rem', padding: '2px 8px', fontWeight: 700 }}>
+                              Aktif
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--gray-700)' }}>
+                        {item.model_name || <span style={{ color: 'var(--gray-400)' }}>-</span>}
+                      </td>
+                      <td style={{ textAlign: 'center', fontWeight: 600 }}>{item.total_data?.toLocaleString() || 0}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="badge badge-spam" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                          {typeof spamCount === 'number' ? spamCount.toLocaleString() : spamCount}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="badge badge-ham" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                          {typeof hamCount === 'number' ? hamCount.toLocaleString() : hamCount}
+                        </span>
+                      </td>
+                      <td style={{ fontWeight: 800, color: 'var(--black)', background: 'rgba(0,0,0,0.02)', textAlign: 'center' }}>
+                        {(item.accuracy * 100).toFixed(2)}%
+                      </td>
+                      <td style={{ textAlign: 'center', fontWeight: 600 }}>{(item.f1_score * 100).toFixed(2)}%</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                          <button 
+                            className="btn btn-outline btn-sm" 
+                            onClick={() => handleShowDetail(item)}
+                            title="Lihat Detail"
+                            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                          >
+                            <BarChart2 size={14} /> Detail
+                          </button>
+                          {!isActive && (
+                            <button 
+                              className="btn btn-primary btn-sm" 
+                              onClick={() => handleActivateModel(item.id)}
+                              disabled={activatingId !== null}
+                              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', fontSize: '0.8rem' }}
+                            >
+                              <CheckCircle size={14} /> Aktifkan
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -235,11 +327,15 @@ function DetailModal({ item, onClose }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
               <ParamItem label="Learning Rate" value={item.learning_rate} />
               <ParamItem label="Epochs" value={item.epochs} />
-              <ParamItem label="UMAP Components" value={`${item.umap_components}d`} />
               <ParamItem label="Weight Decay" value={item.weight_decay} />
               <ParamItem label="GAT Weight Decay" value={item.gat_weight_decay} />
-              <ParamItem label="Train/Val Split" value={`${(100 - item.test_size/item.total_data*100).toFixed(0)}/${(item.test_size/item.total_data*100).toFixed(0)}`} />
-              <ParamItem label="SMOTE Applied" value={item.metrics.applied_smote ? "Yes" : "No"} />
+              <ParamItem label="Train/Val/Test" value={
+                item.metrics.req_val_split != null 
+                  ? `${(100 - (item.metrics.req_val_split + item.metrics.req_test_split)*100).toFixed(0)}/${(item.metrics.req_val_split*100).toFixed(0)}/${(item.metrics.req_test_split*100).toFixed(0)}`
+                  : (item.metrics.val_size != null
+                    ? `${(item.train_size/item.total_data*100).toFixed(0)}/${(item.metrics.val_size/item.total_data*100).toFixed(0)}/${(item.test_size/item.total_data*100).toFixed(0)}`
+                    : `${(100 - item.test_size/item.total_data*100).toFixed(0)}/0/${(item.test_size/item.total_data*100).toFixed(0)}`)
+              } />
               <ParamItem label="MCC Score" value={item.metrics.mcc?.toFixed(4)} />
               <ParamItem label="ROC-AUC" value={item.metrics.roc_auc?.toFixed(4)} />
             </div>

@@ -141,7 +141,7 @@ class IndoBERTEmbedder:
         self._stop_training = False
 
         # Input Layer Parameters
-        self.max_length = 256
+        self.max_length = 128
         self.padding = "max_length"
         self.truncation = True
 
@@ -241,13 +241,14 @@ class IndoBERTEmbedder:
         if not self._is_loaded:
             self.load_model()
 
+        self._stop_training = False
+
         self.model.eval()
         all_embeddings = []
 
         for i in range(0, len(texts), batch_size):
             if self._stop_training:
-                print("  [IndoBERT] Batch processing interrupted.")
-                break
+                raise Exception("Training cancelled by user")
                 
             batch_texts = texts[i : i + batch_size]
             inputs = self.tokenize(batch_texts)

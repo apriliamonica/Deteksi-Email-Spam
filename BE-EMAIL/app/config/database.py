@@ -20,5 +20,11 @@ def get_db():
 
 
 def init_db():
-    """Inisialisasi database tables."""
+    """Inisialisasi database tables and ensure split columns exist."""
     Base.metadata.create_all(bind=engine)
+    # Ensure the new columns exist for PostgreSQL
+    from sqlalchemy import text
+    with engine.begin() as conn:
+        conn.execute(text('ALTER TABLE training_history ADD COLUMN IF NOT EXISTS req_val_split DOUBLE PRECISION'))
+        conn.execute(text('ALTER TABLE training_history ADD COLUMN IF NOT EXISTS req_test_split DOUBLE PRECISION'))
+
