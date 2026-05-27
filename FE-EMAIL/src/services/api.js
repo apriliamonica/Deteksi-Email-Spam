@@ -19,13 +19,16 @@ api.interceptors.request.use((config) => {
 // === Email API ===
 export const emailAPI = {
   classify: (data) => api.post('/email/classify', data),
-  classifyBatch: (file) => {
+  previewColumns: (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post('/email/classify-batch', formData, {
+    return api.post('/email/preview-columns', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
+  classifyBatch: (formData) => api.post('/email/classify-batch', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   list: (params) => api.get('/email/list', { params }),
   stats: (dataset_id = null) => api.get('/email/stats', { params: { dataset_id } }),
   getById: (id) => api.get(`/email/${id}`),

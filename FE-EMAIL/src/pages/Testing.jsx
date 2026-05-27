@@ -14,6 +14,13 @@ export default function Testing() {
   const [uploadingBatch, setUploadingBatch] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Batch upload flow state
+  const [batchFile, setBatchFile] = useState(null);
+  const [batchColumns, setBatchColumns] = useState([]);   // daftar kolom dari file
+  const [batchMetrics, setBatchMetrics] = useState(null);
+  const [testMode, setTestMode] = useState('all');
+  const [loadingColumns, setLoadingColumns] = useState(false);
+
   useEffect(() => {
     fetchActiveModel();
   }, []);
@@ -35,15 +42,15 @@ export default function Testing() {
     e.preventDefault();
     if (!body.trim()) return;
     setLoading(true);
-    
+
     try {
       const payload = { body: body };
       if (subject.trim()) payload.subject = subject.trim();
       if (sender.trim()) payload.sender = sender.trim();
-      
+
       const res = await emailAPI.classify(payload);
       const data = res.data;
-      
+
       const newEntry = {
         id: Date.now(),
         date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' }),
@@ -66,13 +73,42 @@ export default function Testing() {
     }
   };
 
+  // Step 1: user picks a file → read columns
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+    setBatchFile(file);
+    setBatchColumns([]);
+    setTestMode('all');
+    setLoadingColumns(true);
+    try {
+      const res = await emailAPI.previewColumns(file);
+      const cols = res.data.columns;
+      setBatchColumns(cols);
+      setBatchMetrics(res.data.metrics);
+      setBatchMetrics(res.data.metrics);
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Gagal membaca kolom file.');
+      setBatchFile(null);
+    } finally {
+      setLoadingColumns(false);
+      if (fileInputRef.current) fileInputRef.current.value = null;
+    }
+  };
+
+  // Step 2: user picks mode, clicks Mulai Testing
+  const handleRunBatch = async () => {
+    if (!batchFile) return;
     setUploadingBatch(true);
     try {
-      const res = await emailAPI.classifyBatch(file);
+      const formData = new FormData();
+      formData.append('file', batchFile);
+      if (testMode !== 'all') {
+        formData.append('text_column', testMode);
+        formData.append('subject_column', 'NONE');
+        formData.append('sender_column', 'NONE');
+      }
+      const res = await emailAPI.classifyBatch(formData);
       const results = res.data.results.map((r, i) => ({
         id: r.id || Date.now() + i,
         date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' }),
@@ -81,16 +117,14 @@ export default function Testing() {
         conf: r.confidence,
         detail: r.processing_detail
       }));
-      
       setTestHistory(prev => [...results, ...prev]);
+      setBatchFile(null); setBatchColumns([]);
       alert(`Berhasil menguji ${results.length} email!`);
     } catch (error) {
-      console.error("Gagal klasifikasi batch:", error);
-      const errorMsg = error.response?.data?.detail || "Gagal menguji file CSV. Pastikan format benar.";
+      const errorMsg = error.response?.data?.detail || 'Gagal menguji file. Pastikan format benar.';
       alert(`Error: ${errorMsg}`);
     } finally {
       setUploadingBatch(false);
-      if (fileInputRef.current) fileInputRef.current.value = null;
     }
   };
 
@@ -115,15 +149,15 @@ export default function Testing() {
           <span style={{ fontSize: '0.9rem', color: 'var(--gray-500)' }}>Memeriksa model yang aktif...</span>
         </div>
       ) : activeModel ? (
-        <div className="card" style={{ 
-          padding: '16px 24px', 
-          marginBottom: 24, 
-          display: 'flex', 
+        <div className="card" style={{
+          padding: '16px 24px',
+          marginBottom: 24,
+          display: 'flex',
           flexDirection: 'row',
-          alignItems: 'center', 
+          alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: 16, 
+          gap: 16,
           borderLeft: '4px solid #10b981',
           background: '#f0fdf4',
           borderColor: '#10b981'
@@ -144,7 +178,7 @@ export default function Testing() {
               </p>
             </div>
           </div>
-          
+
           <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
             <div style={{ textAlign: 'right' }}>
               <span style={{ display: 'block', fontSize: '0.75rem', color: '#166534', fontWeight: 600 }}>AKURASI MODEL</span>
@@ -158,12 +192,12 @@ export default function Testing() {
           </div>
         </div>
       ) : (
-        <div className="card" style={{ 
-          padding: '16px 24px', 
-          marginBottom: 24, 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 12, 
+        <div className="card" style={{
+          padding: '16px 24px',
+          marginBottom: 24,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
           borderLeft: '4px solid #ef4444',
           background: '#fef2f2',
           borderColor: '#ef4444'
@@ -181,7 +215,7 @@ export default function Testing() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 24, alignItems: 'start' }}>
-        
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* Section 1: Input & Upload */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -190,32 +224,32 @@ export default function Testing() {
               <form onSubmit={handleManualTest}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 12 }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      placeholder="Pengirim (misal: user@domain.com)" 
-                      value={sender} 
-                      onChange={e => setSender(e.target.value)} 
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Pengirim (misal: user@domain.com)"
+                      value={sender}
+                      onChange={e => setSender(e.target.value)}
                     />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      placeholder="Subjek Email" 
-                      value={subject} 
-                      onChange={e => setSubject(e.target.value)} 
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Subjek Email"
+                      value={subject}
+                      onChange={e => setSubject(e.target.value)}
                     />
                   </div>
                 </div>
                 <div className="form-group">
-                  <textarea 
-                    className="form-textarea" 
-                    rows={4} 
-                    placeholder="Masukkan atau tempel isi email di sini... (wajib)" 
-                    value={body} 
-                    onChange={e => setBody(e.target.value)} 
-                    required 
+                  <textarea
+                    className="form-textarea"
+                    rows={4}
+                    placeholder="Masukkan atau tempel isi email di sini... (wajib)"
+                    value={body}
+                    onChange={e => setBody(e.target.value)}
+                    required
                   />
                 </div>
                 <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: 12 }} disabled={loading || !body.trim()}>
@@ -224,21 +258,83 @@ export default function Testing() {
               </form>
             </div>
 
-            <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', border: '2px dashed var(--gray-300)', background: 'var(--gray-50)' }}>
-              {uploadingBatch ? (
+            {/* Batch Upload Card */}
+            <div className="card" style={{ padding: 24 }}>
+              <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Upload size={18} /> Pengujian Batch (CSV / Excel)
+              </h3>
+
+              {/* Step 1: Pick file */}
+              {!batchFile && !loadingColumns && (
                 <>
-                  <Activity size={40} className="spinner" style={{ color: 'var(--primary)', marginBottom: 16 }} />
-                  <h3 style={{ marginBottom: 8 }}>Memproses Batch...</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 20 }}>Mohon tunggu, sedang memprediksi email dalam file.</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 16 }}>
+                    Upload file CSV/Excel berisi daftar email, lalu pilih kolom yang ingin digunakan.
+                  </p>
+                  <input type="file" accept=".csv,.xlsx,.xls" style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileChange} />
+                  <button className="btn btn-outline" style={{ width: '100%', padding: 12 }} onClick={() => fileInputRef.current?.click()}>
+                    <Upload size={16} /> Pilih File Dataset
+                  </button>
                 </>
-              ) : (
-                <>
-                  <Upload size={40} style={{ color: 'var(--gray-400)', marginBottom: 16 }} />
-                  <h3 style={{ marginBottom: 8 }}>Pengujian Batch (CSV)</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 20 }}>Unggah file CSV berisi daftar email untuk klasifikasi massal.</p>
-                  <input type="file" accept=".csv, .xlsx, .xls" style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileChange} />
-                  <button className="btn btn-outline" style={{ background: 'white' }} onClick={() => fileInputRef.current?.click()}>Pilih File CSV</button>
-                </>
+              )}
+
+              {/* Loading columns */}
+              {loadingColumns && (
+                <div style={{ textAlign: 'center', padding: 24, color: 'var(--gray-500)' }}>
+                  <Activity size={28} className="spinner" style={{ marginBottom: 8 }} />
+                  <p>Membaca kolom file...</p>
+                </div>
+              )}
+
+              {/* Step 2: Column selection */}
+              {batchFile && batchColumns.length > 0 && batchMetrics && !uploadingBatch && (
+                <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                  <div style={{ background: 'var(--gray-50)', padding: 16, borderRadius: 8, marginBottom: 20 }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--gray-600)', marginBottom: 4 }}>Detail Dataset Terpilih:</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--black)', marginBottom: 12 }}>{batchFile.name}</div>
+                    <div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--black)' }}>{batchMetrics.total_rows.toLocaleString()} Baris Data</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                        Pilih Kolom Pengujian
+                      </label>
+                      <select className="form-input" value={testMode} onChange={e => setTestMode(e.target.value)}>
+                        <option value="all">Gunakan Semua Kolom (Full)</option>
+                        {batchColumns.map(c => <option key={c} value={c}>Hanya Kolom: {c}</option>)}
+                      </select>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: 8 }}>
+                        {testMode === 'all' 
+                          ? 'Sistem akan otomatis mendeteksi kolom teks, subject, dan sender untuk diuji.' 
+                          : 'Hanya kolom terpilih yang akan diuji sebagai teks email (subject dan sender akan diabaikan).'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => { setBatchFile(null); setBatchColumns([]); }}>
+                      Ganti File
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      style={{ flex: 2 }}
+                      disabled={!batchFile}
+                      onClick={handleRunBatch}
+                    >
+                      <Send size={16} /> Mulai Testing
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Running */}
+              {uploadingBatch && (
+                <div style={{ textAlign: 'center', padding: 24, color: 'var(--gray-500)' }}>
+                  <Activity size={28} className="spinner" style={{ color: 'var(--primary)', marginBottom: 8 }} />
+                  <p>Sedang memproses dan mengklasifikasi email...</p>
+                </div>
               )}
             </div>
           </div>
@@ -330,14 +426,14 @@ export default function Testing() {
                 <h4 style={{ fontSize: '0.8rem', color: 'var(--gray-600)', marginBottom: 12 }}>Visualisasi Graph Attention (GAT)</h4>
                 <div style={{ height: 180, background: 'white', borderRadius: 8, border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
                   <svg width="100%" height="100%" viewBox="0 0 300 180">
-                    <line x1="150" y1="90" x2="80" y2="40" stroke="#ef4444" strokeWidth={activeResult.label==='spam' ? "3" : "0.5"} opacity={activeResult.label==='spam' ? "0.8" : "0.1"} />
-                    <line x1="150" y1="90" x2="220" y2="50" stroke="#ef4444" strokeWidth={activeResult.label==='spam' ? "2" : "0.5"} opacity={activeResult.label==='spam' ? "0.6" : "0.1"} />
-                    <line x1="150" y1="90" x2="90" y2="140" stroke="#10b981" strokeWidth={activeResult.label==='ham' ? "2.5" : "0.5"} opacity={activeResult.label==='ham' ? "0.7" : "0.1"} />
-                    <line x1="150" y1="90" x2="210" y2="130" stroke="#10b981" strokeWidth={activeResult.label==='ham' ? "3" : "0.5"} opacity={activeResult.label==='ham' ? "0.8" : "0.1"} />
-                    <circle cx="80" cy="40" r="8" fill="#ef4444" /> 
-                    <circle cx="220" cy="50" r="10" fill="#ef4444" /> 
-                    <circle cx="90" cy="140" r="12" fill="#10b981" /> 
-                    <circle cx="210" cy="130" r="9" fill="#10b981" /> 
+                    <line x1="150" y1="90" x2="80" y2="40" stroke="#ef4444" strokeWidth={activeResult.label === 'spam' ? "3" : "0.5"} opacity={activeResult.label === 'spam' ? "0.8" : "0.1"} />
+                    <line x1="150" y1="90" x2="220" y2="50" stroke="#ef4444" strokeWidth={activeResult.label === 'spam' ? "2" : "0.5"} opacity={activeResult.label === 'spam' ? "0.6" : "0.1"} />
+                    <line x1="150" y1="90" x2="90" y2="140" stroke="#10b981" strokeWidth={activeResult.label === 'ham' ? "2.5" : "0.5"} opacity={activeResult.label === 'ham' ? "0.7" : "0.1"} />
+                    <line x1="150" y1="90" x2="210" y2="130" stroke="#10b981" strokeWidth={activeResult.label === 'ham' ? "3" : "0.5"} opacity={activeResult.label === 'ham' ? "0.8" : "0.1"} />
+                    <circle cx="80" cy="40" r="8" fill="#ef4444" />
+                    <circle cx="220" cy="50" r="10" fill="#ef4444" />
+                    <circle cx="90" cy="140" r="12" fill="#10b981" />
+                    <circle cx="210" cy="130" r="9" fill="#10b981" />
                     <circle cx="150" cy="90" r="14" fill="white" stroke="var(--black)" strokeWidth="2" />
                     <circle cx="150" cy="90" r="5" fill="var(--black)" />
                   </svg>

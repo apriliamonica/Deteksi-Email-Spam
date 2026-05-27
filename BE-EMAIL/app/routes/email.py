@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 import pandas as pd
 import io
 from app.config.database import get_db
@@ -14,6 +14,71 @@ from app.services.email_service import EmailService
 from app.services.prediction_service import prediction_service
 
 router = APIRouter()
+
+
+def _read_dataframe(content: bytes, filename: str) -> pd.DataFrame:
+    """Helper: baca file CSV/Excel ke DataFrame."""
+    is_excel = filename.endswith((".xlsx", ".xls"))
+    df = None
+    if is_excel or content.startswith(b"PK"):
+        try:
+            df = pd.read_excel(io.BytesIO(content))
+        except Exception:
+            pass
+    if df is None:
+        for enc in ['utf-8', 'latin1', 'ISO-8859-1']:
+            for sep in [',', ';', '\t']:
+                try:
+                    df = pd.read_csv(io.BytesIO(content), encoding=enc, sep=sep, on_bad_lines='skip')
+                    break
+                except Exception:
+                    continue
+            if df is not None:
+                break
+    if df is None:
+        raise HTTPException(status_code=400, detail="Gagal membaca file. Pastikan format benar.")
+    df.columns = [str(c).strip().lower() for c in df.columns]
+    return df
+
+
+@router.post("/preview-columns")
+async def preview_columns(
+    file: UploadFile = File(..., description="CSV/Excel file untuk dibaca kolomnya"),
+):
+    """Baca nama-nama kolom dari file yang diupload tanpa memproses data."""
+    if not file.filename.endswith((".csv", ".xlsx", ".xls")):
+        raise HTTPException(status_code=400, detail="File harus berformat CSV atau Excel (.xlsx, .xls)")
+    try:
+        content = await file.read()
+        df = _read_dataframe(content, file.filename)
+        columns = list(df.columns)
+        total_rows = len(df)
+        
+        # Hitung spam/ham jika ada kolom label
+        spam_count = 0
+        ham_count = 0
+        if "label" in columns:
+            try:
+                # normalisasi label spam/ham atau 1/0
+                labels = df["label"].astype(str).str.lower().str.strip()
+                spam_count = int(sum(labels.isin(['spam', '1'])))
+                ham_count = int(sum(labels.isin(['ham', '0'])))
+            except:
+                pass
+                
+        return {
+            "status": "success", 
+            "columns": columns, 
+            "metrics": {
+                "total_rows": total_rows,
+                "spam": spam_count,
+                "ham": ham_count,
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gagal membaca kolom: {str(e)}")
 
 
 @router.post("/classify", response_model=PredictionResponse)
@@ -55,9 +120,20 @@ async def classify_email(email_input: EmailInput, db: Session = Depends(get_db))
 @router.post("/classify-batch")
 async def classify_batch(
     file: UploadFile = File(..., description="CSV file dengan kolom 'text' atau 'body'"),
+    text_column: Optional[str] = Form(None, description="Nama kolom teks (text/body) yang akan dipakai"),
+    subject_column: Optional[str] = Form(None, description="Nama kolom subject (opsional)"),
+    sender_column: Optional[str] = Form(None, description="Nama kolom sender (opsional)"),
     db: Session = Depends(get_db)
 ):
-    """Klasifikasi banyak email sekaligus via upload CSV."""
+    """
+    Klasifikasi email sebagai spam atau ham.
+
+    Proses:
+    1. Preprocessing teks
+    2. Ekstraksi fitur IndoBERT
+    3. Konstruksi graph
+    4. Prediksi menggunakan GAT
+    """
     is_excel = file.filename.endswith((".xlsx", ".xls"))
     is_csv = file.filename.endswith(".csv")
 
@@ -106,17 +182,42 @@ async def classify_batch(
         # Standarisasi nama kolom ke huruf kecil dan hilangkan spasi
         df.columns = [str(c).strip().lower() for c in df.columns]
 
-        text_col = next((c for c in ["text_id", "text", "body"] if c in df.columns), None)
-        subj_col = next((c for c in ["subject_id", "subject"] if c in df.columns), None)
+        text_col = None
+        subj_col = None
+        sender_col = None
+        # Use user-provided mapping if present, else fallback to auto-detect
+        if text_column:
+            if text_column not in df.columns:
+                raise HTTPException(status_code=400, detail=f"Kolom teks '{text_column}' tidak ditemukan dalam file.")
+            text_col = text_column
+        else:
+            text_col = next((c for c in ["text_id", "text", "body"] if c in df.columns), None)
 
-        # Jika tidak ada kolom teks yang dikenali, coba fallback: gunakan kolom pertama sebagai teks
-        if text_col is None:
-            if df.shape[1] >= 1:
-                first_col = df.columns[0]
-                df = df.rename(columns={first_col: "text"})
-                text_col = "text"
+        if subject_column:
+            if subject_column == "NONE":
+                subj_col = None
+            elif subject_column not in df.columns:
+                raise HTTPException(status_code=400, detail=f"Kolom subject '{subject_column}' tidak ditemukan dalam file.")
             else:
-                raise HTTPException(status_code=400, detail=f"Dataset harus memiliki kolom teks (text/body). Kolom yang terbaca: {list(df.columns)}")
+                subj_col = subject_column
+        else:
+            subj_col = next((c for c in ["subject_id", "subject"] if c in df.columns), None)
+
+        if sender_column:
+            if sender_column == "NONE":
+                sender_col = None
+            elif sender_column not in df.columns:
+                raise HTTPException(status_code=400, detail=f"Kolom sender '{sender_column}' tidak ditemukan dalam file.")
+            else:
+                sender_col = sender_column
+        else:
+            sender_col = "sender" if "sender" in df.columns else None
+
+        # If text column still not found, fallback to first column
+        if not text_col:
+            first_col = df.columns[0]
+            df = df.rename(columns={first_col: "text"})
+            text_col = "text"
 
         results = []
         for _, row in df.iterrows():
