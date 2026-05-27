@@ -11,7 +11,7 @@ export default function DataCollection() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [error, setError] = useState(null);
-  
+
   const [datasets, setDatasets] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +35,7 @@ export default function DataCollection() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   const totalPages = Math.ceil(datasets.length / itemsPerPage);
-  
+
   const currentData = datasets.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -54,7 +54,7 @@ export default function DataCollection() {
     const fileSizeMB = file.size / (1024 * 1024);
     const estimatedSeconds = Math.max(2, Math.ceil(fileSizeMB * 3));
     setEstimatedTime(estimatedSeconds);
-    
+
     try {
       const response = await modelAPI.uploadDataset(file, (progressEvent) => {
         if (progressEvent.total) {
@@ -64,7 +64,7 @@ export default function DataCollection() {
           // If total is not available, just show some progress based on loaded bytes
           // but cap it at 65% until finished
           const loadedMB = progressEvent.loaded / (1024 * 1024);
-          setUploadProgress(Math.min(65, loadedMB * 10)); 
+          setUploadProgress(Math.min(65, loadedMB * 10));
         }
       });
 
@@ -81,11 +81,11 @@ export default function DataCollection() {
       }, 500);
 
       const data = response.data;
-      
+
       if (data.status === 'success') {
         clearInterval(interval);
         setUploadProgress(100);
-        
+
         const newDataset = {
           id: data.metrics.dataset_id,
           name: file.name,
@@ -95,7 +95,7 @@ export default function DataCollection() {
           created_at: new Date().toISOString(),
           status: 'Uploaded'
         };
-        
+
         setTimeout(() => {
           setDatasets(prev => [newDataset, ...prev]);
           setUploadStatus('success');
@@ -198,26 +198,18 @@ export default function DataCollection() {
             <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
               <Upload size={16} /> Upload Dataset Baru
             </h3>
-            <div 
-              className={`file-upload ${file ? 'active' : ''}`}
-              onClick={() => {
-                console.log("Upload box clicked");
-                fileInputRef.current?.click();
-              }}
-              style={{ padding: '24px 16px', borderStyle: 'dashed', borderRadius: 'var(--radius-md)' }}
+            <button
+              className="btn btn-outline"
+              style={{ width: '100%', padding: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}
+              onClick={() => fileInputRef.current?.click()}
             >
-              <FileSpreadsheet size={32} style={{ color: file ? 'var(--black)' : 'var(--gray-300)', marginBottom: 12, transition: 'all 0.3s ease' }} />
-              <p style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: 4 }}>
-                {file ? file.name : 'Pilih file CSV atau Excel'}
-              </p>
-              <p style={{ fontSize: '0.72rem', color: 'var(--gray-500)' }}>
-                {file ? 'File terpilih' : 'Klik untuk mencari file (.csv, .xlsx, .xls)'}
-              </p>
-            </div>
-            <input 
+              <FileSpreadsheet size={18} />
+              {file ? file.name : 'Upload Dataset'}
+            </button>
+            <input
               ref={fileInputRef}
-              type="file" 
-              accept=".csv, .xlsx, .xls" 
+              type="file"
+              accept=".csv, .xlsx, .xls"
               onChange={e => {
                 const selectedFile = e.target.files?.[0];
                 console.log("File selected:", selectedFile?.name);
@@ -226,10 +218,10 @@ export default function DataCollection() {
                   setError(null);
                   setUploadStatus(null);
                 }
-              }} 
-              style={{ display: 'none' }} 
+              }}
+              style={{ display: 'none' }}
             />
-            
+
             {file && uploadStatus !== 'uploading' && (
               <div style={{ marginTop: 24, display: 'flex', gap: 12, animation: 'fadeIn 0.3s ease' }}>
                 <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleUpload}>
@@ -248,13 +240,13 @@ export default function DataCollection() {
                   <span style={{ fontWeight: 800 }}>{Math.round(uploadProgress)}%</span>
                 </div>
                 <div style={{ height: 6, background: 'var(--gray-100)', borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
-                  <div 
-                    style={{ 
-                      height: '100%', 
-                      width: `${uploadProgress}%`, 
-                      background: 'var(--black)', 
-                      transition: 'width 0.3s ease' 
-                    }} 
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${uploadProgress}%`,
+                      background: 'var(--black)',
+                      transition: 'width 0.3s ease'
+                    }}
                   />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', color: 'var(--gray-400)' }}>
@@ -263,17 +255,6 @@ export default function DataCollection() {
               </div>
             )}
 
-            {!file && uploadStatus !== 'uploading' && (
-              <div style={{ marginTop: 16 }}>
-                <button 
-                  className="btn btn-outline" 
-                  style={{ width: '100%', borderStyle: 'dashed', color: 'var(--gray-600)' }}
-                  onClick={handleSeedLocal}
-                >
-                  <Activity size={16} /> Gunakan Dataset Lokal (Server)
-                </button>
-              </div>
-            )}
 
             {uploadStatus === 'success' && (
               <div style={{ marginTop: 16, padding: 12, background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -298,7 +279,7 @@ export default function DataCollection() {
               </h3>
               <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>Total: {datasets.length} Dataset</div>
             </div>
-            
+
             <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
               <table>
                 <thead>
@@ -344,17 +325,17 @@ export default function DataCollection() {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                          <button 
-                            className="btn btn-sm btn-primary" 
-                            title="Lanjut ke Pre-processing" 
+                          <button
+                            className="btn btn-sm btn-primary"
+                            title="Lanjut ke Pre-processing"
                             onClick={() => { setSelectedForPre(d); setShowConfirm(true); }}
                             style={{ padding: '6px 10px' }}
                           >
                             <Layers size={14} />
                           </button>
-                          <button 
-                            className="btn btn-sm btn-outline" 
-                            style={{ padding: '6px', color: '#ef4444', borderColor: '#fee2e2' }} 
+                          <button
+                            className="btn btn-sm btn-outline"
+                            style={{ padding: '6px', color: '#ef4444', borderColor: '#fee2e2' }}
                             title="Hapus"
                             onClick={() => handleDelete(d.id)}
                           >
@@ -374,15 +355,15 @@ export default function DataCollection() {
                 Halaman {currentPage} dari {totalPages}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button 
-                  className="btn btn-sm btn-outline" 
+                <button
+                  className="btn btn-sm btn-outline"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(prev => prev - 1)}
                 >
                   <ChevronLeft size={16} />
                 </button>
-                <button 
-                  className="btn btn-sm btn-outline" 
+                <button
+                  className="btn btn-sm btn-outline"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(prev => prev + 1)}
                 >
@@ -396,14 +377,14 @@ export default function DataCollection() {
 
       {/* Confirmation Modal */}
       {showConfirm && (
-        <div style={{ 
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
           backdropFilter: 'blur(4px)', animation: 'fadeIn 0.2s ease'
         }}>
           <div className="card" style={{ maxWidth: 400, width: '90%', textAlign: 'center', padding: 32 }}>
-            <div style={{ 
-              width: 60, height: 60, borderRadius: '50%', background: 'var(--gray-100)', 
+            <div style={{
+              width: 60, height: 60, borderRadius: '50%', background: 'var(--gray-100)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto'
             }}>
               <Layers size={30} style={{ color: 'var(--black)' }} />
