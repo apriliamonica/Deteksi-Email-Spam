@@ -4,6 +4,8 @@ import { modelAPI, emailAPI } from '../services/api';
 
 export default function Testing() {
   const [body, setBody] = useState('');
+  const [subject, setSubject] = useState('');
+  const [sender, setSender] = useState('');
   const [activeResult, setActiveResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeModel, setActiveModel] = useState(null);
@@ -35,7 +37,11 @@ export default function Testing() {
     setLoading(true);
     
     try {
-      const res = await emailAPI.classify({ body: body });
+      const payload = { body: body };
+      if (subject.trim()) payload.subject = subject.trim();
+      if (sender.trim()) payload.sender = sender.trim();
+      
+      const res = await emailAPI.classify(payload);
       const data = res.data;
       
       const newEntry = {
@@ -50,6 +56,8 @@ export default function Testing() {
       setTestHistory(prev => [newEntry, ...prev]);
       setActiveResult(newEntry);
       setBody('');
+      setSubject('');
+      setSender('');
     } catch (error) {
       console.error("Gagal melakukan klasifikasi manual:", error);
       alert("Gagal melakukan prediksi. Pastikan backend menyala dan model sudah dilatih.");
@@ -180,11 +188,31 @@ export default function Testing() {
             <div className="card" style={{ padding: 24 }}>
               <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><FileText size={18} /> Uji Teks Manual</h3>
               <form onSubmit={handleManualTest}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 12 }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="Pengirim (misal: user@domain.com)" 
+                      value={sender} 
+                      onChange={e => setSender(e.target.value)} 
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="Subjek Email" 
+                      value={subject} 
+                      onChange={e => setSubject(e.target.value)} 
+                    />
+                  </div>
+                </div>
                 <div className="form-group">
                   <textarea 
                     className="form-textarea" 
                     rows={4} 
-                    placeholder="Masukkan atau tempel isi email di sini..." 
+                    placeholder="Masukkan atau tempel isi email di sini... (wajib)" 
                     value={body} 
                     onChange={e => setBody(e.target.value)} 
                     required 

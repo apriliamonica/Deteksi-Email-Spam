@@ -31,6 +31,7 @@ async def classify_email(email_input: EmailInput, db: Session = Depends(get_db))
         result = prediction_service.predict(
             text=email_input.body,
             subject=email_input.subject,
+            sender=email_input.sender,
         )
 
         # Simpan hasil prediksi ke database
