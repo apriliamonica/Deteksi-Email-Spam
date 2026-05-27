@@ -7,6 +7,9 @@ export default function DataCollection() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
+  const [datasetName, setDatasetName] = useState('');
+  const [previewStats, setPreviewStats] = useState(null);
+  const [previewing, setPreviewing] = useState(false);
   const [uploadStatus, setUploadStatus] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [estimatedTime, setEstimatedTime] = useState(0);
@@ -56,7 +59,7 @@ export default function DataCollection() {
     setEstimatedTime(estimatedSeconds);
 
     try {
-      const response = await modelAPI.uploadDataset(file, (progressEvent) => {
+      const response = await modelAPI.uploadDataset(file, datasetName, (progressEvent) => {
         if (progressEvent.total) {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           setUploadProgress(percentCompleted * 0.7); // 0-70% for actual upload
@@ -88,7 +91,7 @@ export default function DataCollection() {
 
         const newDataset = {
           id: data.metrics.dataset_id,
-          name: file.name,
+          name: datasetName || file.name,
           total_rows: data.metrics.total_uploaded,
           spam_count: data.metrics.spam,
           ham_count: data.metrics.ham,
@@ -100,6 +103,7 @@ export default function DataCollection() {
           setDatasets(prev => [newDataset, ...prev]);
           setUploadStatus('success');
           setFile(null);
+          setPreviewStats(null);
           setSelectedForPre(newDataset);
           setShowConfirm(true);
         }, 500);
@@ -206,28 +210,83 @@ export default function DataCollection() {
               <FileSpreadsheet size={18} />
               {file ? file.name : 'Upload Dataset'}
             </button>
+            <div style={{ marginTop: 12, padding: 12, background: 'var(--gray-50)', borderRadius: 8, fontSize: '0.75rem', color: 'var(--gray-600)', lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--black)' }}>Syarat Format Dataset (CSV/Excel):</div>
+              <ul style={{ paddingLeft: 16, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <li>Wajib ada kolom <strong>label</strong> (isi: <code>spam</code> / <code>ham</code> atau <code>1</code> / <code>0</code>).</li>
+                <li>Wajib ada kolom teks email (nama: <strong>text</strong>, <strong>body</strong>, atau <strong>text_id</strong>).</li>
+                <li>(Opsional) Kolom <strong>subject</strong> untuk subjek email.</li>
+                <li>(Opsional) Kolom <strong>sender</strong> untuk alamat email pengirim.</li>
+              </ul>
+            </div>
             <input
               ref={fileInputRef}
               type="file"
               accept=".csv, .xlsx, .xls"
-              onChange={e => {
+              onChange={async e => {
                 const selectedFile = e.target.files?.[0];
-                console.log("File selected:", selectedFile?.name);
                 if (selectedFile) {
                   setFile(selectedFile);
+                  setDatasetName(selectedFile.name);
                   setError(null);
                   setUploadStatus(null);
+                  setPreviewStats(null);
+                  setPreviewing(true);
+                  try {
+                    const res = await modelAPI.previewDataset(selectedFile);
+                    setPreviewStats(res.data.metrics);
+                  } catch (err) {
+                    console.error("Preview error:", err);
+                    setError(err.response?.data?.detail || "Gagal membaca preview file dataset.");
+                  } finally {
+                    setPreviewing(false);
+                  }
                 }
               }}
               style={{ display: 'none' }}
             />
 
-            {file && uploadStatus !== 'uploading' && (
-              <div style={{ marginTop: 24, display: 'flex', gap: 12, animation: 'fadeIn 0.3s ease' }}>
-                <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleUpload}>
-                  <Upload size={16} /> Upload Sekarang
-                </button>
-                <button className="btn btn-outline" onClick={() => setFile(null)}>Batal</button>
+            {previewing && (
+              <div style={{ marginTop: 24, textAlign: 'center', color: 'var(--gray-500)' }}>
+                <Activity className="spinner" size={24} style={{ marginBottom: 8 }} />
+                <p>Membaca dataset...</p>
+              </div>
+            )}
+
+            {file && previewStats && uploadStatus !== 'uploading' && uploadStatus !== 'success' && (
+              <div style={{ marginTop: 20, animation: 'fadeIn 0.3s ease' }}>
+                <div className="form-group">
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, display: 'block' }}>Nama Dataset</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={datasetName} 
+                    onChange={e => setDatasetName(e.target.value)} 
+                  />
+                </div>
+                
+                <div style={{ background: 'var(--gray-50)', padding: 16, borderRadius: 8, marginBottom: 20 }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--gray-600)', marginBottom: 12 }}>Detail Dataset</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, textAlign: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--black)' }}>{previewStats.total.toLocaleString()}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--gray-500)' }}>Total Baris</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#ef4444' }}>{previewStats.spam.toLocaleString()}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#ef4444' }}>Spam</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#10b981' }}>{previewStats.ham.toLocaleString()}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#10b981' }}>Non-Spam</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => { setFile(null); setPreviewStats(null); }}>Kembali</button>
+                  <button className="btn btn-primary" style={{ flex: 2 }} onClick={handleUpload}>Simpan Dataset</button>
+                </div>
               </div>
             )}
 

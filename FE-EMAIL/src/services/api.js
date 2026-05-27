@@ -51,9 +51,17 @@ export const modelAPI = {
     gat_lr: params.gat_lr || 0.001,
     gat_weight_decay: params.gat_weight_decay || 1e-4
   }),
-  uploadDataset: (file, onUploadProgress) => {
+  previewDataset: (file) => {
     const formData = new FormData();
     formData.append('file', file);
+    return api.post('/model/preview-dataset', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  uploadDataset: (file, dataset_name, onUploadProgress) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (dataset_name) formData.append('dataset_name', dataset_name);
     return api.post('/model/upload-dataset', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress
