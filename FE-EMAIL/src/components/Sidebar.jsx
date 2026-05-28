@@ -4,8 +4,8 @@ import { LayoutDashboard, Database, Layers, Brain, FlaskConical, BarChart3, LogO
 export default function Sidebar({ user, onLogout }) {
   const navigate = useNavigate();
   const handleLogout = () => { onLogout(); navigate('/login'); };
-  const initials = (user?.name && typeof user.name === 'string') 
-    ? user.name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2) 
+  const initials = (user?.name && typeof user.name === 'string')
+    ? user.name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : 'U';
 
   return (
@@ -27,16 +27,16 @@ export default function Sidebar({ user, onLogout }) {
             <Layers size={18} /> Pre-Processing
           </NavLink>
           <NavLink to="/riwayat-preprocessing" className={({ isActive }) => `nav-link sub-link ${isActive ? 'active' : ''}`} style={{ paddingLeft: 40, fontSize: '0.85rem' }}>
-            Riwayat Pre-Processing
+            Hasil Pre-Processing
           </NavLink>
-          
+
           <NavLink to="/processing" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <Brain size={18} /> Processing
           </NavLink>
           <NavLink to="/riwayat-model" className={({ isActive }) => `nav-link sub-link ${isActive ? 'active' : ''}`} style={{ paddingLeft: 40, fontSize: '0.85rem' }}>
-            Riwayat Model
+            Model
           </NavLink>
-          
+
           <div className="sidebar-section">Pengguna</div>
           <NavLink to="/manage-accounts" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <Users size={18} /> Kelola Akun
