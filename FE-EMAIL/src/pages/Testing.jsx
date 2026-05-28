@@ -10,6 +10,8 @@ export default function Testing() {
   const [loading, setLoading] = useState(false);
   const [activeModel, setActiveModel] = useState(null);
   const [activeModelLoading, setActiveModelLoading] = useState(true);
+  const [modelsHistory, setModelsHistory] = useState([]);
+  const [isActivating, setIsActivating] = useState(false);
   const [testHistory, setTestHistory] = useState([]);
   const [uploadingBatch, setUploadingBatch] = useState(false);
   const fileInputRef = useRef(null);
@@ -18,8 +20,13 @@ export default function Testing() {
   const [batchFile, setBatchFile] = useState(null);
   const [batchColumns, setBatchColumns] = useState([]);   // daftar kolom dari file
   const [batchMetrics, setBatchMetrics] = useState(null);
-  const [testMode, setTestMode] = useState('all');
+
+  // Selected columns for testing
+  const [colText, setColText] = useState('');
+  const [colSubject, setColSubject] = useState('');
+  const [colSender, setColSender] = useState('');
   const [loadingColumns, setLoadingColumns] = useState(false);
+
 
   useEffect(() => {
     fetchActiveModel();
@@ -28,13 +35,33 @@ export default function Testing() {
   const fetchActiveModel = async () => {
     try {
       setActiveModelLoading(true);
-      const res = await modelAPI.getActiveModel();
-      setActiveModel(res.data);
+      const [activeRes, historyRes] = await Promise.all([
+        modelAPI.getActiveModel(),
+        modelAPI.getHistory()
+      ]);
+      setActiveModel(activeRes.data);
+      setModelsHistory(historyRes.data);
     } catch (error) {
       console.error("Gagal mengambil model aktif:", error);
       setActiveModel(null);
     } finally {
       setActiveModelLoading(false);
+    }
+  };
+
+  const handleModelChange = async (e) => {
+    const newId = e.target.value;
+    if (!newId || newId == activeModel?.id) return;
+    
+    setIsActivating(true);
+    try {
+      await modelAPI.activateModel(newId);
+      await fetchActiveModel();
+    } catch (error) {
+      console.error("Gagal mengubah model:", error);
+      alert("Gagal mengubah model aktif.");
+    } finally {
+      setIsActivating(false);
     }
   };
 
@@ -53,6 +80,7 @@ export default function Testing() {
 
       const newEntry = {
         id: Date.now(),
+        type: 'manual',
         date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' }),
         text: data.body || body,
         label: data.label,
@@ -79,14 +107,17 @@ export default function Testing() {
     if (!file) return;
     setBatchFile(file);
     setBatchColumns([]);
-    setTestMode('all');
     setLoadingColumns(true);
     try {
       const res = await emailAPI.previewColumns(file);
       const cols = res.data.columns;
       setBatchColumns(cols);
       setBatchMetrics(res.data.metrics);
-      setBatchMetrics(res.data.metrics);
+      // Auto-detect sensible defaults
+      const find = (...names) => cols.find(c => names.includes(c)) || '';
+      setColText(find('text_id', 'text', 'body'));
+      setColSubject(find('subject_id', 'subject'));
+      setColSender(find('sender'));
     } catch (err) {
       alert(err.response?.data?.detail || 'Gagal membaca kolom file.');
       setBatchFile(null);
@@ -103,11 +134,10 @@ export default function Testing() {
     try {
       const formData = new FormData();
       formData.append('file', batchFile);
-      if (testMode !== 'all') {
-        formData.append('text_column', testMode);
-        formData.append('subject_column', 'NONE');
-        formData.append('sender_column', 'NONE');
-      }
+      formData.append('text_column', colText);
+      formData.append('subject_column', colSubject);
+      formData.append('sender_column', colSender);
+      
       const res = await emailAPI.classifyBatch(formData);
       const results = res.data.results.map((r, i) => ({
         id: r.id || Date.now() + i,
@@ -117,7 +147,18 @@ export default function Testing() {
         conf: r.confidence,
         detail: r.processing_detail
       }));
-      setTestHistory(prev => [...results, ...prev]);
+
+      const newEntry = {
+        id: Date.now(),
+        type: 'batch',
+        filename: batchFile.name,
+        date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' }),
+        text: `Pengujian batch dari file: ${batchFile.name} (${results.length} data diproses)`,
+        label: 'batch',
+        results: results,
+      };
+
+      setTestHistory(prev => [newEntry, ...prev]);
       setBatchFile(null); setBatchColumns([]);
       alert(`Berhasil menguji ${results.length} email!`);
     } catch (error) {
@@ -173,9 +214,32 @@ export default function Testing() {
                   Ready
                 </span>
               </div>
-              <p style={{ margin: '2px 0 0 0', fontSize: '0.85rem', color: '#166534' }}>
-                Model: <strong style={{ color: '#14532d' }}>{activeModel.model_name}</strong> | Dataset: <strong style={{ color: '#14532d' }}>{activeModel.dataset_name}</strong>
-              </p>
+              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '0.85rem', color: '#166534', fontWeight: 600 }}>Pilih Model:</span>
+                <select 
+                  value={activeModel.id} 
+                  onChange={handleModelChange}
+                  disabled={isActivating}
+                  style={{ 
+                    padding: '4px 8px', 
+                    borderRadius: 6, 
+                    border: '1px solid #10b981', 
+                    background: 'white',
+                    color: '#14532d',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    outline: 'none',
+                    cursor: isActivating ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {modelsHistory.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.model_name} (Acc: {(m.accuracy * 100).toFixed(1)}%)
+                    </option>
+                  ))}
+                </select>
+                {isActivating && <Activity size={14} className="spinner" style={{ color: '#15803d' }} />}
+              </div>
             </div>
           </div>
 
@@ -299,30 +363,36 @@ export default function Testing() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
                     <div>
                       <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                        Pilih Kolom Pengujian
+                        Kolom Isi Email (Teks) <span style={{ color: '#ef4444' }}>*</span>
                       </label>
-                      <select className="form-input" value={testMode} onChange={e => setTestMode(e.target.value)}>
-                        <option value="all">Gunakan Semua Kolom (Full)</option>
-                        {batchColumns.map(c => <option key={c} value={c}>Hanya Kolom: {c}</option>)}
+                      <select className="form-input" value={colText} onChange={e => setColText(e.target.value)}>
+                        <option value="">-- Pilih kolom --</option>
+                        {batchColumns.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: 8 }}>
-                        {testMode === 'all' 
-                          ? 'Sistem akan otomatis mendeteksi kolom teks, subject, dan sender untuk diuji.' 
-                          : 'Hanya kolom terpilih yang akan diuji sebagai teks email (subject dan sender akan diabaikan).'}
-                      </p>
                     </div>
+
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                      Kolom Subject (wajib) <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <select className="form-input" value={colSubject} onChange={e => setColSubject(e.target.value)}>
+                      <option value="" disabled>-- Pilih kolom --</option>
+                      {batchColumns.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+
+                    <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                      Kolom Pengirim (Sender) (wajib) <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <select className="form-input" value={colSender} onChange={e => setColSender(e.target.value)}>
+                      <option value="" disabled>-- Pilih kolom --</option>
+                      {batchColumns.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => { setBatchFile(null); setBatchColumns([]); }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => { setBatchFile(null); setBatchColumns([]); setColText(''); setColSubject(''); setColSender(''); }}>
                       Ganti File
                     </button>
-                    <button
-                      className="btn btn-primary"
-                      style={{ flex: 2 }}
-                      disabled={!batchFile}
-                      onClick={handleRunBatch}
-                    >
+                    <button className="btn btn-primary" style={{ flex: 2 }} disabled={!colText || !colSubject || !colSender} onClick={handleRunBatch}>
                       <Send size={16} /> Mulai Testing
                     </button>
                   </div>
@@ -370,9 +440,15 @@ export default function Testing() {
                         </div>
                       </td>
                       <td>
-                        <span className={`badge badge-${item.label}`} style={{ display: 'block', textAlign: 'center', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 800 }}>
-                          {item.label}
-                        </span>
+                        {item.type === 'batch' ? (
+                          <span style={{ display: 'block', textAlign: 'center', background: 'var(--gray-200)', color: 'var(--gray-700)', padding: '4px 8px', borderRadius: 4, fontSize: '0.7rem', fontWeight: 800 }}>
+                            BATCH
+                          </span>
+                        ) : (
+                          <span className={`badge badge-${item.label}`} style={{ display: 'block', textAlign: 'center', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 800 }}>
+                            {item.label}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }} onClick={e => e.stopPropagation()}>
@@ -397,56 +473,102 @@ export default function Testing() {
         {/* KOLOM KANAN: Detail & GAT Visualization */}
         <div style={{ position: 'sticky', top: 24 }}>
           {activeResult ? (
-            <div className={`card`} style={{ padding: 24, border: '2px solid var(--black)', animation: 'slideIn 0.3s ease-out' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                {activeResult.label === 'spam' ? (
-                  <div style={{ padding: 10, background: 'rgba(239, 68, 68, 0.1)', borderRadius: '50%' }}><ShieldAlert size={24} style={{ color: '#ef4444' }} /></div>
-                ) : (
-                  <div style={{ padding: 10, background: 'rgba(16, 185, 129, 0.1)', borderRadius: '50%' }}><ShieldCheck size={24} style={{ color: '#10b981' }} /></div>
-                )}
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase' }}>Prediksi Model</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: activeResult.label === 'spam' ? '#ef4444' : '#10b981' }}>
-                    {activeResult.label === 'spam' ? 'TERDETEKSI SPAM' : 'EMAIL AMAN (HAM)'}
+            activeResult.type === 'batch' ? (
+              <div className="card" style={{ padding: 24, border: '2px solid var(--black)', animation: 'slideIn 0.3s ease-out' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                  <div style={{ padding: 10, background: 'var(--gray-100)', borderRadius: '50%' }}><FileText size={24} style={{ color: 'var(--gray-600)' }} /></div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase' }}>Detail Batch</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--black)' }}>
+                      {activeResult.filename}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: 6 }}>
-                  <span>Confidence Level</span>
-                  <span style={{ fontWeight: 700 }}>{(activeResult.conf * 100).toFixed(2)}%</span>
+                <div style={{ background: 'var(--gray-50)', padding: 16, borderRadius: 12, marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: 8 }}>
+                    <span style={{ color: 'var(--gray-500)' }}>Total Data Diuji:</span>
+                    <strong style={{ color: 'var(--black)' }}>{activeResult.results.length} Email</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: 8 }}>
+                    <span style={{ color: 'var(--gray-500)' }}>Total Spam:</span>
+                    <strong style={{ color: '#ef4444' }}>{activeResult.results.filter(r => r.label === 'spam').length}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                    <span style={{ color: 'var(--gray-500)' }}>Total Non-Spam:</span>
+                    <strong style={{ color: '#10b981' }}>{activeResult.results.filter(r => r.label === 'ham').length}</strong>
+                  </div>
                 </div>
-                <div className="progress-bar" style={{ height: 8, background: 'var(--gray-100)' }}>
-                  <div className="progress-fill" style={{ width: `${activeResult.conf * 100}%`, background: activeResult.label === 'spam' ? '#ef4444' : '#10b981' }} />
-                </div>
-              </div>
 
-              <div style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 16, background: 'var(--gray-50)', marginBottom: 20 }}>
-                <h4 style={{ fontSize: '0.8rem', color: 'var(--gray-600)', marginBottom: 12 }}>Visualisasi Graph Attention (GAT)</h4>
-                <div style={{ height: 180, background: 'white', borderRadius: 8, border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
-                  <svg width="100%" height="100%" viewBox="0 0 300 180">
-                    <line x1="150" y1="90" x2="80" y2="40" stroke="#ef4444" strokeWidth={activeResult.label === 'spam' ? "3" : "0.5"} opacity={activeResult.label === 'spam' ? "0.8" : "0.1"} />
-                    <line x1="150" y1="90" x2="220" y2="50" stroke="#ef4444" strokeWidth={activeResult.label === 'spam' ? "2" : "0.5"} opacity={activeResult.label === 'spam' ? "0.6" : "0.1"} />
-                    <line x1="150" y1="90" x2="90" y2="140" stroke="#10b981" strokeWidth={activeResult.label === 'ham' ? "2.5" : "0.5"} opacity={activeResult.label === 'ham' ? "0.7" : "0.1"} />
-                    <line x1="150" y1="90" x2="210" y2="130" stroke="#10b981" strokeWidth={activeResult.label === 'ham' ? "3" : "0.5"} opacity={activeResult.label === 'ham' ? "0.8" : "0.1"} />
-                    <circle cx="80" cy="40" r="8" fill="#ef4444" />
-                    <circle cx="220" cy="50" r="10" fill="#ef4444" />
-                    <circle cx="90" cy="140" r="12" fill="#10b981" />
-                    <circle cx="210" cy="130" r="9" fill="#10b981" />
-                    <circle cx="150" cy="90" r="14" fill="white" stroke="var(--black)" strokeWidth="2" />
-                    <circle cx="150" cy="90" r="5" fill="var(--black)" />
-                  </svg>
+                <h4 style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: 12 }}>Daftar Hasil Prediksi:</h4>
+                <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid var(--gray-200)', borderRadius: 8, padding: 8 }}>
+                  {activeResult.results.map((res, i) => (
+                    <div key={res.id} style={{ padding: 12, borderBottom: i < activeResult.results.length - 1 ? '1px solid var(--gray-100)' : 'none' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: res.label === 'spam' ? '#ef4444' : '#10b981', textTransform: 'uppercase' }}>
+                          {res.label}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>{(res.conf * 100).toFixed(1)}%</span>
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--gray-700)', lineHeight: 1.4 }}>
+                        {res.text.length > 100 ? res.text.substring(0, 100) + '...' : res.text}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
+            ) : (
+              <div className="card" style={{ padding: 24, border: '2px solid var(--black)', animation: 'slideIn 0.3s ease-out' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                  {activeResult.label === 'spam' ? (
+                    <div style={{ padding: 10, background: 'rgba(239, 68, 68, 0.1)', borderRadius: '50%' }}><ShieldAlert size={24} style={{ color: '#ef4444' }} /></div>
+                  ) : (
+                    <div style={{ padding: 10, background: 'rgba(16, 185, 129, 0.1)', borderRadius: '50%' }}><ShieldCheck size={24} style={{ color: '#10b981' }} /></div>
+                  )}
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase' }}>Prediksi Model</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: activeResult.label === 'spam' ? '#ef4444' : '#10b981' }}>
+                      {activeResult.label === 'spam' ? 'TERDETEKSI SPAM' : 'EMAIL AMAN (HAM)'}
+                    </div>
+                  </div>
+                </div>
 
-              <div style={{ background: 'var(--gray-50)', padding: 16, borderRadius: 12 }}>
-                <h4 style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: 8 }}>Isi Email Pengujian:</h4>
-                <p style={{ fontSize: '0.85rem', margin: 0, fontStyle: 'italic', color: 'var(--gray-700)', lineHeight: 1.5 }}>
-                  "{activeResult.text}"
-                </p>
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: 6 }}>
+                    <span>Confidence Level</span>
+                    <span style={{ fontWeight: 700 }}>{(activeResult.conf * 100).toFixed(2)}%</span>
+                  </div>
+                  <div className="progress-bar" style={{ height: 8, background: 'var(--gray-100)' }}>
+                    <div className="progress-fill" style={{ width: `${activeResult.conf * 100}%`, background: activeResult.label === 'spam' ? '#ef4444' : '#10b981' }} />
+                  </div>
+                </div>
+
+                <div style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 16, background: 'var(--gray-50)', marginBottom: 20 }}>
+                  <h4 style={{ fontSize: '0.8rem', color: 'var(--gray-600)', marginBottom: 12 }}>Visualisasi Graph Attention (GAT)</h4>
+                  <div style={{ height: 180, background: 'white', borderRadius: 8, border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
+                    <svg width="100%" height="100%" viewBox="0 0 300 180">
+                      <line x1="150" y1="90" x2="80" y2="40" stroke="#ef4444" strokeWidth={activeResult.label === 'spam' ? "3" : "0.5"} opacity={activeResult.label === 'spam' ? "0.8" : "0.1"} />
+                      <line x1="150" y1="90" x2="220" y2="50" stroke="#ef4444" strokeWidth={activeResult.label === 'spam' ? "2" : "0.5"} opacity={activeResult.label === 'spam' ? "0.6" : "0.1"} />
+                      <line x1="150" y1="90" x2="90" y2="140" stroke="#10b981" strokeWidth={activeResult.label === 'ham' ? "2.5" : "0.5"} opacity={activeResult.label === 'ham' ? "0.7" : "0.1"} />
+                      <line x1="150" y1="90" x2="210" y2="130" stroke="#10b981" strokeWidth={activeResult.label === 'ham' ? "3" : "0.5"} opacity={activeResult.label === 'ham' ? "0.8" : "0.1"} />
+                      <circle cx="80" cy="40" r="8" fill="#ef4444" />
+                      <circle cx="220" cy="50" r="10" fill="#ef4444" />
+                      <circle cx="90" cy="140" r="12" fill="#10b981" />
+                      <circle cx="210" cy="130" r="9" fill="#10b981" />
+                      <circle cx="150" cy="90" r="14" fill="white" stroke="var(--black)" strokeWidth="2" />
+                      <circle cx="150" cy="90" r="5" fill="var(--black)" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div style={{ background: 'var(--gray-50)', padding: 16, borderRadius: 12 }}>
+                  <h4 style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: 8 }}>Isi Email Pengujian:</h4>
+                  <p style={{ fontSize: '0.85rem', margin: 0, fontStyle: 'italic', color: 'var(--gray-700)', lineHeight: 1.5 }}>
+                    "{activeResult.text}"
+                  </p>
+                </div>
               </div>
-            </div>
+            )
           ) : (
             <div className="card" style={{ padding: 40, textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', border: '1px dashed var(--gray-300)' }}>
               <Mail size={48} style={{ color: 'var(--gray-200)', marginBottom: 16 }} />

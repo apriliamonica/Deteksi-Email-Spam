@@ -120,9 +120,9 @@ async def classify_email(email_input: EmailInput, db: Session = Depends(get_db))
 @router.post("/classify-batch")
 async def classify_batch(
     file: UploadFile = File(..., description="CSV file dengan kolom 'text' atau 'body'"),
-    text_column: Optional[str] = Form(None, description="Nama kolom teks (text/body) yang akan dipakai"),
-    subject_column: Optional[str] = Form(None, description="Nama kolom subject (opsional)"),
-    sender_column: Optional[str] = Form(None, description="Nama kolom sender (opsional)"),
+    text_column: str = Form(..., description="Nama kolom teks (text/body) yang akan dipakai"),
+    subject_column: str = Form(..., description="Nama kolom subject (wajib)"),
+    sender_column: str = Form(..., description="Nama kolom sender (wajib)"),
     db: Session = Depends(get_db)
 ):
     """
@@ -193,25 +193,13 @@ async def classify_batch(
         else:
             text_col = next((c for c in ["text_id", "text", "body"] if c in df.columns), None)
 
-        if subject_column:
-            if subject_column == "NONE":
-                subj_col = None
-            elif subject_column not in df.columns:
-                raise HTTPException(status_code=400, detail=f"Kolom subject '{subject_column}' tidak ditemukan dalam file.")
-            else:
-                subj_col = subject_column
-        else:
-            subj_col = next((c for c in ["subject_id", "subject"] if c in df.columns), None)
+        if subject_column not in df.columns:
+            raise HTTPException(status_code=400, detail=f"Kolom subject '{subject_column}' tidak ditemukan dalam file.")
+        subj_col = subject_column
 
-        if sender_column:
-            if sender_column == "NONE":
-                sender_col = None
-            elif sender_column not in df.columns:
-                raise HTTPException(status_code=400, detail=f"Kolom sender '{sender_column}' tidak ditemukan dalam file.")
-            else:
-                sender_col = sender_column
-        else:
-            sender_col = "sender" if "sender" in df.columns else None
+        if sender_column not in df.columns:
+            raise HTTPException(status_code=400, detail=f"Kolom sender '{sender_column}' tidak ditemukan dalam file.")
+        sender_col = sender_column
 
         # If text column still not found, fallback to first column
         if not text_col:
