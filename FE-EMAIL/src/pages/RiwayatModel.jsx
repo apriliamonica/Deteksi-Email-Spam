@@ -95,8 +95,8 @@ export default function RiwayatModelPage() {
   return (
     <div style={{ maxWidth: 1400, margin: '0 auto', paddingBottom: 40 }}>
       <div className="page-header" style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: 8 }}>Riwayat Pelatihan Model</h1>
-        <p style={{ color: 'var(--gray-500)' }}>Daftar detail performa dan hyperparameter model IndoBERT + GAT yang telah dilatih.</p>
+        <h1 style={{ fontSize: '2rem', marginBottom: 8 }}>Hasil Pengujian</h1>
+        <p style={{ color: 'var(--gray-500)' }}>Daftar hasil pengujian model IndoBERT + GAT yang telah dilakukan.</p>
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -121,7 +121,7 @@ export default function RiwayatModelPage() {
                   <th style={{ textAlign: 'center' }}>Ham</th>
                   <th style={{ background: 'rgba(0,0,0,0.02)', textAlign: 'center' }}>Akurasi</th>
                   <th style={{ textAlign: 'center' }}>F1-Score</th>
-                  <th style={{ textAlign: 'center', width: 100 }}>Aksi</th>
+                  <th style={{ textAlign: 'center', width: 100 }}>Detail</th>
                 </tr>
               </thead>
               <tbody>
@@ -198,16 +198,7 @@ export default function RiwayatModelPage() {
                           >
                             <BarChart2 size={14} /> Detail
                           </button>
-                          {!isActive && (
-                            <button 
-                              className="btn btn-primary btn-sm" 
-                              onClick={() => handleActivateModel(item.id)}
-                              disabled={activatingId !== null}
-                              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', fontSize: '0.8rem' }}
-                            >
-                              <CheckCircle size={14} /> Aktifkan
-                            </button>
-                          )}
+                           {/* Activation handled via dropdown on Testing page – no per-row action needed */}
                         </div>
                       </td>
                     </tr>
