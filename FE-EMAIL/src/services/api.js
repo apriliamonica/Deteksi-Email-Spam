@@ -79,6 +79,7 @@ export const modelAPI = {
   getHistoryDetail: (id) => api.get(`/model/history/${id}`),
   activateModel: (id) => api.post(`/model/activate/${id}`),
   getActiveModel: () => api.get('/model/active'),
+  getDatasetRows: (datasetId, limit = 50, offset = 0) => api.get(`/model/datasets/${datasetId}/rows`, { params: { limit, offset } }),
 };
 
 // === Auth API ===

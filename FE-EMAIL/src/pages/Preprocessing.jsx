@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layers, Play, CheckCircle, Database, ChevronRight, Activity, ShieldAlert, Settings } from 'lucide-react';
+import { Layers, Play, CheckCircle, Database, ChevronRight, Activity, ShieldAlert, Settings, FileText } from 'lucide-react';
 import { emailAPI, modelAPI } from '../services/api';
 
 const STEPS = [
@@ -30,6 +30,11 @@ export default function PreprocessingPage() {
   const [preprocStatus, setPreprocStatus] = useState(null);
   const [globalLock, setGlobalLock] = useState(null);
   const [isForce, setIsForce] = useState(false);
+  const [comparisonRows, setComparisonRows] = useState([]);
+  const [comparisonTotal, setComparisonTotal] = useState(0);
+  const [comparisonPage, setComparisonPage] = useState(0);
+  const [comparisonLoading, setComparisonLoading] = useState(false);
+  const COMPARISON_LIMIT = 10;
 
   const fetchDatasets = async () => {
     try {
@@ -83,10 +88,39 @@ export default function PreprocessingPage() {
       .catch(err => console.error(err));
   };
 
+  const fetchComparisonRows = async (dsId, page = 0) => {
+    if (!dsId) return;
+    setComparisonLoading(true);
+    try {
+      const res = await modelAPI.getDatasetRows(dsId, COMPARISON_LIMIT, page * COMPARISON_LIMIT);
+      setComparisonRows(res.data.rows);
+      setComparisonTotal(res.data.total);
+    } catch (err) {
+      console.error('Gagal mengambil data perbandingan:', err);
+    } finally {
+      setComparisonLoading(false);
+    }
+  };
+
   useEffect(() => {
     const dsId = (selectedDataset && selectedDataset !== "db-01") ? parseInt(selectedDataset) : null;
     fetchStats(dsId);
+    if (dsId) {
+      setComparisonPage(0);
+      fetchComparisonRows(dsId, 0);
+    }
   }, [selectedDataset]);
+
+  // Re-fetch comparison rows when step reaches final (processed_body now available)
+  useEffect(() => {
+    if (currentStep === STEPS.length - 1) {
+      const dsId = (selectedDataset && selectedDataset !== "db-01") ? parseInt(selectedDataset) : null;
+      if (dsId) {
+        setComparisonPage(0);
+        fetchComparisonRows(dsId, 0);
+      }
+    }
+  }, [currentStep]);
 
   const handleStart = async () => {
     try {
@@ -412,22 +446,99 @@ export default function PreprocessingPage() {
 
           {/* Tampilan Khusus Step Akhir (5): Hasil Akhir */}
           {currentStep === STEPS.length - 1 && (
-            <div style={{ padding: 40, background: 'var(--gray-50)', borderRadius: 12, border: '1px dashed var(--gray-300)', textAlign: 'center' }}>
-              <Layers size={40} style={{ color: 'var(--black)', margin: '0 auto 16px auto' }} />
-              <h4 style={{ color: 'var(--black)', margin: '0 0 12px 0', fontSize: '1.2rem' }}>Data Siap Ditraining</h4>
-              <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', margin: '0 0 24px 0' }}>
-                Dataset telah berhasil melewati seluruh tahap preprocessing dan siap dimasukkan ke dalam model IndoBERT.
-              </p>
-              <button 
-                className="btn btn-primary" 
-                style={{ padding: '12px 32px', fontSize: '1.05rem', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 14px rgba(0,0,0,0.1)' }}
-                onClick={() => navigate('/processing', { state: { datasetName: 'Database Utama (Pre-Processed)' } })}
-              >
-                Lanjut ke Proses Training <ChevronRight size={18} />
-              </button>
+            <div style={{ background: 'var(--gray-50)', borderRadius: 12, border: '1px dashed var(--gray-300)', overflow: 'hidden' }}>
+              <div style={{ padding: 40, textAlign: 'center' }}>
+                <Layers size={40} style={{ color: 'var(--black)', margin: '0 auto 16px auto' }} />
+                <h4 style={{ color: 'var(--black)', margin: '0 0 12px 0', fontSize: '1.2rem' }}>Data Siap Ditraining</h4>
+                <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', margin: '0 0 24px 0' }}>
+                  Dataset telah berhasil melewati seluruh tahap preprocessing dan siap dimasukkan ke dalam model IndoBERT.
+                </p>
+                <button 
+                  className="btn btn-primary" 
+                  style={{ padding: '12px 32px', fontSize: '1.05rem', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 14px rgba(0,0,0,0.1)' }}
+                  onClick={() => navigate('/processing', { state: { datasetName: 'Database Utama (Pre-Processed)' } })}
+                >
+                  Lanjut ke Proses Training <ChevronRight size={18} />
+                </button>
+              </div>
             </div>
           )}
 
+        </div>
+      )}
+
+      {/* Tabel Perbandingan Sebelum & Sesudah Preprocessing */}
+      {currentStep >= 0 && selectedDataset && comparisonRows.length > 0 && (
+        <div className="card" style={{ padding: 0, overflow: 'hidden', marginTop: 24 }}>
+          <div style={{ padding: '16px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--gray-200)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <FileText size={18} />
+            <span style={{ fontWeight: 600 }}>Tabel Perbandingan Teks Sebelum & Sesudah Preprocessing</span>
+            <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--gray-500)' }}>
+              Menampilkan {comparisonRows.length} dari {comparisonTotal.toLocaleString()} data
+            </span>
+          </div>
+          <div className="table-container" style={{ overflowX: 'auto' }}>
+            {comparisonLoading ? (
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--gray-500)' }}>Memuat data...</div>
+            ) : (
+              <table style={{ margin: 0, width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'var(--gray-50)' }}>
+                    <th style={{ width: 50, textAlign: 'center', border: '1px solid var(--gray-200)', padding: '12px 8px' }}>No</th>
+                    <th style={{ width: '45%', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>Teks Sebelum (Original)</th>
+                    <th style={{ width: '45%', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>Teks Sesudah (Preprocessed)</th>
+                    <th style={{ width: 70, textAlign: 'center', border: '1px solid var(--gray-200)', padding: '12px 8px' }}>Label</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparisonRows.map((row, idx) => (
+                    <tr key={row.id}>
+                      <td style={{ textAlign: 'center', color: 'var(--gray-500)', fontSize: '0.85rem', border: '1px solid var(--gray-200)', padding: '12px 8px' }}>
+                        {comparisonPage * COMPARISON_LIMIT + idx + 1}
+                      </td>
+                      <td style={{ fontSize: '0.82rem', lineHeight: 1.5, color: 'var(--gray-700)', maxWidth: 350, wordBreak: 'break-word', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>
+                        {row.body || <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>-</span>}
+                      </td>
+                      <td style={{ fontSize: '0.82rem', lineHeight: 1.5, maxWidth: 350, wordBreak: 'break-word', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>
+                        {currentStep === STEPS.length - 1 && row.processed_body ? (
+                          <span style={{ color: '#059669' }}>{row.processed_body}</span>
+                        ) : (
+                          <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>Menunggu preprocessing selesai...</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'center', border: '1px solid var(--gray-200)', padding: '12px 8px' }}>
+                        <span className={row.label === 'spam' ? 'badge badge-spam' : 'badge badge-ham'} style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                          {row.label}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+          {/* Pagination */}
+          {comparisonTotal > COMPARISON_LIMIT && (
+            <div style={{ padding: '12px 24px', borderTop: '1px solid var(--gray-200)', display: 'flex', justifyContent: 'center', gap: 8, alignItems: 'center' }}>
+              <button
+                className="btn btn-outline btn-sm"
+                disabled={comparisonPage === 0}
+                onClick={() => { const p = comparisonPage - 1; setComparisonPage(p); fetchComparisonRows(parseInt(selectedDataset), p); }}
+              >
+                ← Sebelumnya
+              </button>
+              <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>
+                Halaman {comparisonPage + 1} dari {Math.ceil(comparisonTotal / COMPARISON_LIMIT)}
+              </span>
+              <button
+                className="btn btn-outline btn-sm"
+                disabled={(comparisonPage + 1) * COMPARISON_LIMIT >= comparisonTotal}
+                onClick={() => { const p = comparisonPage + 1; setComparisonPage(p); fetchComparisonRows(parseInt(selectedDataset), p); }}
+              >
+                Selanjutnya →
+              </button>
+            </div>
+          )}
         </div>
       )}
 

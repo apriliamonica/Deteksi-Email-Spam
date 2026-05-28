@@ -689,3 +689,45 @@ async def get_active_model(db: Session = Depends(get_db)):
         "total_data": history.total_data,
         "created_at": history.created_at
     }
+
+
+@router.get("/datasets/{dataset_id}/rows")
+async def get_dataset_rows(
+    dataset_id: int,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+):
+    """Ambil baris email dari dataset tertentu beserta teks sebelum dan sesudah preprocessing."""
+    from app.models.email import Email
+
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset tidak ditemukan")
+
+    total = db.query(Email).filter(Email.dataset_id == dataset_id, Email.is_prediction == False).count()
+
+    rows = (
+        db.query(Email)
+        .filter(Email.dataset_id == dataset_id, Email.is_prediction == False)
+        .order_by(Email.id)
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "rows": [
+            {
+                "id": r.id,
+                "body": (r.body or "")[:300],
+                "processed_body": (r.processed_body or "")[:300] if r.processed_body else None,
+                "label": r.label,
+            }
+            for r in rows
+        ],
+    }
+
