@@ -1,0 +1,177 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="diagram_final" name="Alur Sistem">
+    <mxGraphModel dx="1499" dy="990" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="r1_l" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;whiteSpace=wrap;" value="Tahap&#xa;Preprocessing" vertex="1">
+          <mxGeometry height="100" width="120" x="10" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="r1_b1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="100" width="120" x="10" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="r1_b2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="100" width="850" x="130" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="r2_l" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;whiteSpace=wrap;" value="Tahap Processing:&#xa;IndoBERT" vertex="1">
+          <mxGeometry height="100" width="120" x="10" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r2_b1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="100" width="120" x="10" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r2_b2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="100" width="850" x="130" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r3_l" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;whiteSpace=wrap;" value="Tahap Processing:&#xa;GAT" vertex="1">
+          <mxGeometry height="100" width="120" x="10" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="r3_b1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="100" width="120" x="10" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="r3_b2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="100" width="850" x="130" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="r4_l" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;whiteSpace=wrap;" value="Tahap&#xa;Klasifikasi" vertex="1">
+          <mxGeometry height="100" width="120" x="10" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="r4_b1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="100" width="120" x="10" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="r4_b2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="100" width="850" x="130" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="r5_l" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;whiteSpace=wrap;" value="Tahap&#xa;Pelatihan Model" vertex="1">
+          <mxGeometry height="100" width="120" x="10" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="r5_b1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="100" width="120" x="10" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="r5_b2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="100" width="850" x="130" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="r6_l" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;whiteSpace=wrap;" value="Tahap&#xa;Evaluasi Model" vertex="1">
+          <mxGeometry height="100" width="120" x="10" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="r6_b1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="100" width="120" x="10" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="r6_b2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="100" width="850" x="130" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="s1" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;" value="Start" vertex="1">
+          <mxGeometry height="50" width="80" x="150" y="35" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;" value="Gabung Teks&#xa;(Subject + Body)" vertex="1">
+          <mxGeometry height="50" width="130" x="280" y="35" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;" value="Masking URL &amp; Email" vertex="1">
+          <mxGeometry height="50" width="130" x="460" y="35" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;" value="Pembersihan &amp;&#xa;Normalisasi Teks" vertex="1">
+          <mxGeometry height="50" width="130" x="640" y="35" as="geometry" />
+        </mxCell>
+        <mxCell id="s5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;" value="Truncate&#xa;512 Karakter" vertex="1">
+          <mxGeometry height="50" width="130" x="820" y="35" as="geometry" />
+        </mxCell>
+        <mxCell id="s6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;" value="Tokenisasi &amp;&#xa;Embedding" vertex="1">
+          <mxGeometry height="50" width="130" x="820" y="135" as="geometry" />
+        </mxCell>
+        <mxCell id="s7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;" value="IndoBERT&#xa;Encoder Layer" vertex="1">
+          <mxGeometry height="50" width="130" x="640" y="135" as="geometry" />
+        </mxCell>
+        <mxCell id="s8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;" value="Ekstraksi&#xa;Vektor [CLS]" vertex="1">
+          <mxGeometry height="50" width="130" x="460" y="135" as="geometry" />
+        </mxCell>
+        <mxCell id="s9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;" value="Konstruksi Graph" vertex="1">
+          <mxGeometry height="50" width="130" x="460" y="235" as="geometry" />
+        </mxCell>
+        <mxCell id="s10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;" value="Transformasi &amp;&#xa;Agregasi (GAT Layer)" vertex="1">
+          <mxGeometry height="50" width="140" x="280" y="235" as="geometry" />
+        </mxCell>
+        <mxCell id="s11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;" value="Fully Connected&#xa;Layer" vertex="1">
+          <mxGeometry height="50" width="140" x="280" y="335" as="geometry" />
+        </mxCell>
+        <mxCell id="s12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;" value="Fungsi Softmax&#xa;P(Spam) &amp; P(Ham)" vertex="1">
+          <mxGeometry height="50" width="130" x="470" y="335" as="geometry" />
+        </mxCell>
+        <mxCell id="s13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;" value="Hitung Loss&#xa;Cross-Entropy" vertex="1">
+          <mxGeometry height="50" width="130" x="470" y="435" as="geometry" />
+        </mxCell>
+        <mxCell id="s14" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;" value="Backpropagation &amp;&#xa;Update Bobot" vertex="1">
+          <mxGeometry height="50" width="130" x="230" y="435" as="geometry" />
+        </mxCell>
+        <mxCell id="s15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;" value="Confusion Matrix &amp;&#xa;Metrik (Accuracy, dll)" vertex="1">
+          <mxGeometry height="50" width="140" x="465" y="535" as="geometry" />
+        </mxCell>
+        <mxCell id="s16" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;" value="End" vertex="1">
+          <mxGeometry height="50" width="80" x="700" y="535" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="s1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="s2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="s3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" target="s4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="s4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" target="s5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="s5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.996;entryY=0.544;entryDx=0;entryDy=0;entryPerimeter=0;" target="s6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="970" y="60" />
+              <mxPoint x="970" y="162" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="s6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" target="s7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="s7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" target="s8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="s8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" target="s9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="s9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" target="s10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="s10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;entryX=-0.002;entryY=0.565;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" target="s11">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="210" y="260" />
+              <mxPoint x="210" y="363" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="s11" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" target="s12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="s12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="s13">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="690" y="360" />
+              <mxPoint x="690" y="460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" edge="1" parent="1" source="s13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" target="s14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" edge="1" parent="1" source="s14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" target="s15">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="460" />
+              <mxPoint x="200" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e16" edge="1" parent="1" source="s15" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" target="s16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

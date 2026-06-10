@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Mail, ShieldAlert, ShieldCheck, Send, History, Sparkles } from 'lucide-react';
 import { emailAPI } from '../services/api';
 
 export default function Dashboard({ user }) {
+  const navigate = useNavigate();
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -80,7 +82,12 @@ export default function Dashboard({ user }) {
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderTop: '1px solid var(--gray-50)' }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" className="btn btn-sm btn-outline" style={{ borderRadius: 10 }}>
+              <button 
+                type="button" 
+                className="btn btn-sm btn-outline" 
+                style={{ borderRadius: 10 }}
+                onClick={() => navigate('/testing')}
+              >
                 <History size={14} /> Riwayat
               </button>
             </div>

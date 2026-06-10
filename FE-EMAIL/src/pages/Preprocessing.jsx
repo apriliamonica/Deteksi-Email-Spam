@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layers, Play, CheckCircle, Database, ChevronRight, Activity, ShieldAlert, Settings, FileText } from 'lucide-react';
+import { Layers, Play, CheckCircle, Database, ChevronRight, Activity, ShieldAlert, Settings, FileText, Info } from 'lucide-react';
 import { emailAPI, modelAPI } from '../services/api';
 
 const STEPS = [
@@ -201,6 +201,19 @@ export default function PreprocessingPage() {
   };
 
   const hasDataset = dbStats && dbStats.total_emails > 0;
+
+  const renderWithBadges = (text) => {
+    if (!text) return null;
+    const parts = text.split(/(\[URL\]|\[EMAIL\])/g);
+    return parts.map((part, i) => {
+      if (part === '[URL]') {
+        return <span key={i} style={{ background: '#e0f2fe', color: '#0284c7', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, margin: '0 2px', display: 'inline-block' }}>[URL]</span>;
+      } else if (part === '[EMAIL]') {
+        return <span key={i} style={{ background: '#ffedd5', color: '#ea580c', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, margin: '0 2px', display: 'inline-block' }}>[EMAIL]</span>;
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto' }}>
@@ -446,19 +459,127 @@ export default function PreprocessingPage() {
 
           {/* Tampilan Khusus Step Akhir (5): Hasil Akhir */}
           {currentStep === STEPS.length - 1 && (
-            <div style={{ background: 'var(--gray-50)', borderRadius: 12, border: '1px dashed var(--gray-300)', overflow: 'hidden' }}>
+            <div style={{ background: 'var(--gray-50)', borderRadius: 12, border: '1px solid var(--gray-300)', overflow: 'hidden' }}>
               <div style={{ padding: 40, textAlign: 'center' }}>
                 <Layers size={40} style={{ color: 'var(--black)', margin: '0 auto 16px auto' }} />
                 <h4 style={{ color: 'var(--black)', margin: '0 0 12px 0', fontSize: '1.2rem' }}>Data Siap Ditraining</h4>
-                <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', margin: '0 0 24px 0' }}>
+                <p style={{ fontSize: '0.9rem', color: 'var(--gray-500)', margin: '0' }}>
                   Dataset telah berhasil melewati seluruh tahap preprocessing dan siap dimasukkan ke dalam model IndoBERT.
                 </p>
+              </div>
+
+              {selectedDataset && comparisonRows.length > 0 && (
+                <div style={{ borderTop: '1px solid var(--gray-200)', background: 'white' }}>
+                  <div style={{ padding: '16px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--gray-200)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <FileText size={18} />
+                    <span style={{ fontWeight: 600 }}>Tabel Perbandingan Teks Sebelum & Sesudah Preprocessing</span>
+                    
+                    <div className="tooltip-container" style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'help' }}>
+                      <Info size={16} style={{ color: 'var(--gray-500)' }} />
+                      <div className="tooltip-content" style={{
+                        position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
+                        width: 320, background: '#1e293b', color: 'white', padding: '16px', borderRadius: '8px', 
+                        fontSize: '0.8rem', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)', zIndex: 100, pointerEvents: 'none'
+                      }}>
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: '#94a3b8', borderBottom: '1px solid #334155', paddingBottom: 6 }}>Aturan Preprocessing</h4>
+                        <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 6, lineHeight: 1.4 }}>
+                          <li><strong>Masking:</strong> Link 🌐 diubah menjadi <code>[URL]</code> dan email ✉️ menjadi <code>[EMAIL]</code>.</li>
+                          <li><strong>Pembersihan Simbol:</strong> Karakter khusus (#, @, &, dll) dihapus, hanya menyisakan huruf, angka, dan tanda baca dasar (?, !, .).</li>
+                          <li><strong>Normalisasi Spasi:</strong> Spasi berlebih dirapikan menjadi satu spasi.</li>
+                          <li><strong>Batas Teks:</strong> Teks dipotong maksimal <strong>512 karakter</strong> agar sesuai dengan kapasitas memori token <em>IndoBERT</em>.</li>
+                        </ul>
+                        <div style={{ position: 'absolute', bottom: '-4px', left: '50%', transform: 'translateX(-50%)', borderTop: '5px solid #1e293b', borderLeft: '5px solid transparent', borderRight: '5px solid transparent' }} />
+                      </div>
+                    </div>
+
+                    <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--gray-500)' }}>
+                      Menampilkan {comparisonRows.length} dari {comparisonTotal.toLocaleString()} data
+                    </span>
+                  </div>
+                  <div className="table-container" style={{ overflowX: 'auto' }}>
+                    {comparisonLoading ? (
+                      <div style={{ padding: 40, textAlign: 'center', color: 'var(--gray-500)' }}>Memuat data...</div>
+                    ) : (
+                      <table style={{ margin: 0, width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ background: 'var(--gray-50)' }}>
+                            <th style={{ width: 50, textAlign: 'center', border: '1px solid var(--gray-200)', padding: '12px 8px' }}>No</th>
+                            <th style={{ width: '45%', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>Sebelum (Original)</th>
+                            <th style={{ width: '45%', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>Sesudah (Preprocessed)</th>
+                            <th style={{ width: 70, textAlign: 'center', border: '1px solid var(--gray-200)', padding: '12px 8px' }}>Label</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {comparisonRows.map((row, idx) => (
+                            <tr key={row.id}>
+                              <td style={{ textAlign: 'center', color: 'var(--gray-500)', fontSize: '0.85rem', border: '1px solid var(--gray-200)', padding: '16px 8px', verticalAlign: 'top' }}>
+                                {comparisonPage * COMPARISON_LIMIT + idx + 1}
+                              </td>
+                              <td style={{ fontSize: '0.85rem', lineHeight: 1.5, color: 'var(--gray-700)', maxWidth: 350, wordBreak: 'break-word', border: '1px solid var(--gray-200)', padding: '16px', verticalAlign: 'top' }}>
+                                <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px dashed var(--gray-200)' }}>
+                                  <span style={{ fontWeight: 600, color: 'var(--black)', display: 'block', marginBottom: 4, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subjek:</span>
+                                  {row.subject ? row.subject : <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>Tidak ada subjek</span>}
+                                </div>
+                                <div>
+                                  <span style={{ fontWeight: 600, color: 'var(--black)', display: 'block', marginBottom: 4, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Isi Pesan:</span>
+                                  {row.original_text || row.body || <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>-</span>}
+                                </div>
+                              </td>
+                              <td style={{ fontSize: '0.85rem', lineHeight: 1.6, maxWidth: 350, wordBreak: 'break-word', border: '1px solid var(--gray-200)', padding: '16px', verticalAlign: 'top' }}>
+                                <>
+                                  <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px dashed var(--gray-200)' }}>
+                                    <span style={{ fontWeight: 600, color: 'var(--black)', display: 'block', marginBottom: 4, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subjek (Bersih):</span>
+                                    {row.subject ? renderWithBadges(row.subject) : <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>Tidak ada subjek</span>}
+                                  </div>
+                                  <div>
+                                    <span style={{ fontWeight: 600, color: 'var(--black)', display: 'block', marginBottom: 4, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Isi Pesan (Gabungan Bersih):</span>
+                                    <span style={{ color: '#334155' }}>{renderWithBadges(row.processed_text || row.processed_body)}</span>
+                                  </div>
+                                </>
+                              </td>
+                              <td style={{ textAlign: 'center', border: '1px solid var(--gray-200)', padding: '16px 8px', verticalAlign: 'top' }}>
+                                <span className={row.label === 'spam' ? 'badge badge-spam' : 'badge badge-ham'} style={{ fontSize: '0.7rem', padding: '4px 8px' }}>
+                                  {row.label}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                  {/* Pagination */}
+                  {comparisonTotal > COMPARISON_LIMIT && (
+                    <div style={{ padding: '12px 24px', borderTop: '1px solid var(--gray-200)', display: 'flex', justifyContent: 'center', gap: 8, alignItems: 'center' }}>
+                      <button
+                        className="btn btn-outline btn-sm"
+                        disabled={comparisonPage === 0}
+                        onClick={() => { const p = comparisonPage - 1; setComparisonPage(p); fetchComparisonRows(parseInt(selectedDataset), p); }}
+                      >
+                        ← Sebelumnya
+                      </button>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>
+                        Halaman {comparisonPage + 1} dari {Math.ceil(comparisonTotal / COMPARISON_LIMIT)}
+                      </span>
+                      <button
+                        className="btn btn-outline btn-sm"
+                        disabled={(comparisonPage + 1) * COMPARISON_LIMIT >= comparisonTotal}
+                        onClick={() => { const p = comparisonPage + 1; setComparisonPage(p); fetchComparisonRows(parseInt(selectedDataset), p); }}
+                      >
+                        Selanjutnya →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ padding: '32px 24px', textAlign: 'center', background: 'white', borderTop: '1px solid var(--gray-200)' }}>
                 <button 
                   className="btn btn-primary" 
-                  style={{ padding: '12px 32px', fontSize: '1.05rem', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 14px rgba(0,0,0,0.1)' }}
+                  style={{ padding: '14px 40px', fontSize: '1.1rem', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)', borderRadius: '8px' }}
                   onClick={() => navigate('/processing', { state: { datasetName: 'Database Utama (Pre-Processed)' } })}
                 >
-                  Lanjut ke Proses Training <ChevronRight size={18} />
+                  Lanjut ke Proses Training <ChevronRight size={20} />
                 </button>
               </div>
             </div>
@@ -467,84 +588,18 @@ export default function PreprocessingPage() {
         </div>
       )}
 
-      {/* Tabel Perbandingan Sebelum & Sesudah Preprocessing */}
-      {currentStep >= 0 && selectedDataset && comparisonRows.length > 0 && (
-        <div className="card" style={{ padding: 0, overflow: 'hidden', marginTop: 24 }}>
-          <div style={{ padding: '16px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--gray-200)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <FileText size={18} />
-            <span style={{ fontWeight: 600 }}>Tabel Perbandingan Teks Sebelum & Sesudah Preprocessing</span>
-            <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--gray-500)' }}>
-              Menampilkan {comparisonRows.length} dari {comparisonTotal.toLocaleString()} data
-            </span>
-          </div>
-          <div className="table-container" style={{ overflowX: 'auto' }}>
-            {comparisonLoading ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--gray-500)' }}>Memuat data...</div>
-            ) : (
-              <table style={{ margin: 0, width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: 'var(--gray-50)' }}>
-                    <th style={{ width: 50, textAlign: 'center', border: '1px solid var(--gray-200)', padding: '12px 8px' }}>No</th>
-                    <th style={{ width: '45%', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>Teks Sebelum (Original)</th>
-                    <th style={{ width: '45%', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>Teks Sesudah (Preprocessed)</th>
-                    <th style={{ width: 70, textAlign: 'center', border: '1px solid var(--gray-200)', padding: '12px 8px' }}>Label</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparisonRows.map((row, idx) => (
-                    <tr key={row.id}>
-                      <td style={{ textAlign: 'center', color: 'var(--gray-500)', fontSize: '0.85rem', border: '1px solid var(--gray-200)', padding: '12px 8px' }}>
-                        {comparisonPage * COMPARISON_LIMIT + idx + 1}
-                      </td>
-                      <td style={{ fontSize: '0.82rem', lineHeight: 1.5, color: 'var(--gray-700)', maxWidth: 350, wordBreak: 'break-word', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>
-                        {row.body || <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>-</span>}
-                      </td>
-                      <td style={{ fontSize: '0.82rem', lineHeight: 1.5, maxWidth: 350, wordBreak: 'break-word', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>
-                        {currentStep === STEPS.length - 1 && row.processed_body ? (
-                          <span style={{ color: '#059669' }}>{row.processed_body}</span>
-                        ) : (
-                          <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>Menunggu preprocessing selesai...</span>
-                        )}
-                      </td>
-                      <td style={{ textAlign: 'center', border: '1px solid var(--gray-200)', padding: '12px 8px' }}>
-                        <span className={row.label === 'spam' ? 'badge badge-spam' : 'badge badge-ham'} style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
-                          {row.label}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-          {/* Pagination */}
-          {comparisonTotal > COMPARISON_LIMIT && (
-            <div style={{ padding: '12px 24px', borderTop: '1px solid var(--gray-200)', display: 'flex', justifyContent: 'center', gap: 8, alignItems: 'center' }}>
-              <button
-                className="btn btn-outline btn-sm"
-                disabled={comparisonPage === 0}
-                onClick={() => { const p = comparisonPage - 1; setComparisonPage(p); fetchComparisonRows(parseInt(selectedDataset), p); }}
-              >
-                ← Sebelumnya
-              </button>
-              <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>
-                Halaman {comparisonPage + 1} dari {Math.ceil(comparisonTotal / COMPARISON_LIMIT)}
-              </span>
-              <button
-                className="btn btn-outline btn-sm"
-                disabled={(comparisonPage + 1) * COMPARISON_LIMIT >= comparisonTotal}
-                onClick={() => { const p = comparisonPage + 1; setComparisonPage(p); fetchComparisonRows(parseInt(selectedDataset), p); }}
-              >
-                Selanjutnya →
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Lock Overlay removed per user request */}
       
       <style>{`
+        .tooltip-content {
+          visibility: hidden;
+          opacity: 0;
+          transition: all 0.2s ease-in-out;
+        }
+        .tooltip-container:hover .tooltip-content {
+          visibility: visible;
+          opacity: 1;
+        }
         @keyframes slideRight {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(300%); }

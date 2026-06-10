@@ -183,6 +183,19 @@ export default function Testing() {
         <p style={{ color: 'var(--gray-500)' }}>Uji model IndoBERT + GAT Anda dengan teks manual atau unggah file CSV untuk pengujian batch.</p>
       </div>
 
+            {/* Model Selection Dropdown */}
+            <div style={{ marginBottom: 24, padding: 16, background: 'var(--gray-50)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <label style={{ fontWeight: 600, fontSize: '0.9rem' }}>Model untuk Testing:</label>
+              <select value={activeModel?.id || ''} onChange={handleModelChange} disabled={isActivating} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--gray-300)' }}>
+                {modelsHistory.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.model_name} (Acc: {(m.accuracy * 100).toFixed(1)}%)
+                  </option>
+                ))}
+              </select>
+              {isActivating && <Activity size={14} className="spinner" style={{ color: 'var(--gray-500)' }} />}
+            </div>
+
       {/* Active Model Indicator Banner */}
       {activeModelLoading ? (
         <div className="card" style={{ padding: 16, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gray-50)' }}>
@@ -216,29 +229,6 @@ export default function Testing() {
               </div>
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: '0.85rem', color: '#166534', fontWeight: 600 }}>Pilih Model:</span>
-                <select 
-                  value={activeModel.id} 
-                  onChange={handleModelChange}
-                  disabled={isActivating}
-                  style={{ 
-                    padding: '4px 8px', 
-                    borderRadius: 6, 
-                    border: '1px solid #10b981', 
-                    background: 'white',
-                    color: '#14532d',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    outline: 'none',
-                    cursor: isActivating ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {modelsHistory.map(m => (
-                    <option key={m.id} value={m.id}>
-                      {m.model_name} (Acc: {(m.accuracy * 100).toFixed(1)}%)
-                    </option>
-                  ))}
-                </select>
-                {isActivating && <Activity size={14} className="spinner" style={{ color: '#15803d' }} />}
               </div>
             </div>
           </div>
@@ -426,7 +416,6 @@ export default function Testing() {
                     <th style={{ width: 120 }}><Calendar size={14} /> Tgl Pengujian</th>
                     <th>Testing (Konten Email)</th>
                     <th style={{ width: 120 }}>Keterangan</th>
-                    <th style={{ width: 100, textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -450,18 +439,11 @@ export default function Testing() {
                           </span>
                         )}
                       </td>
-                      <td>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }} onClick={e => e.stopPropagation()}>
-                          <button className="btn btn-outline btn-sm" onClick={() => handleDelete(item.id)} style={{ color: '#ef4444', borderColor: '#ef4444', padding: '4px 8px' }}>
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
                     </tr>
                   ))}
                   {testHistory.length === 0 && (
                     <tr>
-                      <td colSpan="5" style={{ textAlign: 'center', padding: 40, color: 'var(--gray-400)' }}>Belum ada data pengujian.</td>
+                      <td colSpan="4" style={{ textAlign: 'center', padding: 40, color: 'var(--gray-400)' }}>Belum ada data pengujian.</td>
                     </tr>
                   )}
                 </tbody>

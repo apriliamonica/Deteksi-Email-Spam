@@ -51,9 +51,9 @@ export default function App() {
         <Route path="/riwayat-preprocessing" element={<Guard user={user} admin><RiwayatPreprocessingPage /></Guard>} />
         <Route path="/processing" element={<Guard user={user} admin><ProcessingPage /></Guard>} />
         <Route path="/riwayat-model" element={<Guard user={user} admin><RiwayatModelPage /></Guard>} />
-        <Route path="/manage-accounts" element={<Guard user={user} admin><ManageAccountsPage /></Guard>} />
         <Route path="/testing" element={<Guard user={user}><Testing /></Guard>} />
         <Route path="/evaluasi" element={<Guard user={user}><Evaluasi /></Guard>} />
+        <Route path="/manage-accounts" element={<Guard user={user} admin><ManageAccountsPage /></Guard>} />
         <Route path="*" element={<Navigate to={user ? '/beranda' : '/login'} replace />} />
       </Routes>
     </BrowserRouter>

@@ -319,13 +319,28 @@ async def preview_dataset(
             elif label == "ham":
                 ham_count += 1
 
+        # Prepare preview rows (max 5)
+        preview_rows = []
+        headers = df.columns.tolist()
+        
+        # Take up to 5 rows
+        head_df = df.head(5)
+        for _, row in head_df.iterrows():
+            row_dict = {}
+            for col in headers:
+                val = row[col]
+                row_dict[col] = str(val) if not pd.isna(val) else ""
+            preview_rows.append(row_dict)
+
         return {
             "status": "success",
             "metrics": {
                 "total": spam_count + ham_count,
                 "spam": spam_count,
                 "ham": ham_count,
-            }
+            },
+            "preview_headers": headers,
+            "preview_rows": preview_rows
         }
     except HTTPException:
         raise
@@ -725,9 +740,12 @@ async def get_dataset_rows(
                 "id": r.id,
                 "body": (r.body or "")[:300],
                 "processed_body": (r.processed_body or "")[:300] if r.processed_body else None,
+                "original_text": (r.body or ""),
+                "processed_text": (r.processed_body or "") if r.processed_body else None,
+                "sender": r.sender,
+                "subject": r.subject,
                 "label": r.label,
             }
             for r in rows
         ],
     }
-

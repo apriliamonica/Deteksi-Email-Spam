@@ -85,8 +85,14 @@ export const modelAPI = {
 // === Auth API ===
 export const authAPI = {
   login: (data) => api.post('/auth/login', data),
-  register: (data) => api.post('/auth/register', data),
-  me: () => api.get('/auth/me'),
+};
+
+// === Users API ===
+export const usersAPI = {
+  list: () => api.get('/users'),
+  create: (data) => api.post('/users', data),
+  update: (id, data) => api.put(`/users/${id}`, data),
+  delete: (id) => api.delete(`/users/${id}`),
 };
 
 export default api;

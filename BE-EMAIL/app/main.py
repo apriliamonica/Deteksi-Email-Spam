@@ -29,7 +29,12 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    from app.routes.auth import router as auth_router, seed_users
+    from app.routes.users import router as users_router
+
     # Register routes
+    app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
+    app.include_router(users_router, prefix="/api/users", tags=["Users"])
     app.include_router(email_router, prefix="/api/email", tags=["Email"])
     app.include_router(model_router, prefix="/api/model", tags=["Model"])
 
@@ -37,6 +42,13 @@ def create_app() -> FastAPI:
     async def startup():
         """Inisialisasi saat aplikasi dimulai."""
         init_db()
+        # Seed default users
+        from app.config.database import SessionLocal
+        db = SessionLocal()
+        try:
+            seed_users(db)
+        finally:
+            db.close()
 
     @app.get("/", tags=["Health"])
     async def root():

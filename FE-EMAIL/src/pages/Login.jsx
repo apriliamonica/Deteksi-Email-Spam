@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { authAPI } from '../services/api';
 
 export default function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -8,21 +9,20 @@ export default function LoginPage({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const DEMO_USERS = [
-    { email: 'admin@spamguard.com', password: 'admin123', name: 'Admin SpamGuard', role: 'admin' },
-    { email: 'user@spamguard.com', password: 'user123', name: 'Pengguna Biasa', role: 'user' },
-  ];
-
   const handleSubmit = async (e) => {
     e.preventDefault(); setError(''); setLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-    const user = DEMO_USERS.find(u => u.email === email && u.password === password);
-    if (user) {
-      const userData = { name: user.name, email: user.email, role: user.role };
-      localStorage.setItem('user', JSON.stringify(userData));
-      onLogin(userData); navigate('/beranda');
-    } else { setError('Email atau password salah'); }
-    setLoading(false);
+    try {
+      const res = await authAPI.login({ email, password });
+      if (res.data.status === 'success') {
+        const userData = res.data.user;
+        localStorage.setItem('user', JSON.stringify(userData));
+        onLogin(userData); navigate('/beranda');
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Gagal login. Periksa email atau password.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

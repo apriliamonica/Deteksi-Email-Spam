@@ -159,32 +159,32 @@ export default function ProcessingPage() {
           localStorage.setItem("global_process_active", "training");
           localStorage.removeItem("processing_startTime");
         } else if (status.status === "success") {
-          if (status.metrics && !trainResult) {
-            const result = {
-              accuracy: status.metrics.accuracy,
-              precision: status.metrics.precision,
-              recall: status.metrics.recall,
-              f1: status.metrics.f1_score,
-              macro_avg: status.metrics.macro_avg.f1,
-              weighted_avg: status.metrics.weighted_avg.f1,
-              mcc: status.metrics.mcc,
-              roc_auc: status.metrics.roc_auc,
-              mean_std: status.metrics.std_loss,
-              gatLoss: status.metrics.gat_loss_history.map((l, i) => ({
-                e: i + 1,
-                l: l,
-              })),
-            };
-            setTrainResult(result);
-            localStorage.setItem(
-              "processing_trainResult",
-              JSON.stringify(result),
-            );
-            setCurrentStep(2);
+          // Only process success if we were actually running a training
+          if (localStorage.getItem("processing_running") === "true") {
+            if (status.metrics && !trainResult) {
+              const result = {
+                accuracy: status.metrics.accuracy,
+                precision: status.metrics.precision,
+                recall: status.metrics.recall,
+                f1: status.metrics.f1_score,
+                macro_avg: status.metrics.macro_avg.f1,
+                weighted_avg: status.metrics.weighted_avg.f1,
+                mcc: status.metrics.mcc,
+                roc_auc: status.metrics.roc_auc,
+                mean_std: status.metrics.std_loss,
+                gatLoss: status.metrics.gat_loss_history.map((l, i) => ({
+                  e: i + 1,
+                  l: l,
+                })),
+              };
+              setTrainResult(result);
+              localStorage.setItem("processing_trainResult", JSON.stringify(result));
+              setCurrentStep(2);
+            }
+            setTraining(false);
+            localStorage.removeItem("processing_running");
+            localStorage.removeItem("global_process_active");
           }
-          setTraining(false);
-          localStorage.removeItem("processing_running");
-          localStorage.removeItem("global_process_active");
         } else if (status.status === "error") {
           setTraining(false);
           setError(status.current_step || "Terjadi kesalahan pada server.");
@@ -200,18 +200,6 @@ export default function ProcessingPage() {
             msg: "Pelatihan dibatalkan.",
             type: "warning",
           });
-        } else if (localStorage.getItem("processing_running") === "true") {
-          // Hanya reset jika sudah 'idle' cukup lama (misal 10 detik)
-          // untuk memberi waktu Background Task di server mulai jalan
-          const startTime = localStorage.getItem("processing_startTime");
-          const now = Date.now();
-          if (startTime && now - parseInt(startTime) > 10000) {
-            setTraining(false);
-            setTrainStepDesc("");
-            localStorage.removeItem("processing_running");
-            localStorage.removeItem("global_process_active");
-            localStorage.removeItem("processing_startTime");
-          }
         }
       } catch (err) {
         console.error("Sync error:", err);
@@ -553,6 +541,27 @@ export default function ProcessingPage() {
                                     textTransform: "uppercase",
                                     letterSpacing: "0.03em",
                                     ...(activeDatasetId &&
+                                      (datasets.find(
+                                        (ds) =>
+                                          ds.id.toString() ===
+                                          activeDatasetId.toString(),
+                                      )?.status === "Preprocessed" ||
+                                        datasets.find(
+                                          (ds) =>
+                                            ds.id.toString() ===
+                                            activeDatasetId.toString(),
+                                        )?.status === "Trained")
+                                      ? {
+                                        backgroundColor: "var(--gmail-green-light)",
+                                        color: "var(--gmail-green)",
+                                      }
+                                      : {
+                                        backgroundColor: "#fef3c7",
+                                        color: "#d97706",
+                                      }),
+                                  }}
+                                >
+                                  {activeDatasetId &&
                                     (datasets.find(
                                       (ds) =>
                                         ds.id.toString() ===
@@ -563,27 +572,6 @@ export default function ProcessingPage() {
                                           ds.id.toString() ===
                                           activeDatasetId.toString(),
                                       )?.status === "Trained")
-                                      ? {
-                                          backgroundColor: "var(--gmail-green-light)",
-                                          color: "var(--gmail-green)",
-                                        }
-                                      : {
-                                          backgroundColor: "#fef3c7",
-                                          color: "#d97706",
-                                        }),
-                                  }}
-                                >
-                                  {activeDatasetId &&
-                                  (datasets.find(
-                                    (ds) =>
-                                      ds.id.toString() ===
-                                      activeDatasetId.toString(),
-                                  )?.status === "Preprocessed" ||
-                                    datasets.find(
-                                      (ds) =>
-                                        ds.id.toString() ===
-                                        activeDatasetId.toString(),
-                                  )?.status === "Trained")
                                     ? "Siap Ditraining"
                                     : activeDatasetId
                                       ? "Butuh Preprocessing"
@@ -748,7 +736,7 @@ export default function ProcessingPage() {
                                 </div>
                               </div>
                             </div>
-                            
+
                             <div style={{ background: "var(--gray-50)", padding: "18px 20px", borderRadius: 12, border: "1px solid var(--gray-200)", marginBottom: 24 }}>
                               <h4 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 16, color: "var(--gray-800)", display: "flex", alignItems: "center", gap: 8 }}>
                                 <Settings size={16} style={{ color: "var(--gmail-blue)" }} /> Hyperparameter Model
@@ -917,8 +905,7 @@ export default function ProcessingPage() {
                                     color: "#ef4444",
                                   }}
                                 >
-                                  * Tahap Fine-tuning IndoBERT memang memakan
-                                  waktu cukup lama (bisa 5-15 menit tergantung
+                                  * (bisa 5-15 menit tergantung
                                   spesifikasi hardware).
                                 </p>
                                 <button
@@ -1082,12 +1069,20 @@ export default function ProcessingPage() {
                                 </div>
                               </div>
 
-                              <button
-                                className="btn btn-dark btn-lg w-100 py-3"
-                                onClick={clearPersistence}
-                              >
-                                <Save size={18} /> Selesai & Reset Pipeline
-                              </button>
+                              <div style={{ display: 'flex', gap: 12 }}>
+                                <button
+                                  className="btn btn-outline-dark btn-lg w-100 py-3"
+                                  onClick={clearPersistence}
+                                >
+                                  Latih Model Baru
+                                </button>
+                                <button
+                                  className="btn btn-dark btn-lg w-100 py-3"
+                                  onClick={() => window.location.href = '/testing'}
+                                >
+                                  <Save size={18} /> Lanjut ke Testing
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <div className="py-4 text-center text-muted">

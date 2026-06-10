@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Database, Upload, FileSpreadsheet, CheckCircle, Clock, Trash2, Layers, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
-import { emailAPI, modelAPI } from '../services/api';
+import { Database, Upload, FileSpreadsheet, CheckCircle, Clock, Trash2, Layers, ChevronLeft, ChevronRight, Activity, X, FileText } from 'lucide-react';
+import { modelAPI } from '../services/api';
+import Papa from 'papaparse';
 
 export default function DataCollection() {
   const navigate = useNavigate();
@@ -44,8 +45,28 @@ export default function DataCollection() {
     currentPage * itemsPerPage
   );
 
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewDatasetId, setPreviewDatasetId] = useState(null);
+
   const [showConfirm, setShowConfirm] = useState(false);
   const [selectedForPre, setSelectedForPre] = useState(null);
+  // New state for displaying rows of the recently uploaded dataset
+  const [previewRows, setPreviewRows] = useState([]);
+  const [previewRowsTotal, setPreviewRowsTotal] = useState(0);
+  const [previewRowsLoading, setPreviewRowsLoading] = useState(false);
+  const PREVIEW_LIMIT = 10;
+
+  // New state for previewing rows of the selected file before saving
+  const [previewFileRows, setPreviewFileRows] = useState([]);
+  const [previewFileRowsTotal, setPreviewFileRowsTotal] = useState(0);
+  const [previewFileHeaders, setPreviewFileHeaders] = useState([]);
+  // Removed client-side PapaParse. The backend handles robust parsing for both CSV and Excel!
+
+  const handlePreviewDataset = async (id) => {
+    setPreviewDatasetId(id);
+    await fetchPreviewRows(id);
+    setShowPreviewModal(true);
+  };
 
   const handleUpload = async () => {
     if (!file) return;
@@ -106,12 +127,33 @@ export default function DataCollection() {
           setPreviewStats(null);
           setSelectedForPre(newDataset);
           setShowConfirm(true);
+          // Trigger fetching rows for the newly added dataset
+          fetchPreviewRows(newDataset.id);
+          
+          // Otomatis hapus pesan sukses setelah 5 detik
+          setTimeout(() => {
+            setUploadStatus(null);
+          }, 5000);
         }, 500);
       }
     } catch (err) {
       console.error("Upload error:", err);
       setError(err.response?.data?.detail || "Gagal mengunggah file. Pastikan format CSV benar dan server aktif.");
       setUploadStatus(null);
+    }
+  };
+
+  // Fetch rows for a given dataset ID (used after successful upload)
+  const fetchPreviewRows = async (datasetId) => {
+    setPreviewRowsLoading(true);
+    try {
+      const res = await modelAPI.getDatasetRows(datasetId, PREVIEW_LIMIT, 0);
+      setPreviewRows(res.data.rows);
+      setPreviewRowsTotal(res.data.total);
+    } catch (err) {
+      console.error('Gagal mengambil baris dataset untuk preview:', err);
+    } finally {
+      setPreviewRowsLoading(false);
     }
   };
 
@@ -232,9 +274,16 @@ export default function DataCollection() {
                   setUploadStatus(null);
                   setPreviewStats(null);
                   setPreviewing(true);
+                  // Parse file for preview rows before saving
+                  // We rely completely on the backend to parse rows so that Excel files don't break the UI
                   try {
                     const res = await modelAPI.previewDataset(selectedFile);
                     setPreviewStats(res.data.metrics);
+                    if (res.data.preview_rows && res.data.preview_headers) {
+                      setPreviewFileRows(res.data.preview_rows);
+                      setPreviewFileHeaders(res.data.preview_headers);
+                      setPreviewFileRowsTotal(res.data.metrics.total);
+                    }
                   } catch (err) {
                     console.error("Preview error:", err);
                     setError(err.response?.data?.detail || "Gagal membaca preview file dataset.");
@@ -257,14 +306,14 @@ export default function DataCollection() {
               <div style={{ marginTop: 20, animation: 'fadeIn 0.3s ease' }}>
                 <div className="form-group">
                   <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, display: 'block' }}>Nama Dataset</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={datasetName} 
-                    onChange={e => setDatasetName(e.target.value)} 
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={datasetName}
+                    onChange={e => setDatasetName(e.target.value)}
                   />
                 </div>
-                
+
                 <div style={{ background: 'var(--gray-50)', padding: 16, borderRadius: 8, marginBottom: 20 }}>
                   <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--gray-600)', marginBottom: 12 }}>Detail Dataset</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, textAlign: 'center' }}>
@@ -321,6 +370,40 @@ export default function DataCollection() {
               </div>
             )}
 
+            {file && previewStats && uploadStatus !== 'uploading' && uploadStatus !== 'success' && previewFileRows.length > 0 && (
+              <div className="card" style={{ marginTop: 24, overflow: 'hidden' }}>
+                <div style={{ padding: '16px 24px', background: 'var(--gray-50)', borderBottom: '1px solid var(--gray-200)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FileText size={18} />
+                  <span style={{ fontWeight: 600 }}>File Preview (First {previewFileRows.length} rows)</span>
+                  <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--gray-500)' }}>Total rows: {previewFileRowsTotal.toLocaleString()}</span>
+                </div>
+                <div className="table-container" style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--gray-50)' }}>
+                        <th style={{ width: 40, textAlign: 'center', borderBottom: '2px solid var(--gray-200)', padding: '10px' }}>No</th>
+                        {previewFileHeaders.map(col => (
+                          <th key={col} style={{ borderBottom: '2px solid var(--gray-200)', padding: '10px', textAlign: 'left', fontWeight: 700, textTransform: 'capitalize' }}>{col}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewFileRows.map((row, idx) => (
+                        <tr key={`preview-${idx}`} style={{ borderBottom: '1px solid var(--gray-100)' }}>
+                          <td style={{ textAlign: 'center', padding: '10px', color: 'var(--gray-500)' }}>{idx + 1}</td>
+                          {previewFileHeaders.map(col => (
+                            <td key={col} style={{ padding: '10px', maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {row[col] !== undefined && row[col] !== null && row[col] !== "" ? String(row[col]) : <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>-</span>}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {error && (
               <div style={{ marginTop: 16, padding: 12, background: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', borderRadius: 8, fontSize: '0.75rem', lineHeight: 1.4 }}>
                 <strong>Gagal Upload:</strong> {error}
@@ -328,6 +411,56 @@ export default function DataCollection() {
             )}
           </div>
         </div>
+
+        {/* Preview Modal for Dataset Rows */}
+        {showPreviewModal && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+            backdropFilter: 'blur(4px)', animation: 'fadeIn 0.2s ease'
+          }}>
+            <div className="card" style={{ maxWidth: 800, width: '90%', maxHeight: '80vh', overflowY: 'auto', padding: 24 }}>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16
+              }}>
+                <h3 style={{ margin: 0 }}>
+                  Preview Dataset: {datasets.find(d => d.id === previewDatasetId)?.name || 'Dataset'}
+                </h3>
+                <button className="btn btn-outline" onClick={() => { setShowPreviewModal(false); setPreviewRows([]); setPreviewDatasetId(null); }} style={{ padding: 4 }}>
+                  <X size={18} />
+                </button>
+              </div>
+              {previewRowsLoading ? (
+                <div style={{ textAlign: 'center', color: 'var(--gray-500)' }}>Memuat data...</div>
+              ) : (
+                <div className="table-container" style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--gray-50)' }}>
+                        <th style={{ width: 50, textAlign: 'center', border: '1px solid var(--gray-200)', padding: '8px' }}>No</th>
+                        {previewRows.length > 0 && Object.keys(previewRows[0]).filter(k => k !== 'id').map(col => (
+                          <th key={col} style={{ border: '1px solid var(--gray-200)', padding: '8px' }}>{col}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewRows.map((row, idx) => (
+                        <tr key={row.id}>
+                          <td style={{ textAlign: 'center', border: '1px solid var(--gray-200)', padding: '8px' }}>{idx + 1}</td>
+                          {Object.keys(row).filter(k => k !== 'id').map(col => (
+                            <td key={col} style={{ border: '1px solid var(--gray-200)', padding: '8px', maxWidth: 400, wordBreak: 'break-word' }}>
+                              {row[col] !== undefined && row[col] !== null ? String(row[col]) : <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>-</span>}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Right: Dataset List */}
         <div>
@@ -384,6 +517,14 @@ export default function DataCollection() {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                          <button
+                            className="btn btn-sm btn-outline"
+                            title="Lihat Data"
+                            onClick={() => handlePreviewDataset(d.id)}
+                            style={{ padding: '6px 10px' }}
+                          >
+                            <FileText size={14} />
+                          </button>
                           <button
                             className="btn btn-sm btn-primary"
                             title="Lanjut ke Pre-processing"
