@@ -78,6 +78,30 @@ export default function ProcessingPage() {
   const [testRatio, setTestRatio] = useState(() => getInitial("testRatio", 20));
   const [epoch, setEpoch] = useState(() => getInitial("epoch", 30));
   const [lr, setLr] = useState(() => getInitial("lr", 0.001));
+  
+  // --- New UI States ---
+  const [activeModelTab, setActiveModelTab] = useState("indobert");
+  const [cvFolds, setCvFolds] = useState(5);
+  const [randomSeed, setRandomSeed] = useState(42);
+  const [shuffleData, setShuffleData] = useState(true);
+  
+  // IndoBERT Config
+  const [indoLR, setIndoLR] = useState(0.00002);
+  const [batchSize, setBatchSize] = useState(16);
+  const [indoEpochs, setIndoEpochs] = useState(10);
+  const [maxSeqLength, setMaxSeqLength] = useState(512);
+  const [warmupSteps, setWarmupSteps] = useState(500);
+  const [weightDecay, setWeightDecay] = useState(0.01);
+  const [dropoutRate, setDropoutRate] = useState(0.1);
+  const [optimizer, setOptimizer] = useState("AdamW");
+  
+  // GAT Config
+  const [gatLR, setGatLR] = useState(0.001);
+  const [gatEpochs, setGatEpochs] = useState(100);
+  const [gatWeightDecay, setGatWeightDecay] = useState(0.0001);
+  
+  const [earlyStopping, setEarlyStopping] = useState(3);
+  // ----------------------
   const [datasets, setDatasets] = useState([]);
   const [training, setTraining] = useState(false);
   const [trainProgress, setTrainProgress] = useState(0);
@@ -251,11 +275,13 @@ export default function ProcessingPage() {
         model_name: modelName,
         test_split: parseInt(testRatio) / 100,
         val_split: parseInt(valRatio) / 100,
-        finetune_epochs: 3,
-        finetune_lr: parseFloat(lr),
-        gat_epochs: parseInt(epoch),
-        gat_lr: parseFloat(lr),
-        finetune_batch_size: 16,
+        finetune_epochs: parseInt(indoEpochs),
+        finetune_lr: parseFloat(indoLR),
+        finetune_batch_size: parseInt(batchSize),
+        weight_decay: parseFloat(weightDecay),
+        gat_epochs: parseInt(gatEpochs),
+        gat_lr: parseFloat(gatLR),
+        gat_weight_decay: parseFloat(gatWeightDecay),
       });
     } catch (err) {
       console.error("Training error:", err);
@@ -299,7 +325,7 @@ export default function ProcessingPage() {
   };
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", paddingBottom: 60 }}>
+    <div style={{ maxWidth: "100%", padding: "0 24px", paddingBottom: 60 }}>
       {toast.show && (
         <div
           className={`alert alert-${toast.type}`}
@@ -328,7 +354,7 @@ export default function ProcessingPage() {
           Model Training Pipeline
         </h1>
         <p
-          style={{ color: "var(--gray-500)", maxWidth: 600, margin: "0 auto" }}
+          style={{ color: "var(--gray-500)", maxWidth: 800, margin: "0 auto" }}
         >
           Latih model hibrida IndoBERT + GAT Anda menggunakan dataset yang telah
           dibersihkan pada tahap pre-processing.
@@ -443,403 +469,267 @@ export default function ProcessingPage() {
                             </div>
                           )}
                           <form onSubmit={handleTrain}>
-                            <div
-                              style={{
-                                background: "var(--gray-50)",
-                                padding: 20,
-                                borderRadius: 12,
-                                border: "1px solid var(--gray-200)",
-                                marginBottom: 20,
-                              }}
-                            >
-                              <label
-                                className="form-label"
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "8px",
-                                  marginBottom: "10px",
-                                  fontWeight: 600,
-                                  fontSize: "0.95rem",
-                                  color: "var(--gray-800)"
-                                }}
-                              >
-                                <Database size={16} style={{ color: "var(--gmail-blue)" }} /> Pilih Dataset untuk Pelatihan
-                              </label>
+                            
+                            {/* 3-COLUMN LAYOUT */}
+                            <div className="row mb-4">
+                              {/* COL 1: DATA SPLIT */}
+                              <div className="col-lg-4 mb-3 mb-lg-0">
+                                <div style={{ background: "white", padding: 24, borderRadius: 12, border: "1px solid var(--gray-200)", height: '100%' }}>
+                                  <h4 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 20, color: "var(--gray-800)", display: "flex", alignItems: "center", gap: 8 }}>
+                                    <Database size={18} style={{ color: "var(--gmail-blue)" }} /> Data Split Configuration
+                                  </h4>
 
-                              <select
-                                className="form-select"
-                                value={activeDatasetId || ""}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setActiveDatasetId(val);
-                                  const ds = datasets.find(
-                                    (d) => d.id.toString() === val,
-                                  );
-                                  setActiveDatasetName(ds ? ds.name : "");
-                                }}
+                                  {/* Dataset Selector */}
+                                  <div style={{ marginBottom: 20 }}>
+                                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Pilih Dataset</label>
+                                    <select
+                                      className="form-select"
+                                      value={activeDatasetId || ""}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setActiveDatasetId(val);
+                                        const ds = datasets.find((d) => d.id.toString() === val);
+                                        setActiveDatasetName(ds ? ds.name : "");
+                                      }}
+                                      disabled={training}
+                                      style={{ height: 42, borderRadius: 8, fontSize: "0.9rem" }}
+                                    >
+                                      {datasets.length === 0 ? (
+                                        <option value="">-- Belum ada dataset --</option>
+                                      ) : (
+                                        <>
+                                          <option value="" disabled>-- Pilih Dataset --</option>
+                                          {datasets.map((ds) => (
+                                            <option key={ds.id} value={ds.id}>
+                                              {ds.name} ({(ds.total_rows || 0).toLocaleString()} Email)
+                                            </option>
+                                          ))}
+                                        </>
+                                      )}
+                                    </select>
+                                  </div>
+
+                                  <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Train-Validation-Test Split Ratio</label>
+                                  <div style={{ display: 'flex', gap: '12px', marginBottom: 12 }}>
+                                    <div style={{ flex: 1 }}>
+                                      <span style={{ fontSize: "0.75rem", color: "var(--gray-500)", marginBottom: 4, display: 'block' }}>Train (%)</span>
+                                      <input className="form-input" type="number" value={trainRatio} onChange={(e) => setTrainRatio(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                      <span style={{ fontSize: "0.75rem", color: "var(--gray-500)", marginBottom: 4, display: 'block' }}>Validation (%)</span>
+                                      <input className="form-input" type="number" value={valRatio} onChange={(e) => setValRatio(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                      <span style={{ fontSize: "0.75rem", color: "var(--gray-500)", marginBottom: 4, display: 'block' }}>Test (%)</span>
+                                      <input className="form-input" type="number" value={testRatio} onChange={(e) => setTestRatio(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Visual Progress Bar */}
+                                  <div style={{ height: 8, borderRadius: 4, display: 'flex', overflow: 'hidden', marginBottom: 8, background: 'var(--gray-100)' }}>
+                                    <div style={{ width: `${trainRatio}%`, background: 'var(--gmail-blue)' }}></div>
+                                    <div style={{ width: `${valRatio}%`, background: 'var(--gmail-blue-light)' }}></div>
+                                    <div style={{ width: `${testRatio}%`, background: 'var(--gray-300)' }}></div>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 600, marginBottom: 20 }}>
+                                    <div style={{ display: 'flex', gap: 12 }}>
+                                      <span style={{ color: 'var(--gmail-blue)' }}>● Train: {trainRatio}%</span>
+                                      <span style={{ color: 'var(--gmail-blue-dark)' }}>● Validation: {valRatio}%</span>
+                                      <span>● Test: {testRatio}%</span>
+                                    </div>
+                                    <span style={{ color: (parseInt(trainRatio)+parseInt(valRatio)+parseInt(testRatio)) === 100 ? 'var(--gmail-green)' : 'var(--gmail-red)' }}>
+                                      Total: {parseInt(trainRatio)+parseInt(valRatio)+parseInt(testRatio)}%
+                                    </span>
+                                  </div>
+
+                                  <div style={{ marginBottom: 16 }}>
+                                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Cross Validation Folds</label>
+                                    <input className="form-input" type="number" value={cvFolds} onChange={(e) => setCvFolds(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                  </div>
+                                  <div style={{ marginBottom: 16 }}>
+                                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Random Seed</label>
+                                    <input className="form-input" type="number" value={randomSeed} onChange={(e) => setRandomSeed(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                                    <input type="checkbox" id="shuffle" checked={shuffleData} onChange={(e) => setShuffleData(e.target.checked)} disabled={training} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                                    <label htmlFor="shuffle" style={{ fontSize: "0.85rem", fontWeight: 600, cursor: 'pointer', margin: 0 }}>Shuffle data sebelum split</label>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* COL 2: INDOBERT PARAMETERS */}
+                              <div className="col-lg-4 col-md-6 mb-3 mb-md-0">
+                                <div style={{ background: "white", padding: 24, borderRadius: 12, border: "1px solid var(--gray-200)", height: '100%' }}>
+                                  <h4 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 20, color: "var(--gray-800)", display: "flex", alignItems: "center", gap: 8 }}>
+                                    <Settings size={18} style={{ color: "var(--gmail-blue)" }} /> IndoBERT Parameters
+                                  </h4>
+                                  
+                                  <div className="row g-3">
+                                    <div className="col-6">
+                                      <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: 600 }}>Learning Rate</label>
+                                      <input className="form-input" type="number" step="0.00001" value={indoLR} onChange={(e) => setIndoLR(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                      <span style={{ fontSize: '0.65rem', color: 'var(--gray-400)' }}>Default: 2e-5</span>
+                                    </div>
+                                    <div className="col-6">
+                                      <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: 600 }}>Batch Size</label>
+                                      <input className="form-input" type="number" value={batchSize} onChange={(e) => setBatchSize(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                      <span style={{ fontSize: '0.65rem', color: 'var(--gray-400)' }}>Default: 16</span>
+                                    </div>
+                                    <div className="col-6">
+                                      <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: 600 }}>Epochs</label>
+                                      <input className="form-input" type="number" value={indoEpochs} onChange={(e) => setIndoEpochs(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                    </div>
+                                    <div className="col-6">
+                                      <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: 600 }}>Max Sequence Length</label>
+                                      <input className="form-input" type="number" value={maxSeqLength} onChange={(e) => setMaxSeqLength(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                    </div>
+                                    <div className="col-6">
+                                      <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: 600 }}>Warmup Steps</label>
+                                      <input className="form-input" type="number" value={warmupSteps} onChange={(e) => setWarmupSteps(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                    </div>
+                                    <div className="col-6">
+                                      <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: 600 }}>Weight Decay</label>
+                                      <input className="form-input" type="number" step="0.01" value={weightDecay} onChange={(e) => setWeightDecay(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                    </div>
+                                    <div className="col-6">
+                                      <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: 600 }}>Dropout Rate</label>
+                                      <input className="form-input" type="number" step="0.1" value={dropoutRate} onChange={(e) => setDropoutRate(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                    </div>
+                                    <div className="col-6">
+                                      <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: 600 }}>Optimizer</label>
+                                      <select className="form-select" value={optimizer} onChange={(e) => setOptimizer(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }}>
+                                        <option value="AdamW">AdamW</option>
+                                        <option value="Adam">Adam</option>
+                                        <option value="SGD">SGD</option>
+                                      </select>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* COL 3: GAT PARAMETERS */}
+                              <div className="col-lg-4 col-md-6">
+                                <div style={{ background: "white", padding: 24, borderRadius: 12, border: "1px solid var(--gray-200)", height: '100%' }}>
+                                  <h4 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 20, color: "var(--gray-800)", display: "flex", alignItems: "center", gap: 8 }}>
+                                    <Settings size={18} style={{ color: "var(--gmail-blue)" }} /> GAT Parameters
+                                  </h4>
+                                  
+                                  <div className="row g-3">
+                                    <div className="col-12">
+                                      <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: 600 }}>Learning Rate (GAT)</label>
+                                      <input className="form-input" type="number" step="0.001" value={gatLR} onChange={(e) => setGatLR(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                      <span style={{ fontSize: '0.65rem', color: 'var(--gray-400)' }}>Default: 0.001</span>
+                                    </div>
+                                    <div className="col-12">
+                                      <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: 600 }}>Epochs (GAT)</label>
+                                      <input className="form-input" type="number" value={gatEpochs} onChange={(e) => setGatEpochs(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                      <span style={{ fontSize: '0.65rem', color: 'var(--gray-400)' }}>Default: 100</span>
+                                    </div>
+                                    <div className="col-12">
+                                      <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: 600 }}>Weight Decay (GAT)</label>
+                                      <input className="form-input" type="number" step="0.0001" value={gatWeightDecay} onChange={(e) => setGatWeightDecay(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* BOTTOM SECTION: TRAINING CONFIGURATION */}
+                            <div style={{ background: "white", padding: 24, borderRadius: 12, border: "1px solid var(--gray-200)", marginBottom: 24 }}>
+                              <h4 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 16, color: "var(--gray-800)" }}>
+                                Training Configuration
+                              </h4>
+                              
+                              <div className="row mb-3">
+                                <div className="col-md-6">
+                                  <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: 4 }}>Nama Model</label>
+                                  <input className="form-input" value={modelName} onChange={(e) => setModelName(e.target.value)} required disabled={training} placeholder="Contoh: Model_Spam_01" style={{ height: 38, borderRadius: 6 }} />
+                                </div>
+                              </div>
+
+                              <div className="row">
+                                <div className="col-md-6">
+                                  <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: 4 }}>Validation Split</label>
+                                  <input className="form-input" type="number" step="0.1" value={valRatio / 100} disabled style={{ height: 38, borderRadius: 6, background: 'var(--gray-100)' }} />
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--gray-400)' }}>Proportion untuk validasi (diambil otomatis dari atas)</span>
+                                </div>
+                                <div className="col-md-6">
+                                  <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: 4 }}>Early Stopping Patience</label>
+                                  <input className="form-input" type="number" value={earlyStopping} onChange={(e) => setEarlyStopping(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--gray-400)' }}>Epochs menunggu sebelum stop</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* ACTION BAR */}
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                              <button
+                                type="button"
+                                className="btn"
                                 disabled={training}
                                 style={{
-                                  height: 42,
+                                  height: 48,
                                   borderRadius: 8,
-                                  fontSize: "0.9rem",
-                                  marginBottom: "16px",
+                                  fontSize: "0.95rem",
+                                  fontWeight: 600,
+                                  flex: 2,
+                                  background: 'var(--gmail-blue)',
+                                  color: 'white',
                                 }}
                               >
-                                {datasets.filter(
-                                  (ds) =>
-                                    ds.status === "Preprocessed" ||
-                                    ds.status === "Trained" ||
-                                    ds.status === "Training",
-                                ).length === 0 ? (
-                                  <option value="">
-                                    -- Belum ada dataset yang tersedia --
-                                  </option>
+                                <Save size={18} /> Simpan Parameter
+                              </button>
+
+                              <button
+                                type="button"
+                                className="btn"
+                                disabled={training}
+                                style={{
+                                  height: 48,
+                                  borderRadius: 8,
+                                  fontSize: "0.95rem",
+                                  fontWeight: 600,
+                                  flex: 1,
+                                  background: 'var(--gray-200)',
+                                  color: 'var(--gray-700)',
+                                }}
+                              >
+                                <Activity size={18} /> Reset ke Default
+                              </button>
+
+                              <button
+                                type="submit"
+                                className="btn"
+                                disabled={training || !!globalLock || (dbStats?.total_processed === 0 && !activeDatasetId)}
+                                style={{
+                                  height: 48,
+                                  borderRadius: 8,
+                                  fontSize: "0.95rem",
+                                  fontWeight: 600,
+                                  flex: 1,
+                                  background: '#10b981',
+                                  color: 'white',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 8,
+                                }}
+                              >
+                                {training ? (
+                                  <>
+                                    <div className="spinner" style={{ width: 18, height: 18, borderTopColor: "white", borderLeftColor: "white" }}></div>
+                                    Melatih...
+                                  </>
                                 ) : (
                                   <>
-                                    <option value="" disabled>
-                                      -- Pilih Dataset untuk Pelatihan --
-                                    </option>
-                                    {datasets
-                                      .filter(
-                                        (ds) =>
-                                          ds.status === "Preprocessed" ||
-                                          ds.status === "Trained" ||
-                                          ds.status === "Training",
-                                      )
-                                      .map((ds) => (
-                                        <option key={ds.id} value={ds.id}>
-                                          {ds.name} (
-                                          {(
-                                            ds.total_rows || 0
-                                          ).toLocaleString()}{" "}
-                                          Email)
-                                        </option>
-                                      ))}
+                                    <Play size={18} /> Mulai Training
                                   </>
                                 )}
-                              </select>
-
-                              <div
-                                style={{
-                                  background: "white",
-                                  padding: "12px 16px",
-                                  borderRadius: 8,
-                                  border: "1px solid var(--gray-200)",
-                                  fontWeight: 600,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    fontWeight: 700,
-                                    padding: "4px 12px",
-                                    borderRadius: 6,
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.03em",
-                                    ...(activeDatasetId &&
-                                      (datasets.find(
-                                        (ds) =>
-                                          ds.id.toString() ===
-                                          activeDatasetId.toString(),
-                                      )?.status === "Preprocessed" ||
-                                        datasets.find(
-                                          (ds) =>
-                                            ds.id.toString() ===
-                                            activeDatasetId.toString(),
-                                        )?.status === "Trained")
-                                      ? {
-                                        backgroundColor: "var(--gmail-green-light)",
-                                        color: "var(--gmail-green)",
-                                      }
-                                      : {
-                                        backgroundColor: "#fef3c7",
-                                        color: "#d97706",
-                                      }),
-                                  }}
-                                >
-                                  {activeDatasetId &&
-                                    (datasets.find(
-                                      (ds) =>
-                                        ds.id.toString() ===
-                                        activeDatasetId.toString(),
-                                    )?.status === "Preprocessed" ||
-                                      datasets.find(
-                                        (ds) =>
-                                          ds.id.toString() ===
-                                          activeDatasetId.toString(),
-                                      )?.status === "Trained")
-                                    ? "Siap Ditraining"
-                                    : activeDatasetId
-                                      ? "Butuh Preprocessing"
-                                      : "Belum Memilih Dataset"}
-                                </span>
-                              </div>
-
-                              {dbStats && (
-                                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                                  <div style={{ flex: 1 }}>
-                                    <div style={{ padding: '8px', border: '1px solid var(--gray-200)', borderRadius: '8px', textAlign: 'center', backgroundColor: 'white' }}>
-                                      <div
-                                        style={{
-                                          fontSize: "0.65rem",
-                                          color: "var(--gray-500)",
-                                          textTransform: "uppercase",
-                                          fontWeight: 600,
-                                        }}
-                                      >
-                                        Total
-                                      </div>
-                                      <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--gray-800)", marginTop: 2 }}>
-                                        {dbStats.total_emails.toLocaleString()}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div style={{ flex: 1 }}>
-                                    <div style={{ padding: '8px', border: '1px solid var(--gray-200)', borderRadius: '8px', textAlign: 'center', backgroundColor: 'white' }}>
-                                      <div
-                                        style={{
-                                          fontSize: "0.65rem",
-                                          color: "#ef4444",
-                                          textTransform: "uppercase",
-                                          fontWeight: 600,
-                                        }}
-                                      >
-                                        Spam
-                                      </div>
-                                      <div
-                                        style={{
-                                          fontWeight: 700,
-                                          fontSize: "0.95rem",
-                                          color: "#ef4444",
-                                          marginTop: 2
-                                        }}
-                                      >
-                                        {dbStats.total_spam.toLocaleString()}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div style={{ flex: 1 }}>
-                                    <div style={{ padding: '8px', border: '1px solid var(--gray-200)', borderRadius: '8px', textAlign: 'center', backgroundColor: 'white' }}>
-                                      <div
-                                        style={{
-                                          fontSize: "0.65rem",
-                                          color: "#10b981",
-                                          textTransform: "uppercase",
-                                          fontWeight: 600,
-                                        }}
-                                      >
-                                        Ham
-                                      </div>
-                                      <div
-                                        style={{
-                                          fontWeight: 700,
-                                          fontSize: "0.95rem",
-                                          color: "#10b981",
-                                          marginTop: 2
-                                        }}
-                                      >
-                                        {dbStats.total_ham.toLocaleString()}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
+                              </button>
                             </div>
-
-                            <div style={{ marginBottom: 20 }}>
-                              <label className="form-label" style={{ fontWeight: 600, fontSize: "0.95rem", color: "var(--gray-800)" }}>
-                                Nama Model
-                              </label>
-                              <input
-                                className="form-input"
-                                value={modelName}
-                                onChange={(e) => setModelName(e.target.value)}
-                                required
-                                disabled={currentStep > 0 || training}
-                                placeholder="Contoh: Model_Spam_01"
-                                style={{
-                                  height: 42,
-                                  fontSize: "0.9rem",
-                                  borderRadius: 8,
-                                }}
-                              />
-                            </div>
-
-                            <div style={{ marginBottom: 20 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                                <label className="form-label mb-0" style={{ fontWeight: 600, fontSize: "0.95rem", color: "var(--gray-800)", marginBottom: 0 }}>
-                                  Proporsi Data Split
-                                </label>
-                                <span style={{ color: "var(--gmail-red)", fontSize: "1.2rem", fontWeight: "bold", lineHeight: 1 }}>*</span>
-                              </div>
-                              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                                <div style={{ flex: 1 }}>
-                                  <input
-                                    className="form-input"
-                                    type="number"
-                                    value={trainRatio}
-                                    onChange={(e) => setTrainRatio(e.target.value)}
-                                    disabled={currentStep > 0 || training}
-                                    placeholder="Train"
-                                    style={{
-                                      height: 42,
-                                      fontSize: "0.9rem",
-                                      borderRadius: 8,
-                                      width: "100%",
-                                    }}
-                                  />
-                                  <div style={{ fontSize: "0.75rem", color: "var(--gray-500)", marginTop: 4, paddingLeft: 2, fontWeight: 500 }}>
-                                    Train (%)
-                                  </div>
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                  <input
-                                    className="form-input"
-                                    type="number"
-                                    value={valRatio}
-                                    onChange={(e) => setValRatio(e.target.value)}
-                                    disabled={currentStep > 0 || training}
-                                    placeholder="Validation"
-                                    style={{
-                                      height: 42,
-                                      fontSize: "0.9rem",
-                                      borderRadius: 8,
-                                      width: "100%",
-                                    }}
-                                  />
-                                  <div style={{ fontSize: "0.75rem", color: "var(--gray-500)", marginTop: 4, paddingLeft: 2, fontWeight: 500 }}>
-                                    Validation (%)
-                                  </div>
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                  <input
-                                    className="form-input"
-                                    type="number"
-                                    value={testRatio}
-                                    onChange={(e) => setTestRatio(e.target.value)}
-                                    disabled={currentStep > 0 || training}
-                                    placeholder="Test"
-                                    style={{
-                                      height: 42,
-                                      fontSize: "0.9rem",
-                                      borderRadius: 8,
-                                      width: "100%",
-                                    }}
-                                  />
-                                  <div style={{ fontSize: "0.75rem", color: "var(--gray-500)", marginTop: 4, paddingLeft: 2, fontWeight: 500 }}>
-                                    Test (%)
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div style={{ background: "var(--gray-50)", padding: "18px 20px", borderRadius: 12, border: "1px solid var(--gray-200)", marginBottom: 24 }}>
-                              <h4 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 16, color: "var(--gray-800)", display: "flex", alignItems: "center", gap: 8 }}>
-                                <Settings size={16} style={{ color: "var(--gmail-blue)" }} /> Hyperparameter Model
-                              </h4>
-                              <div style={{ display: 'flex', gap: '16px' }}>
-                                <div style={{ flex: 1 }}>
-                                  <label className="form-label" style={{ fontSize: "0.85rem", color: "var(--gray-600)", fontWeight: 600, marginBottom: 6 }}>Epochs</label>
-                                  <input
-                                    className="form-input"
-                                    type="number"
-                                    value={epoch}
-                                    onChange={(e) => setEpoch(e.target.value)}
-                                    disabled={currentStep > 0 || training}
-                                    style={{
-                                      height: 42,
-                                      fontSize: "0.9rem",
-                                      borderRadius: 8,
-                                      width: "100%",
-                                    }}
-                                  />
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                  <label className="form-label" style={{ fontSize: "0.85rem", color: "var(--gray-600)", fontWeight: 600, marginBottom: 6 }}>Learning Rate (LR)</label>
-                                  <input
-                                    className="form-input"
-                                    type="number"
-                                    step="0.001"
-                                    value={lr}
-                                    onChange={(e) => setLr(e.target.value)}
-                                    disabled={currentStep > 0 || training}
-                                    style={{
-                                      height: 42,
-                                      fontSize: "0.9rem",
-                                      borderRadius: 8,
-                                      width: "100%",
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            {currentStep === 0 && (
-                              <div style={{ display: 'flex', gap: '12px' }}>
-                                <button
-                                  type="submit"
-                                  className="btn btn-primary"
-                                  disabled={
-                                    training ||
-                                    !!globalLock ||
-                                    dbStats?.total_processed === 0
-                                  }
-                                  style={{
-                                    height: 48,
-                                    borderRadius: 8,
-                                    fontSize: "1rem",
-                                    fontWeight: 600,
-                                    flex: 1,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 8,
-                                    backgroundColor: 'var(--gmail-blue)',
-                                    color: 'white',
-                                  }}
-                                >
-                                  {training ? (
-                                    <>
-                                      <div className="spinner" style={{ width: 18, height: 18, borderTopColor: "white", borderLeftColor: "white" }}></div>
-                                      Melatih...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Play size={18} /> Mulai Proses Pelatihan
-                                    </>
-                                  )}
-                                </button>
-
-                                {training && (
-                                  <button
-                                    type="button"
-                                    onClick={handleCancelTrain}
-                                    className="btn btn-outline"
-                                    style={{
-                                      height: 48,
-                                      borderRadius: 8,
-                                      fontWeight: 600,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 8,
-                                      borderColor: 'var(--gmail-red)',
-                                      color: 'var(--gmail-red-dark)',
-                                      backgroundColor: 'var(--gmail-red-light)',
-                                    }}
-                                  >
-                                    <XCircle size={18} /> Batalkan
-                                  </button>
-                                )}
-                              </div>
-                            )}
                           </form>
                         </div>
                       )}
-
                       {index === 1 && (
                         <div>
                           {training ? (
