@@ -248,22 +248,22 @@ new_ui = """                      {index === 0 && (
 
                             {/* ACTION BAR */}
                             <div style={{ display: 'flex', gap: '12px' }}>
-                              <button
-                                type="button"
-                                className="btn"
-                                disabled={training}
-                                style={{
-                                  height: 48,
-                                  borderRadius: 8,
-                                  fontSize: "0.95rem",
-                                  fontWeight: 600,
-                                  flex: 2,
-                                  background: 'var(--gmail-blue)',
-                                  color: 'white',
-                                }}
-                              >
-                                <Save size={18} /> Simpan Parameter
-                              </button>
+                              # <button
+                              #   type="button"
+                              #   className="btn"
+                              #   disabled={training}
+                              #   style={{
+                              #     height: 48,
+                              #     borderRadius: 8,
+                              #     fontSize: "0.95rem",
+                              #     fontWeight: 600,
+                              #     flex: 2,
+                              #     background: 'var(--gmail-blue)',
+                              #     color: 'white',
+                              #   }}
+                              # >
+                              #   # <Save size={18} /> Simpan Parameter
+                              # </button>
 
                               <button
                                 type="button"

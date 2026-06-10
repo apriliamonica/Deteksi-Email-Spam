@@ -101,6 +101,9 @@ export default function ProcessingPage() {
   const [gatWeightDecay, setGatWeightDecay] = useState(0.0001);
 
   const [earlyStopping, setEarlyStopping] = useState(3);
+  const [gatHiddenDim, setGatHiddenDim] = useState(128);
+  const [gatHeads, setGatHeads] = useState(4);
+  const [gatDropout, setGatDropout] = useState(0.4);
   // ----------------------
   const [datasets, setDatasets] = useState([]);
   const [training, setTraining] = useState(false);
@@ -471,15 +474,20 @@ export default function ProcessingPage() {
                           <form onSubmit={handleTrain}>
 
                             {/* FULL-WIDTH 2-COLUMN LAYOUT WITH TABS */}
-                            <div className="row mb-4">
-                              {/* COL 1: DATA SPLIT */}
-                              <div className="col-lg-4 col-md-12 mb-4 mb-lg-0">
+                            <div className="row mb-4" >
+                              {/* COL 1: DATA SPLIT & GENERAL */}
+                              <div className="col-lg-4 col-md-12 mb-4 mb-lg-0" style={{ marginBottom: '16px' }} >
                                 <div style={{ background: "white", padding: 24, borderRadius: 12, border: "1px solid var(--gray-200)", height: '100%' }}>
+                                  
                                   <h4 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 24, color: "var(--gray-800)", display: "flex", alignItems: "center", gap: 10 }}>
-                                    <Database size={20} style={{ color: "var(--gmail-blue)" }} /> Data Split Configuration
+                                    <Settings size={20} style={{ color: "var(--gmail-blue)" }} /> General Settings
                                   </h4>
 
-                                  {/* Dataset Selector */}
+                                  <div style={{ marginBottom: 24 }}>
+                                    <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Nama Model</label>
+                                    <input className="form-input" value={modelName} onChange={(e) => setModelName(e.target.value)} required disabled={training} placeholder="Contoh: Model_Spam_01" style={{ height: 42, borderRadius: 8 }} />
+                                  </div>
+
                                   <div style={{ marginBottom: 24 }}>
                                     <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Pilih Dataset</label>
                                     <select
@@ -508,6 +516,12 @@ export default function ProcessingPage() {
                                       )}
                                     </select>
                                   </div>
+
+                                  <hr style={{ margin: '24px 0', borderColor: 'var(--gray-200)' }} />
+
+                                  <h4 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 24, color: "var(--gray-800)", display: "flex", alignItems: "center", gap: 10 }}>
+                                    <Database size={20} style={{ color: "var(--gmail-blue)" }} /> Data Split Configuration
+                                  </h4>
 
                                   <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Train-Validation-Test Split Ratio</label>
                                   <div style={{ display: 'flex', gap: '16px', marginBottom: 16 }}>
@@ -558,11 +572,11 @@ export default function ProcessingPage() {
                               </div>
 
                               {/* COL 2: PARAMETERS WITH TABS */}
-                              <div className="col-lg-8 col-md-12">
+                              <div className="col-lg-8 col-md-12" style={{ marginBottom: '16px' }}>
                                 <div style={{ background: "white", padding: 24, borderRadius: 12, border: "1px solid var(--gray-200)", height: '100%', display: 'flex', flexDirection: 'column' }}>
 
                                   {/* TABS */}
-                                  <div className="d-flex gap-3" style={{ display: 'flex', marginBottom: '16px' }}>
+                                  <div className="d-flex gap-3" style={{ display: 'flex', marginBottom: '24px' }}>
                                     <div
                                       onClick={() => setActiveModelTab('indobert')}
                                       style={{
@@ -597,103 +611,241 @@ export default function ProcessingPage() {
                                     </div>
                                   </div>
 
-                                  <h4 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 24, color: "var(--gray-800)", display: "flex", alignItems: "center", gap: 10 }}>
-                                    <Settings size={20} style={{ color: "var(--gmail-blue)" }} /> {activeModelTab === 'indobert' ? 'IndoBERT Parameters' : 'GAT Parameters'}
-                                  </h4>
-
                                   {activeModelTab === 'indobert' ? (
-                                    <div className="row g-4 flex-grow-1">
-                                      <div className="col-md-6">
-                                        <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Learning Rate</label>
-                                        <input className="form-input" type="number" step="0.00001" value={indoLR} onChange={(e) => setIndoLR(e.target.value)} disabled={training} style={{ height: 46, borderRadius: 8 }} />
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)' }}>Default: 2e-5</span>
+                                    <div>
+
+                                      {/* ── 1. INPUT LAYER ── */}
+                                      <div style={{ borderLeft: '4px solid #3b82f6', paddingLeft: 16, marginBottom: 24 }}>
+                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#3b82f6' }}>Input Layer — Tokenizer & Embedding</p>
+                                        <div className="row g-3">
+                                          <div className="col-md-6">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Max Sequence Length</label>
+                                            <input className="form-input" type="number" value={maxSeqLength} onChange={(e) => setMaxSeqLength(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Sesuaikan panjang token. Default: 512</span>
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Tokenizer</label>
+                                            <input className="form-input" value="WordPiece" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Padding</label>
+                                            <input className="form-input" value="max_length" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Truncation</label>
+                                            <input className="form-input" value="True" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-9">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Output</label>
+                                            <input className="form-input" value="input_ids, attention_mask, token_type_ids" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div className="col-md-6">
-                                        <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Batch Size</label>
-                                        <input className="form-input" type="number" value={batchSize} onChange={(e) => setBatchSize(e.target.value)} disabled={training} style={{ height: 46, borderRadius: 8 }} />
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)' }}>Default: 16</span>
+
+                                      {/* ── 2. HIDDEN LAYER ── */}
+                                      <div style={{ borderLeft: '4px solid #8b5cf6', paddingLeft: 16, marginBottom: 24 }}>
+                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#8b5cf6' }}>Hidden Layer — Encoder IndoBERT</p>
+                                        <div className="row g-3">
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hidden Size</label>
+                                            <input className="form-input" value="768" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hidden Layers</label>
+                                            <input className="form-input" value="12" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Attention Heads</label>
+                                            <input className="form-input" value="12" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Intermediate Size</label>
+                                            <input className="form-input" value="3072" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hidden Activation</label>
+                                            <input className="form-input" value="GELU" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hidden Dropout</label>
+                                            <input className="form-input" value="0.1" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Attn Dropout</label>
+                                            <input className="form-input" value="0.1" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div className="col-md-6">
-                                        <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Epochs</label>
-                                        <input className="form-input" type="number" value={indoEpochs} onChange={(e) => setIndoEpochs(e.target.value)} disabled={training} style={{ height: 46, borderRadius: 8 }} />
+
+                                      {/* ── 3. OUTPUT LAYER ── */}
+                                      <div style={{ borderLeft: '4px solid #10b981', paddingLeft: 16, marginBottom: 24 }}>
+                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#10b981' }}>Output Layer — Classification Head</p>
+                                        <div className="row g-3">
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Classifier Input</label>
+                                            <input className="form-input" value="768 (hidden_size)" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Dropout Rate</label>
+                                            <input className="form-input" type="number" step="0.1" value={dropoutRate} onChange={(e) => setDropoutRate(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Default: 0.1</span>
+                                          </div>
+                                          <div className="col-md-2">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Num Labels</label>
+                                            <input className="form-input" value="2 (Spam/Ham)" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-2">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Activation</label>
+                                            <input className="form-input" value="Softmax" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-2">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Loss Function</label>
+                                            <input className="form-input" value="CrossEntropy" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div className="col-md-6">
-                                        <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Max Sequence Length</label>
-                                        <input className="form-input" type="number" value={maxSeqLength} onChange={(e) => setMaxSeqLength(e.target.value)} disabled={training} style={{ height: 46, borderRadius: 8 }} />
+
+                                      {/* ── 4. PARAMETER FINE-TUNING ── */}
+                                      <div style={{ borderLeft: '4px solid #f59e0b', paddingLeft: 16 }}>
+                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#f59e0b' }}>Parameter Fine-Tuning</p>
+                                        <div className="row g-3">
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Learning Rate</label>
+                                            <input className="form-input" type="number" step="0.00001" value={indoLR} onChange={(e) => setIndoLR(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Rentang: 2e-5 – 5e-5</span>
+                                          </div>
+                                          <div className="col-md-2">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Batch Size</label>
+                                            <input className="form-input" type="number" value={batchSize} onChange={(e) => setBatchSize(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Pilihan: 8 / 16 / 32</span>
+                                          </div>
+                                          <div className="col-md-2">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Epochs</label>
+                                            <input className="form-input" type="number" value={indoEpochs} onChange={(e) => setIndoEpochs(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Rentang: 3 – 5</span>
+                                          </div>
+                                          <div className="col-md-2">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Optimizer</label>
+                                            <select className="form-select" value={optimizer} onChange={(e) => setOptimizer(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }}>
+                                              <option value="AdamW">AdamW</option>
+                                              <option value="Adam">Adam</option>
+                                              <option value="SGD">SGD</option>
+                                            </select>
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Weight Decay</label>
+                                            <input className="form-input" type="number" step="0.01" value={weightDecay} onChange={(e) => setWeightDecay(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Default: 0.01</span>
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div className="col-md-6">
-                                        <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Warmup Steps</label>
-                                        <input className="form-input" type="number" value={warmupSteps} onChange={(e) => setWarmupSteps(e.target.value)} disabled={training} style={{ height: 46, borderRadius: 8 }} />
-                                      </div>
-                                      <div className="col-md-6">
-                                        <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Weight Decay</label>
-                                        <input className="form-input" type="number" step="0.01" value={weightDecay} onChange={(e) => setWeightDecay(e.target.value)} disabled={training} style={{ height: 46, borderRadius: 8 }} />
-                                      </div>
-                                      <div className="col-md-6">
-                                        <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Dropout Rate</label>
-                                        <input className="form-input" type="number" step="0.1" value={dropoutRate} onChange={(e) => setDropoutRate(e.target.value)} disabled={training} style={{ height: 46, borderRadius: 8 }} />
-                                      </div>
-                                      <div className="col-md-6">
-                                        <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Optimizer</label>
-                                        <select className="form-select" value={optimizer} onChange={(e) => setOptimizer(e.target.value)} disabled={training} style={{ height: 46, borderRadius: 8 }}>
-                                          <option value="AdamW">AdamW</option>
-                                          <option value="Adam">Adam</option>
-                                          <option value="SGD">SGD</option>
-                                        </select>
-                                      </div>
+
                                     </div>
                                   ) : (
-                                    <div className="row g-4 flex-grow-1 align-content-start">
-                                      <div className="col-md-6">
-                                        <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Learning Rate (GAT)</label>
-                                        <input className="form-input" type="number" step="0.001" value={gatLR} onChange={(e) => setGatLR(e.target.value)} disabled={training} style={{ height: 46, borderRadius: 8 }} />
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)' }}>Default: 0.001</span>
+                                    <div>
+
+                                      {/* ── 1. INPUT PROJECTION ── */}
+                                      <div style={{ borderLeft: '4px solid #3b82f6', paddingLeft: 16, marginBottom: 24 }}>
+                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#3b82f6' }}>Input Projection Layer</p>
+                                        <div className="row g-3">
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Input Dim (BERT)</label>
+                                            <input className="form-input" value="768" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hidden Dim</label>
+                                            <input className="form-input" value="128" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Normalisasi</label>
+                                            <input className="form-input" value="BatchNorm1d" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Aktivasi</label>
+                                            <input className="form-input" value="ReLU" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div className="col-md-6">
-                                        <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Epochs (GAT)</label>
-                                        <input className="form-input" type="number" value={gatEpochs} onChange={(e) => setGatEpochs(e.target.value)} disabled={training} style={{ height: 46, borderRadius: 8 }} />
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)' }}>Default: 100</span>
+
+                                      {/* ── 2. GRAPH ATTENTION LAYERS ── */}
+                                      <div style={{ borderLeft: '4px solid #8b5cf6', paddingLeft: 16, marginBottom: 24 }}>
+                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#8b5cf6' }}>Graph Attention Layers</p>
+                                        <div className="row g-3">
+                                          <div className="col-md-4">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>GAT Layer 1</label>
+                                            <input className="form-input" value="128 → 128 × heads" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>concat=True</span>
+                                          </div>
+                                          <div className="col-md-4">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>GAT Layer 2</label>
+                                            <input className="form-input" value="128 × heads → 128" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>concat=False (avg)</span>
+                                          </div>
+                                          <div className="col-md-2">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Attention Heads</label>
+                                            <input className="form-input" value="4" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-2">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Aktivasi</label>
+                                            <input className="form-input" value="ELU" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div className="col-md-6">
-                                        <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Weight Decay (GAT)</label>
-                                        <input className="form-input" type="number" step="0.0001" value={gatWeightDecay} onChange={(e) => setGatWeightDecay(e.target.value)} disabled={training} style={{ height: 46, borderRadius: 8 }} />
+
+                                      {/* ── 3. CLASSIFIER HEAD ── */}
+                                      <div style={{ borderLeft: '4px solid #10b981', paddingLeft: 16, marginBottom: 24 }}>
+                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#10b981' }}>Classifier Head</p>
+                                        <div className="row g-3">
+                                          <div className="col-md-4">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hidden Layer</label>
+                                            <input className="form-input" value="128 → 64 (ReLU)" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-4">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Output Layer</label>
+                                            <input className="form-input" value="64 → 2 (num_classes)" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                          <div className="col-md-4">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Num Classes</label>
+                                            <input className="form-input" value="2 (Spam / Ham)" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                          </div>
+                                        </div>
                                       </div>
+
+                                      {/* ── 4. PARAMETER TRAINING GAT ── */}
+                                      <div style={{ borderLeft: '4px solid #f59e0b', paddingLeft: 16 }}>
+                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#f59e0b' }}>Parameter Training GAT</p>
+                                        <div className="row g-3">
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Learning Rate</label>
+                                            <input className="form-input" type="number" step="0.001" value={gatLR} onChange={(e) => setGatLR(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Default: 0.001</span>
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Epochs</label>
+                                            <input className="form-input" type="number" value={gatEpochs} onChange={(e) => setGatEpochs(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Default: 100</span>
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Weight Decay</label>
+                                            <input className="form-input" type="number" step="0.0001" value={gatWeightDecay} onChange={(e) => setGatWeightDecay(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Default: 1e-4</span>
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Early Stopping Patience</label>
+                                            <input className="form-input" type="number" value={earlyStopping} onChange={(e) => setEarlyStopping(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Epoch menunggu sebelum stop</span>
+                                          </div>
+                                        </div>
+                                      </div>
+
                                     </div>
                                   )}
                                 </div>
                               </div>
                             </div>
-
-                            {/* BOTTOM SECTION: TRAINING CONFIGURATION */}
-                            <div style={{ background: "white", padding: 24, borderRadius: 12, border: "1px solid var(--gray-200)", marginBottom: 24 }}>
-                              <h4 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 16, color: "var(--gray-800)" }}>
-                                Training Configuration
-                              </h4>
-
-                              <div className="row mb-3">
-                                <div className="col-md-6">
-                                  <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: 4 }}>Nama Model</label>
-                                  <input className="form-input" value={modelName} onChange={(e) => setModelName(e.target.value)} required disabled={training} placeholder="Contoh: Model_Spam_01" style={{ height: 38, borderRadius: 6 }} />
-                                </div>
-                              </div>
-
-                              <div className="row">
-                                <div className="col-md-6">
-                                  <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: 4 }}>Validation Split</label>
-                                  <input className="form-input" type="number" step="0.1" value={valRatio / 100} disabled style={{ height: 38, borderRadius: 6, background: 'var(--gray-100)' }} />
-                                  <span style={{ fontSize: '0.65rem', color: 'var(--gray-400)' }}>Proportion untuk validasi (diambil otomatis dari atas)</span>
-                                </div>
-                                <div className="col-md-6">
-                                  <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: 4 }}>Early Stopping Patience</label>
-                                  <input className="form-input" type="number" value={earlyStopping} onChange={(e) => setEarlyStopping(e.target.value)} disabled={training} style={{ height: 38, borderRadius: 6 }} />
-                                  <span style={{ fontSize: '0.65rem', color: 'var(--gray-400)' }}>Epochs menunggu sebelum stop</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* ACTION BAR */}
+{/* ACTION BAR */}
                             <div style={{ display: 'flex', gap: '12px' }}>
-                              <button
+                              {/* <button
                                 type="button"
                                 className="btn"
                                 disabled={training}
@@ -708,9 +860,9 @@ export default function ProcessingPage() {
                                 }}
                               >
                                 <Save size={18} /> Simpan Parameter
-                              </button>
+                              </button> */}
 
-                              <button
+                              {/* <button
                                 type="button"
                                 className="btn"
                                 disabled={training}
@@ -725,7 +877,7 @@ export default function ProcessingPage() {
                                 }}
                               >
                                 <Activity size={18} /> Reset ke Default
-                              </button>
+                              </button> */}
 
                               <button
                                 type="submit"
