@@ -37,18 +37,19 @@ export default function Sidebar({ user, onLogout }) {
             Model
           </NavLink>
 
+          <div className="sidebar-section">Uji</div>
+          <NavLink to="/testing" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            <FlaskConical /> Testing
+          </NavLink>
+          <NavLink to="/evaluasi" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            <BarChart3 /> Evaluasi Performa
+          </NavLink>
+
           <div className="sidebar-section">Pengguna</div>
           <NavLink to="/manage-accounts" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <Users size={18} /> Kelola Akun
           </NavLink>
         </>)}
-        <div className="sidebar-section">Uji</div>
-        <NavLink to="/testing" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-          <FlaskConical /> Testing
-        </NavLink>
-        <NavLink to="/evaluasi" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-          <BarChart3 /> Evaluasi Performa
-        </NavLink>
       </nav>
       <div className="sidebar-footer">
         <div className="user-info">
