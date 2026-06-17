@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, ShieldAlert, ShieldCheck, Mail, Upload, Trash2, Search, FileText, Calendar, Activity } from 'lucide-react';
+import { Send, ShieldAlert, ShieldCheck, Mail, Upload, Search, FileText, Calendar, Activity } from 'lucide-react';
 import { modelAPI, emailAPI } from '../services/api';
+import Pagination from '../components/Pagination';
 
 export default function Testing() {
   const [body, setBody] = useState('');
@@ -16,6 +17,11 @@ export default function Testing() {
   const [uploadingBatch, setUploadingBatch] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Pagination & Search State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const itemsPerPage = 10;
+
   // Batch upload flow state
   const [batchFile, setBatchFile] = useState(null);
   const [batchColumns, setBatchColumns] = useState([]);   // daftar kolom dari file
@@ -28,9 +34,6 @@ export default function Testing() {
   const [loadingColumns, setLoadingColumns] = useState(false);
 
 
-  useEffect(() => {
-    fetchActiveModel();
-  }, []);
 
   const fetchActiveModel = async () => {
     try {
@@ -49,10 +52,14 @@ export default function Testing() {
     }
   };
 
+  useEffect(() => {
+    fetchActiveModel();
+  }, []);
+
   const handleModelChange = async (e) => {
     const newId = e.target.value;
     if (!newId || newId == activeModel?.id) return;
-    
+
     setIsActivating(true);
     try {
       await modelAPI.activateModel(newId);
@@ -137,7 +144,7 @@ export default function Testing() {
       formData.append('text_column', colText);
       formData.append('subject_column', colSubject);
       formData.append('sender_column', colSender);
-      
+
       const res = await emailAPI.classifyBatch(formData);
       const results = res.data.results.map((r, i) => ({
         id: r.id || Date.now() + i,
@@ -169,115 +176,104 @@ export default function Testing() {
     }
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Hapus hasil pengujian ini?")) {
-      setTestHistory(prev => prev.filter(h => h.id !== id));
-      if (activeResult?.id === id) setActiveResult(null);
-    }
-  };
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const filteredHistory = testHistory.filter(item => {
+    const textMatch = item.text?.toLowerCase().includes(searchTerm.toLowerCase());
+    const labelMatch = item.label?.toLowerCase().includes(searchTerm.toLowerCase());
+    const filenameMatch = item.filename?.toLowerCase().includes(searchTerm.toLowerCase());
+    return textMatch || labelMatch || filenameMatch;
+  });
+
+  const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedHistory = filteredHistory.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 40 }}>
-      <div className="page-header" style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: 8 }}>Testing & Klasifikasi Email</h1>
-        <p style={{ color: 'var(--gray-500)' }}>Uji model IndoBERT + GAT Anda dengan teks manual atau unggah file CSV untuk pengujian batch.</p>
+    <div className="w-full px-4 md:px-0 animate-in fade-in duration-300">
+      <div className="page-header mb-6">
+        <h1 className="text-2xl font-bold text-app-text mb-1">Testing</h1>
+        <p className="text-sm text-app-text-muted">Uji model IndoBERT + GAT Anda dengan teks manual atau unggah file CSV untuk pengujian batch.</p>
       </div>
 
-            {/* Model Selection Dropdown */}
-            <div style={{ marginBottom: 24, padding: 16, background: 'var(--gray-50)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
-              <label style={{ fontWeight: 600, fontSize: '0.9rem' }}>Model untuk Testing:</label>
-              <select value={activeModel?.id || ''} onChange={handleModelChange} disabled={isActivating} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--gray-300)' }}>
-                {modelsHistory.map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.model_name} (Acc: {(m.accuracy * 100).toFixed(1)}%)
-                  </option>
-                ))}
-              </select>
-              {isActivating && <Activity size={14} className="spinner" style={{ color: 'var(--gray-500)' }} />}
-            </div>
+      {/* Model Selection Dropdown */}
+      <div className="mb-6 p-4 bg-app-surface border border-app-border rounded-2xl flex flex-wrap items-center gap-3 shadow-sm">
+        <label className="font-semibold text-xs md:text-sm text-app-text">Model untuk Testing:</label>
+        <select 
+          value={activeModel?.id || ''} 
+          onChange={handleModelChange} 
+          disabled={isActivating} 
+          className="p-1.5 md:p-2 rounded-xl border border-app-border bg-app-bg text-app-text text-xs md:text-sm font-semibold outline-none focus:border-ocean cursor-pointer"
+        >
+          {modelsHistory.map(m => (
+            <option key={m.id} value={m.id}>
+              {m.model_name} (Acc: {(m.accuracy * 100).toFixed(1)}%)
+            </option>
+          ))}
+        </select>
+        {isActivating && <Activity size={14} className="spinner text-app-text-muted" />}
+      </div>
 
       {/* Active Model Indicator Banner */}
       {activeModelLoading ? (
-        <div className="card" style={{ padding: 16, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12, background: 'var(--gray-50)' }}>
-          <Activity size={18} className="spinner" style={{ color: 'var(--gray-500)' }} />
-          <span style={{ fontSize: '0.9rem', color: 'var(--gray-500)' }}>Memeriksa model yang aktif...</span>
+        <div className="card !p-4 mb-6 flex items-center gap-3 bg-app-surface border border-app-border rounded-2xl">
+          <Activity size={18} className="spinner text-app-text-muted" />
+          <span className="text-xs md:text-sm text-app-text-muted">Memeriksa model yang aktif...</span>
         </div>
       ) : activeModel ? (
-        <div className="card" style={{
-          padding: '16px 24px',
-          marginBottom: 24,
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 16,
-          borderLeft: '4px solid #10b981',
-          background: '#f0fdf4',
-          borderColor: '#10b981'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ background: '#dcfce7', padding: 8, borderRadius: '50%', color: '#15803d' }}>
-              <ShieldCheck size={22} />
+        <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-l-4 border-mint bg-mint-light/20 dark:bg-mint-light/5 border border-app-border rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="bg-mint-light dark:bg-mint-dark text-mint dark:text-mint-light p-2 rounded-full shadow-sm">
+              <ShieldCheck size={20} />
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <h4 style={{ margin: 0, fontWeight: 700, color: '#14532d', fontSize: '1rem' }}>Model Deteksi Aktif</h4>
-                <span className="badge badge-ham" style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', fontSize: '0.7rem', padding: '2px 8px', fontWeight: 700 }}>
-                  Ready
-                </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="font-extrabold text-app-text text-sm md:text-base">Model Deteksi Aktif</h4>
+                <span className="badge badge-ham text-[9px] font-bold py-0.5 px-2">Ready</span>
               </div>
-              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: '0.85rem', color: '#166534', fontWeight: 600 }}>Pilih Model:</span>
-              </div>
+              <p className="text-xs text-app-text-muted mt-1">Menggunakan model: <span className="font-semibold text-ocean">{activeModel.model_name}</span></p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-            <div style={{ textAlign: 'right' }}>
-              <span style={{ display: 'block', fontSize: '0.75rem', color: '#166534', fontWeight: 600 }}>AKURASI MODEL</span>
-              <strong style={{ fontSize: '1.2rem', color: '#14532d', fontWeight: 800 }}>{(activeModel.accuracy * 100).toFixed(2)}%</strong>
+          <div className="flex gap-4 items-center">
+            <div className="text-left md:text-right">
+              <span className="block text-[10px] text-app-text-muted font-bold uppercase tracking-wider">AKURASI MODEL</span>
+              <strong className="text-lg font-extrabold text-mint">{(activeModel.accuracy * 100).toFixed(2)}%</strong>
             </div>
-            <div style={{ height: 28, width: 1, background: '#bbf7d0' }} />
-            <div style={{ textAlign: 'right' }}>
-              <span style={{ display: 'block', fontSize: '0.75rem', color: '#166534', fontWeight: 600 }}>F1-SCORE MODEL</span>
-              <strong style={{ fontSize: '1.2rem', color: '#14532d', fontWeight: 800 }}>{(activeModel.f1_score * 100).toFixed(2)}%</strong>
+            <div className="h-6 w-[1px] bg-app-border" />
+            <div className="text-left md:text-right">
+              <span className="block text-[10px] text-app-text-muted font-bold uppercase tracking-wider">F1-SCORE MODEL</span>
+              <strong className="text-lg font-extrabold text-mint">{(activeModel.f1_score * 100).toFixed(2)}%</strong>
             </div>
           </div>
         </div>
       ) : (
-        <div className="card" style={{
-          padding: '16px 24px',
-          marginBottom: 24,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          borderLeft: '4px solid #ef4444',
-          background: '#fef2f2',
-          borderColor: '#ef4444'
-        }}>
-          <div style={{ background: '#fee2e2', padding: 8, borderRadius: '50%', color: '#991b1b' }}>
-            <ShieldAlert size={22} />
+        <div className="mb-6 flex items-center gap-3 border-l-4 border-sunrise bg-sunrise-light/20 dark:bg-sunrise-light/5 border border-app-border rounded-2xl p-4 shadow-sm">
+          <div className="bg-sunrise-light dark:bg-sunrise-dark text-sunrise dark:text-sunrise-light p-2 rounded-full shadow-sm">
+            <ShieldAlert size={20} />
           </div>
           <div>
-            <h4 style={{ margin: 0, fontWeight: 700, color: '#7f1d1d', fontSize: '1rem' }}>Tidak Ada Model Aktif</h4>
-            <p style={{ margin: '2px 0 0 0', fontSize: '0.85rem', color: '#991b1b' }}>
-              Silakan latih model baru atau pilih model yang ingin diaktifkan di halaman <strong style={{ color: '#7f1d1d' }}>Riwayat Model</strong>.
+            <h4 className="font-extrabold text-app-text text-sm md:text-base">Tidak Ada Model Aktif</h4>
+            <p className="text-xs text-app-text-muted mt-0.5">
+              Silakan latih model baru atau pilih model yang ingin diaktifkan di halaman <strong className="text-ocean">Riwayat Model</strong>.
             </p>
           </div>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 24, alignItems: 'start' }}>
+      {/* Main Content Grid (Responsive layout) */}
+      <div className="flex flex-col lg:grid lg:grid-cols-[1fr_400px] gap-6 items-start">
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div className="flex flex-col gap-6 w-full">
           {/* Section 1: Input & Upload */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div className="card" style={{ padding: 24 }}>
-              <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><FileText size={18} /> Uji Teks Manual</h3>
-              <form onSubmit={handleManualTest}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 12 }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="flex flex-col gap-6">
+            <div className="card !p-5 !rounded-2xl border border-app-border bg-app-surface shadow-sm">
+              <h3 className="font-bold text-sm md:text-base text-app-text mb-4 flex items-center gap-2"><FileText size={18} className="text-ocean" /> Uji Teks Manual</h3>
+              <form onSubmit={handleManualTest} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="form-group !mb-0">
                     <input
                       type="text"
                       className="form-input"
@@ -286,7 +282,7 @@ export default function Testing() {
                       onChange={e => setSender(e.target.value)}
                     />
                   </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
+                  <div className="form-group !mb-0">
                     <input
                       type="text"
                       className="form-input"
@@ -296,7 +292,7 @@ export default function Testing() {
                     />
                   </div>
                 </div>
-                <div className="form-group">
+                <div className="form-group !mb-0">
                   <textarea
                     className="form-textarea"
                     rows={4}
@@ -306,26 +302,26 @@ export default function Testing() {
                     required
                   />
                 </div>
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: 12 }} disabled={loading || !body.trim()}>
-                  {loading ? <><Activity size={18} className="spinner" /> Memproses...</> : <><Send size={18} /> Periksa Email</>}
+                <button type="submit" className="btn btn-primary w-full py-2.5 !rounded-xl" disabled={loading || !body.trim()}>
+                  {loading ? <><Activity size={16} className="spinner" /> Memproses...</> : <><Send size={16} /> Periksa Email</>}
                 </button>
               </form>
             </div>
 
             {/* Batch Upload Card */}
-            <div className="card" style={{ padding: 24 }}>
-              <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Upload size={18} /> Pengujian Batch (CSV / Excel)
+            <div className="card !p-5 !rounded-2xl border border-app-border bg-app-surface shadow-sm">
+              <h3 className="font-bold text-sm md:text-base text-app-text mb-3 flex items-center gap-2">
+                <Upload size={18} className="text-ocean" /> Pengujian Batch (CSV / Excel)
               </h3>
 
               {/* Step 1: Pick file */}
               {!batchFile && !loadingColumns && (
                 <>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: 16 }}>
+                  <p className="text-xs text-app-text-muted mb-4">
                     Upload file CSV/Excel berisi daftar email, lalu pilih kolom yang ingin digunakan.
                   </p>
-                  <input type="file" accept=".csv,.xlsx,.xls" style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileChange} />
-                  <button className="btn btn-outline" style={{ width: '100%', padding: 12 }} onClick={() => fileInputRef.current?.click()}>
+                  <input type="file" accept=".csv,.xlsx,.xls" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+                  <button className="btn btn-outline w-full py-2.5 !rounded-xl" onClick={() => fileInputRef.current?.click()}>
                     <Upload size={16} /> Pilih File Dataset
                   </button>
                 </>
@@ -333,57 +329,59 @@ export default function Testing() {
 
               {/* Loading columns */}
               {loadingColumns && (
-                <div style={{ textAlign: 'center', padding: 24, color: 'var(--gray-500)' }}>
-                  <Activity size={28} className="spinner" style={{ marginBottom: 8 }} />
-                  <p>Membaca kolom file...</p>
+                <div className="text-center py-6 text-app-text-muted">
+                  <Activity size={24} className="spinner mx-auto mb-2 text-ocean" />
+                  <p className="text-xs">Membaca kolom file...</p>
                 </div>
               )}
 
               {/* Step 2: Column selection */}
               {batchFile && batchColumns.length > 0 && batchMetrics && !uploadingBatch && (
-                <div style={{ animation: 'fadeIn 0.3s ease' }}>
-                  <div style={{ background: 'var(--gray-50)', padding: 16, borderRadius: 8, marginBottom: 20 }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--gray-600)', marginBottom: 4 }}>Detail Dataset Terpilih:</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--black)', marginBottom: 12 }}>{batchFile.name}</div>
-                    <div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--black)' }}>{batchMetrics.total_rows.toLocaleString()} Baris Data</div>
-                    </div>
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                  <div className="bg-app-bg border border-app-border p-4 rounded-xl">
+                    <div className="text-[10px] font-bold text-app-text-muted uppercase tracking-wider mb-1">Detail Dataset Terpilih:</div>
+                    <div className="text-xs font-semibold text-app-text mb-2 break-all">{batchFile.name}</div>
+                    <div className="text-base font-extrabold text-app-text">{batchMetrics.total_rows.toLocaleString()} Baris Data</div>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                  <div className="space-y-3">
                     <div>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                        Kolom Isi Email (Teks) <span style={{ color: '#ef4444' }}>*</span>
+                      <label className="text-xs font-semibold text-app-text-muted block mb-1">
+                        Kolom Isi Email (Teks) <span className="text-sunrise">*</span>
                       </label>
-                      <select className="form-input" value={colText} onChange={e => setColText(e.target.value)}>
+                      <select className="form-select" value={colText} onChange={e => setColText(e.target.value)}>
                         <option value="">-- Pilih kolom --</option>
                         {batchColumns.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
 
-                    <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                      Kolom Subject (wajib) <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <select className="form-input" value={colSubject} onChange={e => setColSubject(e.target.value)}>
-                      <option value="" disabled>-- Pilih kolom --</option>
-                      {batchColumns.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <div>
+                      <label className="text-xs font-semibold text-app-text-muted block mb-1">
+                        Kolom Subject <span className="text-sunrise">*</span>
+                      </label>
+                      <select className="form-select" value={colSubject} onChange={e => setColSubject(e.target.value)}>
+                        <option value="">-- Pilih kolom --</option>
+                        {batchColumns.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
 
-                    <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                      Kolom Pengirim (Sender) (wajib) <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <select className="form-input" value={colSender} onChange={e => setColSender(e.target.value)}>
-                      <option value="" disabled>-- Pilih kolom --</option>
-                      {batchColumns.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <div>
+                      <label className="text-xs font-semibold text-app-text-muted block mb-1">
+                        Kolom Pengirim (Sender) <span className="text-sunrise">*</span>
+                      </label>
+                      <select className="form-select" value={colSender} onChange={e => setColSender(e.target.value)}>
+                        <option value="">-- Pilih kolom --</option>
+                        {batchColumns.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => { setBatchFile(null); setBatchColumns([]); setColText(''); setColSubject(''); setColSender(''); }}>
+                  <div className="flex gap-2">
+                    <button className="btn btn-outline flex-1 py-2 !rounded-xl text-xs" onClick={() => { setBatchFile(null); setBatchColumns([]); setColText(''); setColSubject(''); setColSender(''); }}>
                       Ganti File
                     </button>
-                    <button className="btn btn-primary" style={{ flex: 2 }} disabled={!colText || !colSubject || !colSender} onClick={handleRunBatch}>
-                      <Send size={16} /> Mulai Testing
+                    <button className="btn btn-primary flex-[2] py-2 !rounded-xl text-xs" disabled={!colText || !colSubject || !colSender} onClick={handleRunBatch}>
+                      <Send size={14} /> Mulai Testing
                     </button>
                   </div>
                 </div>
@@ -391,180 +389,193 @@ export default function Testing() {
 
               {/* Running */}
               {uploadingBatch && (
-                <div style={{ textAlign: 'center', padding: 24, color: 'var(--gray-500)' }}>
-                  <Activity size={28} className="spinner" style={{ color: 'var(--primary)', marginBottom: 8 }} />
-                  <p>Sedang memproses dan mengklasifikasi email...</p>
+                <div className="text-center py-6 text-app-text-muted">
+                  <Activity size={24} className="spinner mx-auto mb-2 text-ocean" />
+                  <p className="text-xs">Sedang memproses dan mengklasifikasi email...</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Section 2: History Table */}
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--gray-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0 }}>Hasil Pengujian Terbaru</h3>
-              <div style={{ position: 'relative' }}>
-                <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)' }} />
-                <input type="text" placeholder="Cari hasil..." style={{ padding: '6px 12px 6px 32px', borderRadius: 20, border: '1px solid var(--gray-200)', fontSize: '0.8rem' }} />
+          <div className="card !p-0 !rounded-2xl border border-app-border bg-app-surface overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-app-border bg-app-bg/20 flex flex-wrap justify-between items-center gap-3">
+              <h3 className="font-bold text-sm md:text-base text-app-text">Hasil Pengujian Terbaru</h3>
+              <div className="relative w-full sm:w-auto">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-app-text-muted" />
+                <input 
+                  type="text" 
+                  placeholder="Cari hasil..." 
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="pl-8 pr-4 py-1.5 w-full sm:w-48 text-xs rounded-full border border-app-border bg-app-surface text-app-text focus:outline-none focus:border-ocean" 
+                />
               </div>
             </div>
-            <div className="table-container">
-              <table style={{ margin: 0 }}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
                 <thead>
-                  <tr style={{ background: 'var(--gray-50)' }}>
-                    <th style={{ width: 50 }}>No</th>
-                    <th style={{ width: 120 }}><Calendar size={14} /> Tgl Pengujian</th>
-                    <th>Testing (Konten Email)</th>
-                    <th style={{ width: 120 }}>Keterangan</th>
+                  <tr className="bg-app-bg/50">
+                    <th className="w-12 text-center text-[10px] tracking-wider py-3">No</th>
+                    <th className="w-32 text-[10px] tracking-wider py-3"><Calendar size={12} className="inline mr-1" /> Tgl Pengujian</th>
+                    <th className="text-[10px] tracking-wider py-3">Testing (Konten Email)</th>
+                    <th className="w-28 text-center text-[10px] tracking-wider py-3">Keterangan</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {testHistory.map((item, index) => (
-                    <tr key={item.id} style={{ cursor: 'pointer', background: activeResult?.id === item.id ? 'var(--gray-50)' : 'transparent' }} onClick={() => setActiveResult(item)}>
-                      <td>{index + 1}</td>
-                      <td style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>{item.date}</td>
-                      <td>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--black)', fontWeight: 500 }}>
-                          {item.text.length > 60 ? item.text.substring(0, 60) + '...' : item.text}
+                  {paginatedHistory.map((item, index) => (
+                    <tr key={item.id} className={`cursor-pointer hover:bg-app-bg/40 border-b border-app-border transition-colors ${activeResult?.id === item.id ? 'bg-ocean-light/30 dark:bg-ocean-dark/20' : ''}`} onClick={() => setActiveResult(item)}>
+                      <td className="text-center text-xs py-3">{startIndex + index + 1}</td>
+                      <td className="text-xs text-app-text-muted py-3">{item.date}</td>
+                      <td className="py-3 px-2">
+                        <div className="text-xs text-app-text font-medium line-clamp-1 break-all">
+                          {item.text}
                         </div>
                       </td>
-                      <td>
+                      <td className="text-center py-3">
                         {item.type === 'batch' ? (
-                          <span style={{ display: 'block', textAlign: 'center', background: 'var(--gray-200)', color: 'var(--gray-700)', padding: '4px 8px', borderRadius: 4, fontSize: '0.7rem', fontWeight: 800 }}>
+                          <span className="inline-block bg-ocean-light dark:bg-ocean-dark/40 text-ocean dark:text-ocean-dark font-extrabold text-[9px] px-2 py-0.5 rounded">
                             BATCH
                           </span>
                         ) : (
-                          <span className={`badge badge-${item.label}`} style={{ display: 'block', textAlign: 'center', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 800 }}>
+                          <span className={`badge badge-${item.label} text-[9px] font-extrabold px-2 py-0.5`}>
                             {item.label}
                           </span>
                         )}
                       </td>
                     </tr>
                   ))}
-                  {testHistory.length === 0 && (
+                  {filteredHistory.length === 0 && (
                     <tr>
-                      <td colSpan="4" style={{ textAlign: 'center', padding: 40, color: 'var(--gray-400)' }}>Belum ada data pengujian.</td>
+                      <td colSpan="4" className="text-center py-10 text-app-text-muted text-xs">Belum ada data pengujian yang cocok.</td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
+            {totalPages > 1 && (
+              <div className="py-4 px-4 border-t border-app-border bg-app-bg/10">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={(p) => setCurrentPage(p)}
+                />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* KOLOM KANAN: Detail & GAT Visualization */}
-        <div style={{ position: 'sticky', top: 24 }}>
+        {/* KOLOM KANAN: Detail & GAT Visualization (Sticky on desktop) */}
+        <div className="w-full lg:sticky lg:top-6 flex flex-col gap-6">
           {activeResult ? (
             activeResult.type === 'batch' ? (
-              <div className="card" style={{ padding: 24, border: '2px solid var(--black)', animation: 'slideIn 0.3s ease-out' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                  <div style={{ padding: 10, background: 'var(--gray-100)', borderRadius: '50%' }}><FileText size={24} style={{ color: 'var(--gray-600)' }} /></div>
+              <div className="card !p-5 !rounded-2xl border-2 border-ocean bg-app-surface shadow-md animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex items-center gap-3 mb-5 border-b border-app-border pb-4">
+                  <div className="p-2.5 bg-ocean-light dark:bg-ocean-dark text-ocean rounded-full"><FileText size={20} /></div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase' }}>Detail Batch</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--black)' }}>
+                    <div className="text-[10px] text-app-text-muted font-bold uppercase tracking-wider">Detail Batch</div>
+                    <div className="text-sm font-extrabold text-app-text break-all">
                       {activeResult.filename}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ background: 'var(--gray-50)', padding: 16, borderRadius: 12, marginBottom: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: 8 }}>
-                    <span style={{ color: 'var(--gray-500)' }}>Total Data Diuji:</span>
-                    <strong style={{ color: 'var(--black)' }}>{activeResult.results.length} Email</strong>
+                <div className="bg-app-bg border border-app-border p-4 rounded-xl mb-5 space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-app-text-muted">Total Data Diuji:</span>
+                    <strong className="text-app-text">{activeResult.results.length} Email</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: 8 }}>
-                    <span style={{ color: 'var(--gray-500)' }}>Total Spam:</span>
-                    <strong style={{ color: '#ef4444' }}>{activeResult.results.filter(r => r.label === 'spam').length}</strong>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-app-text-muted">Total Spam:</span>
+                    <strong className="text-sunrise font-extrabold">{activeResult.results.filter(r => r.label === 'spam').length}</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                    <span style={{ color: 'var(--gray-500)' }}>Total Non-Spam:</span>
-                    <strong style={{ color: '#10b981' }}>{activeResult.results.filter(r => r.label === 'ham').length}</strong>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-app-text-muted">Total Non-Spam:</span>
+                    <strong className="text-mint font-extrabold">{activeResult.results.filter(r => r.label === 'ham').length}</strong>
                   </div>
                 </div>
 
-                <h4 style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: 12 }}>Daftar Hasil Prediksi:</h4>
-                <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid var(--gray-200)', borderRadius: 8, padding: 8 }}>
+                <h4 className="text-xs font-bold text-app-text mb-3">Daftar Hasil Prediksi:</h4>
+                <div className="max-h-[260px] overflow-y-auto border border-app-border rounded-xl p-2 space-y-2 bg-app-bg/30">
                   {activeResult.results.map((res, i) => (
-                    <div key={res.id} style={{ padding: 12, borderBottom: i < activeResult.results.length - 1 ? '1px solid var(--gray-100)' : 'none' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: res.label === 'spam' ? '#ef4444' : '#10b981', textTransform: 'uppercase' }}>
+                    <div key={res.id} className="p-3 bg-app-surface rounded-lg border border-app-border">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className={`text-[10px] font-extrabold tracking-wider uppercase ${
+                          res.label === 'spam' ? 'text-sunrise' : 'text-mint'
+                        }`}>
                           {res.label}
                         </span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>{(res.conf * 100).toFixed(1)}%</span>
+                        <span className="text-[10px] text-app-text-muted">{(res.conf * 100).toFixed(1)}%</span>
                       </div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--gray-700)', lineHeight: 1.4 }}>
-                        {res.text.length > 100 ? res.text.substring(0, 100) + '...' : res.text}
+                      <div className="text-xs text-app-text-muted line-clamp-2 leading-relaxed">
+                        {res.text}
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="card" style={{ padding: 24, border: '2px solid var(--black)', animation: 'slideIn 0.3s ease-out' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <div className="card !p-5 !rounded-2xl border-2 border-ocean bg-app-surface shadow-md animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex items-center gap-3 mb-5 border-b border-app-border pb-4">
                   {activeResult.label === 'spam' ? (
-                    <div style={{ padding: 10, background: 'rgba(239, 68, 68, 0.1)', borderRadius: '50%' }}><ShieldAlert size={24} style={{ color: '#ef4444' }} /></div>
+                    <div className="p-2.5 bg-sunrise-light text-sunrise dark:bg-sunrise-dark dark:text-sunrise-light rounded-full"><ShieldAlert size={20} /></div>
                   ) : (
-                    <div style={{ padding: 10, background: 'rgba(16, 185, 129, 0.1)', borderRadius: '50%' }}><ShieldCheck size={24} style={{ color: '#10b981' }} /></div>
+                    <div className="p-2.5 bg-mint-light text-mint dark:bg-mint-dark dark:text-mint-light rounded-full"><ShieldCheck size={20} /></div>
                   )}
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, textTransform: 'uppercase' }}>Prediksi Model</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: activeResult.label === 'spam' ? '#ef4444' : '#10b981' }}>
+                    <div className="text-[10px] text-app-text-muted font-bold uppercase tracking-wider">Prediksi Model</div>
+                    <div className={`text-sm md:text-base font-extrabold ${activeResult.label === 'spam' ? 'text-sunrise' : 'text-mint'}`}>
                       {activeResult.label === 'spam' ? 'TERDETEKSI SPAM' : 'EMAIL AMAN (HAM)'}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: 6 }}>
-                    <span>Confidence Level</span>
-                    <span style={{ fontWeight: 700 }}>{(activeResult.conf * 100).toFixed(2)}%</span>
+                <div className="mb-5 bg-app-bg/50 border border-app-border p-4 rounded-xl">
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="text-app-text-muted font-medium">Confidence Level</span>
+                    <span className="font-extrabold text-app-text">{(activeResult.conf * 100).toFixed(2)}%</span>
                   </div>
-                  <div className="progress-bar" style={{ height: 8, background: 'var(--gray-100)' }}>
-                    <div className="progress-fill" style={{ width: `${activeResult.conf * 100}%`, background: activeResult.label === 'spam' ? '#ef4444' : '#10b981' }} />
+                  <div className="progress-bar w-full">
+                    <div className={`progress-fill ${activeResult.label === 'spam' ? '!bg-sunrise' : '!bg-mint'}`} style={{ width: `${activeResult.conf * 100}%` }} />
                   </div>
                 </div>
 
-                <div style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 16, background: 'var(--gray-50)', marginBottom: 20 }}>
-                  <h4 style={{ fontSize: '0.8rem', color: 'var(--gray-600)', marginBottom: 12 }}>Visualisasi Graph Attention (GAT)</h4>
-                  <div style={{ height: 180, background: 'white', borderRadius: 8, border: '1px solid var(--gray-200)', overflow: 'hidden' }}>
+                <div className="border border-app-border rounded-xl p-4 bg-app-bg/30 mb-5">
+                  <h4 className="text-xs font-bold text-app-text mb-3">Visualisasi Graph Attention (GAT)</h4>
+                  <div className="h-[180px] bg-app-surface rounded-lg border border-app-border overflow-hidden shadow-inner">
                     <svg width="100%" height="100%" viewBox="0 0 300 180">
-                      <line x1="150" y1="90" x2="80" y2="40" stroke="#ef4444" strokeWidth={activeResult.label === 'spam' ? "3" : "0.5"} opacity={activeResult.label === 'spam' ? "0.8" : "0.1"} />
-                      <line x1="150" y1="90" x2="220" y2="50" stroke="#ef4444" strokeWidth={activeResult.label === 'spam' ? "2" : "0.5"} opacity={activeResult.label === 'spam' ? "0.6" : "0.1"} />
-                      <line x1="150" y1="90" x2="90" y2="140" stroke="#10b981" strokeWidth={activeResult.label === 'ham' ? "2.5" : "0.5"} opacity={activeResult.label === 'ham' ? "0.7" : "0.1"} />
-                      <line x1="150" y1="90" x2="210" y2="130" stroke="#10b981" strokeWidth={activeResult.label === 'ham' ? "3" : "0.5"} opacity={activeResult.label === 'ham' ? "0.8" : "0.1"} />
-                      <circle cx="80" cy="40" r="8" fill="#ef4444" />
-                      <circle cx="220" cy="50" r="10" fill="#ef4444" />
-                      <circle cx="90" cy="140" r="12" fill="#10b981" />
-                      <circle cx="210" cy="130" r="9" fill="#10b981" />
-                      <circle cx="150" cy="90" r="14" fill="white" stroke="var(--black)" strokeWidth="2" />
-                      <circle cx="150" cy="90" r="5" fill="var(--black)" />
+                      <line x1="150" y1="90" x2="80" y2="40" stroke="#ffb703" strokeWidth={activeResult.label === 'spam' ? "3" : "0.5"} opacity={activeResult.label === 'spam' ? "0.8" : "0.1"} />
+                      <line x1="150" y1="90" x2="220" y2="50" stroke="#ffb703" strokeWidth={activeResult.label === 'spam' ? "2" : "0.5"} opacity={activeResult.label === 'spam' ? "0.6" : "0.1"} />
+                      <line x1="150" y1="90" x2="90" y2="140" stroke="#57cc99" strokeWidth={activeResult.label === 'ham' ? "2.5" : "0.5"} opacity={activeResult.label === 'ham' ? "0.7" : "0.1"} />
+                      <line x1="150" y1="90" x2="210" y2="130" stroke="#57cc99" strokeWidth={activeResult.label === 'ham' ? "3" : "0.5"} opacity={activeResult.label === 'ham' ? "0.8" : "0.1"} />
+                      <circle cx="80" cy="40" r="8" fill="#ffb703" className="shadow-sm" />
+                      <circle cx="220" cy="50" r="10" fill="#ffb703" className="shadow-sm" />
+                      <circle cx="90" cy="140" r="12" fill="#57cc99" className="shadow-sm" />
+                      <circle cx="210" cy="130" r="9" fill="#57cc99" className="shadow-sm" />
+                      <circle cx="150" cy="90" r="14" fill="white" className="dark:fill-slate-800" stroke="var(--ocean)" strokeWidth="2.5" />
+                      <circle cx="150" cy="90" r="5" fill="var(--ocean)" />
                     </svg>
                   </div>
                 </div>
 
-                <div style={{ background: 'var(--gray-50)', padding: 16, borderRadius: 12 }}>
-                  <h4 style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: 8 }}>Isi Email Pengujian:</h4>
-                  <p style={{ fontSize: '0.85rem', margin: 0, fontStyle: 'italic', color: 'var(--gray-700)', lineHeight: 1.5 }}>
+                <div className="bg-app-bg border border-app-border p-4 rounded-xl">
+                  <h4 className="text-[10px] font-bold text-app-text-muted uppercase tracking-wider mb-2">Isi Email Pengujian:</h4>
+                  <p className="text-xs italic text-app-text leading-relaxed font-medium">
                     "{activeResult.text}"
                   </p>
                 </div>
               </div>
             )
           ) : (
-            <div className="card" style={{ padding: 40, textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', border: '1px dashed var(--gray-300)' }}>
-              <Mail size={48} style={{ color: 'var(--gray-200)', marginBottom: 16 }} />
-              <p style={{ color: 'var(--gray-400)', fontSize: '0.9rem' }}>Pilih hasil pengujian dari tabel atau lakukan uji manual untuk melihat detail visualisasi GAT.</p>
+            <div className="card !p-8 text-center min-h-[300px] flex flex-col justify-center items-center border border-dashed border-app-border bg-app-surface !rounded-2xl shadow-sm">
+              <Mail size={40} className="text-app-text-muted/40 mb-3" />
+              <p className="text-xs text-app-text-muted leading-relaxed max-w-[240px]">Pilih hasil pengujian dari tabel atau lakukan uji manual untuk melihat detail visualisasi GAT.</p>
             </div>
           )}
         </div>
       </div>
 
       <style>{`
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateX(20px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>

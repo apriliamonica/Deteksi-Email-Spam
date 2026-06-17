@@ -11,8 +11,9 @@ import {
   TrendingUp,
   Save,
   ChevronRight,
-  ShieldAlert,
   XCircle,
+  Lock,
+  ShieldAlert,
 } from "lucide-react";
 import {
   AreaChart,
@@ -72,9 +73,7 @@ export default function ProcessingPage() {
   const [trainRatio, setTrainRatio] = useState(() =>
     getInitial("trainRatio", 70),
   );
-  const [valRatio, setValRatio] = useState(() =>
-    getInitial("valRatio", 10),
-  );
+  const [valRatio, setValRatio] = useState(() => getInitial("valRatio", 10));
   const [testRatio, setTestRatio] = useState(() => getInitial("testRatio", 20));
   const [epoch, setEpoch] = useState(() => getInitial("epoch", 30));
   const [lr, setLr] = useState(() => getInitial("lr", 0.001));
@@ -205,7 +204,10 @@ export default function ProcessingPage() {
                 })),
               };
               setTrainResult(result);
-              localStorage.setItem("processing_trainResult", JSON.stringify(result));
+              localStorage.setItem(
+                "processing_trainResult",
+                JSON.stringify(result),
+              );
               setCurrentStep(2);
             }
             setTraining(false);
@@ -319,11 +321,16 @@ export default function ProcessingPage() {
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (key.startsWith("processing_") || key.startsWith("preproc_") || key === "global_process_active")) {
+      if (
+        key &&
+        (key.startsWith("processing_") ||
+          key.startsWith("preproc_") ||
+          key === "global_process_active")
+      ) {
         keysToRemove.push(key);
       }
     }
-    keysToRemove.forEach(k => localStorage.removeItem(k));
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
     window.location.reload();
   };
 
@@ -353,9 +360,7 @@ export default function ProcessingPage() {
         className="page-header"
         style={{ textAlign: "center", marginBottom: 40 }}
       >
-        <h1 style={{ fontSize: "2.2rem", marginBottom: 8 }}>
-          Model Training Pipeline
-        </h1>
+        <h1 style={{ fontSize: "2.2rem", marginBottom: 8 }}>Processing</h1>
         <p
           style={{ color: "var(--gray-500)", maxWidth: 800, margin: "0 auto" }}
         >
@@ -472,44 +477,107 @@ export default function ProcessingPage() {
                             </div>
                           )}
                           <form onSubmit={handleTrain}>
-
                             {/* FULL-WIDTH 2-COLUMN LAYOUT WITH TABS */}
-                            <div className="row mb-4" >
+                            <div className="row mb-4">
                               {/* COL 1: DATA SPLIT & GENERAL */}
-                              <div className="col-lg-4 col-md-12 mb-4 mb-lg-0" style={{ marginBottom: '16px' }} >
-                                <div style={{ background: "white", padding: 24, borderRadius: 12, border: "1px solid var(--gray-200)", height: '100%' }}>
-                                  
-                                  <h4 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 24, color: "var(--gray-800)", display: "flex", alignItems: "center", gap: 10 }}>
-                                    <Settings size={20} style={{ color: "var(--gmail-blue)" }} /> General Settings
+                              <div
+                                className="col-lg-4 col-md-12 mb-4 mb-lg-0"
+                                style={{ marginBottom: "16px" }}
+                              >
+                                <div
+                                  style={{
+                                    background: "var(--app-surface)",
+                                    padding: 24,
+                                    borderRadius: 12,
+                                    border: "1px solid var(--app-border)",
+                                    height: "100%",
+                                  }}
+                                >
+                                  <h4
+                                    style={{
+                                      fontSize: "1.1rem",
+                                      fontWeight: 700,
+                                      marginBottom: 24,
+                                      color: "var(--gray-800)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 10,
+                                    }}
+                                  >
+                                    <Settings
+                                      size={20}
+                                      style={{ color: "var(--gmail-blue)" }}
+                                    />{" "}
+                                    General Settings
                                   </h4>
 
                                   <div style={{ marginBottom: 24 }}>
-                                    <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Nama Model</label>
-                                    <input className="form-input" value={modelName} onChange={(e) => setModelName(e.target.value)} required disabled={training} placeholder="Contoh: Model_Spam_01" style={{ height: 42, borderRadius: 8 }} />
+                                    <label
+                                      className="form-label"
+                                      style={{
+                                        fontSize: "0.9rem",
+                                        fontWeight: 600,
+                                      }}
+                                    >
+                                      Nama Model
+                                    </label>
+                                    <input
+                                      className="form-input"
+                                      value={modelName}
+                                      onChange={(e) =>
+                                        setModelName(e.target.value)
+                                      }
+                                      required
+                                      disabled={training}
+                                      placeholder="Contoh: Model_Spam_01"
+                                      style={{ height: 42, borderRadius: 8 }}
+                                    />
                                   </div>
 
                                   <div style={{ marginBottom: 24 }}>
-                                    <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Pilih Dataset</label>
+                                    <label
+                                      className="form-label"
+                                      style={{
+                                        fontSize: "0.9rem",
+                                        fontWeight: 600,
+                                      }}
+                                    >
+                                      Pilih Dataset
+                                    </label>
                                     <select
                                       className="form-select"
                                       value={activeDatasetId || ""}
                                       onChange={(e) => {
                                         const val = e.target.value;
                                         setActiveDatasetId(val);
-                                        const ds = datasets.find((d) => d.id.toString() === val);
+                                        const ds = datasets.find(
+                                          (d) => d.id.toString() === val,
+                                        );
                                         setActiveDatasetName(ds ? ds.name : "");
                                       }}
                                       disabled={training}
-                                      style={{ height: 46, borderRadius: 8, fontSize: "0.95rem" }}
+                                      style={{
+                                        height: 46,
+                                        borderRadius: 8,
+                                        fontSize: "0.95rem",
+                                      }}
                                     >
                                       {datasets.length === 0 ? (
-                                        <option value="">-- Belum ada dataset --</option>
+                                        <option value="">
+                                          -- Belum ada dataset --
+                                        </option>
                                       ) : (
                                         <>
-                                          <option value="" disabled>-- Pilih Dataset --</option>
+                                          <option value="" disabled>
+                                            -- Pilih Dataset --
+                                          </option>
                                           {datasets.map((ds) => (
                                             <option key={ds.id} value={ds.id}>
-                                              {ds.name} ({(ds.total_rows || 0).toLocaleString()} Email)
+                                              {ds.name} (
+                                              {(
+                                                ds.total_rows || 0
+                                              ).toLocaleString()}{" "}
+                                              Email)
                                             </option>
                                           ))}
                                         </>
@@ -517,334 +585,1462 @@ export default function ProcessingPage() {
                                     </select>
                                   </div>
 
-                                  <hr style={{ margin: '24px 0', borderColor: 'var(--gray-200)' }} />
+                                  <hr
+                                    style={{
+                                      margin: "24px 0",
+                                      borderColor: "var(--gray-200)",
+                                    }}
+                                  />
 
-                                  <h4 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 24, color: "var(--gray-800)", display: "flex", alignItems: "center", gap: 10 }}>
-                                    <Database size={20} style={{ color: "var(--gmail-blue)" }} /> Data Split Configuration
+                                  <h4
+                                    style={{
+                                      fontSize: "1.1rem",
+                                      fontWeight: 700,
+                                      marginBottom: 24,
+                                      color: "var(--gray-800)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 10,
+                                    }}
+                                  >
+                                    <Database
+                                      size={20}
+                                      style={{ color: "var(--gmail-blue)" }}
+                                    />{" "}
+                                    Data Split Configuration
                                   </h4>
 
-                                  <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Train-Validation-Test Split Ratio</label>
-                                  <div style={{ display: 'flex', gap: '16px', marginBottom: 16 }}>
+                                  <label
+                                    className="form-label"
+                                    style={{
+                                      fontSize: "0.9rem",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Train-Validation-Test Split Ratio
+                                  </label>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      gap: "16px",
+                                      marginBottom: 16,
+                                    }}
+                                  >
                                     <div style={{ flex: 1 }}>
-                                      <span style={{ fontSize: "0.8rem", color: "var(--gray-500)", marginBottom: 6, display: 'block' }}>Train (%)</span>
-                                      <input className="form-input" type="number" value={trainRatio} onChange={(e) => setTrainRatio(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                      <span
+                                        style={{
+                                          fontSize: "0.8rem",
+                                          color: "var(--gray-500)",
+                                          marginBottom: 6,
+                                          display: "block",
+                                        }}
+                                      >
+                                        Train (%)
+                                      </span>
+                                      <input
+                                        className="form-input"
+                                        type="number"
+                                        value={trainRatio}
+                                        onChange={(e) =>
+                                          setTrainRatio(e.target.value)
+                                        }
+                                        disabled={training}
+                                        style={{ height: 42, borderRadius: 8 }}
+                                      />
                                     </div>
                                     <div style={{ flex: 1 }}>
-                                      <span style={{ fontSize: "0.8rem", color: "var(--gray-500)", marginBottom: 6, display: 'block' }}>Validation (%)</span>
-                                      <input className="form-input" type="number" value={valRatio} onChange={(e) => setValRatio(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                      <span
+                                        style={{
+                                          fontSize: "0.8rem",
+                                          color: "var(--gray-500)",
+                                          marginBottom: 6,
+                                          display: "block",
+                                        }}
+                                      >
+                                        Validation (%)
+                                      </span>
+                                      <input
+                                        className="form-input"
+                                        type="number"
+                                        value={valRatio}
+                                        onChange={(e) =>
+                                          setValRatio(e.target.value)
+                                        }
+                                        disabled={training}
+                                        style={{ height: 42, borderRadius: 8 }}
+                                      />
                                     </div>
                                     <div style={{ flex: 1 }}>
-                                      <span style={{ fontSize: "0.8rem", color: "var(--gray-500)", marginBottom: 6, display: 'block' }}>Test (%)</span>
-                                      <input className="form-input" type="number" value={testRatio} onChange={(e) => setTestRatio(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                      <span
+                                        style={{
+                                          fontSize: "0.8rem",
+                                          color: "var(--gray-500)",
+                                          marginBottom: 6,
+                                          display: "block",
+                                        }}
+                                      >
+                                        Test (%)
+                                      </span>
+                                      <input
+                                        className="form-input"
+                                        type="number"
+                                        value={testRatio}
+                                        onChange={(e) =>
+                                          setTestRatio(e.target.value)
+                                        }
+                                        disabled={training}
+                                        style={{ height: 42, borderRadius: 8 }}
+                                      />
                                     </div>
                                   </div>
 
                                   {/* Visual Progress Bar */}
-                                  <div style={{ height: 10, borderRadius: 5, display: 'flex', overflow: 'hidden', marginBottom: 12, background: 'var(--gray-100)' }}>
-                                    <div style={{ width: `${trainRatio}%`, background: 'var(--gmail-blue)' }}></div>
-                                    <div style={{ width: `${valRatio}%`, background: 'var(--gmail-blue-light)' }}></div>
-                                    <div style={{ width: `${testRatio}%`, background: 'var(--gray-300)' }}></div>
+                                  <div
+                                    style={{
+                                      height: 10,
+                                      borderRadius: 5,
+                                      display: "flex",
+                                      overflow: "hidden",
+                                      marginBottom: 12,
+                                      background: "var(--gray-100)",
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        width: `${trainRatio}%`,
+                                        background: "var(--gmail-blue)",
+                                      }}
+                                    ></div>
+                                    <div
+                                      style={{
+                                        width: `${valRatio}%`,
+                                        background: "var(--gmail-blue-light)",
+                                      }}
+                                    ></div>
+                                    <div
+                                      style={{
+                                        width: `${testRatio}%`,
+                                        background: "var(--gray-300)",
+                                      }}
+                                    ></div>
                                   </div>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--gray-500)', fontWeight: 600, marginBottom: 28 }}>
-                                    <div style={{ display: 'flex', gap: 16 }}>
-                                      <span style={{ color: 'var(--gmail-blue)' }}>● Train: {trainRatio}%</span>
-                                      <span style={{ color: 'var(--gmail-blue-dark)' }}>● Validation: {valRatio}%</span>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      fontSize: "0.8rem",
+                                      color: "var(--gray-500)",
+                                      fontWeight: 600,
+                                      marginBottom: 28,
+                                    }}
+                                  >
+                                    <div style={{ display: "flex", gap: 16 }}>
+                                      <span
+                                        style={{ color: "var(--gmail-blue)" }}
+                                      >
+                                        ● Train: {trainRatio}%
+                                      </span>
+                                      <span
+                                        style={{
+                                          color: "var(--gmail-blue-dark)",
+                                        }}
+                                      >
+                                        ● Validation: {valRatio}%
+                                      </span>
                                       <span>● Test: {testRatio}%</span>
                                     </div>
-                                    <span style={{ color: (parseInt(trainRatio) + parseInt(valRatio) + parseInt(testRatio)) === 100 ? 'var(--gmail-green)' : 'var(--gmail-red)' }}>
-                                      Total: {parseInt(trainRatio) + parseInt(valRatio) + parseInt(testRatio)}%
+                                    <span
+                                      style={{
+                                        color:
+                                          parseInt(trainRatio) +
+                                            parseInt(valRatio) +
+                                            parseInt(testRatio) ===
+                                          100
+                                            ? "var(--gmail-green)"
+                                            : "var(--gmail-red)",
+                                      }}
+                                    >
+                                      Total:{" "}
+                                      {parseInt(trainRatio) +
+                                        parseInt(valRatio) +
+                                        parseInt(testRatio)}
+                                      %
                                     </span>
                                   </div>
 
                                   <div style={{ marginBottom: 20 }}>
-                                    <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Cross Validation Folds</label>
-                                    <input className="form-input" type="number" value={cvFolds} onChange={(e) => setCvFolds(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                    <label
+                                      className="form-label"
+                                      style={{
+                                        fontSize: "0.9rem",
+                                        fontWeight: 600,
+                                      }}
+                                    >
+                                      Cross Validation Folds
+                                    </label>
+                                    <input
+                                      className="form-input"
+                                      type="number"
+                                      value={cvFolds}
+                                      onChange={(e) =>
+                                        setCvFolds(e.target.value)
+                                      }
+                                      disabled={training}
+                                      style={{ height: 42, borderRadius: 8 }}
+                                    />
                                   </div>
                                   <div style={{ marginBottom: 20 }}>
-                                    <label className="form-label" style={{ fontSize: "0.9rem", fontWeight: 600 }}>Random Seed</label>
-                                    <input className="form-input" type="number" value={randomSeed} onChange={(e) => setRandomSeed(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
+                                    <label
+                                      className="form-label"
+                                      style={{
+                                        fontSize: "0.9rem",
+                                        fontWeight: 600,
+                                      }}
+                                    >
+                                      Random Seed
+                                    </label>
+                                    <input
+                                      className="form-input"
+                                      type="number"
+                                      value={randomSeed}
+                                      onChange={(e) =>
+                                        setRandomSeed(e.target.value)
+                                      }
+                                      disabled={training}
+                                      style={{ height: 42, borderRadius: 8 }}
+                                    />
                                   </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
-                                    <input type="checkbox" id="shuffle" checked={shuffleData} onChange={(e) => setShuffleData(e.target.checked)} disabled={training} style={{ width: 18, height: 18, cursor: 'pointer' }} />
-                                    <label htmlFor="shuffle" style={{ fontSize: "0.95rem", fontWeight: 600, cursor: 'pointer', margin: 0 }}>Shuffle data sebelum split</label>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 10,
+                                      marginTop: 12,
+                                    }}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      id="shuffle"
+                                      checked={shuffleData}
+                                      onChange={(e) =>
+                                        setShuffleData(e.target.checked)
+                                      }
+                                      disabled={training}
+                                      style={{
+                                        width: 18,
+                                        height: 18,
+                                        cursor: "pointer",
+                                      }}
+                                    />
+                                    <label
+                                      htmlFor="shuffle"
+                                      style={{
+                                        fontSize: "0.95rem",
+                                        fontWeight: 600,
+                                        cursor: "pointer",
+                                        margin: 0,
+                                      }}
+                                    >
+                                      Shuffle data sebelum split
+                                    </label>
                                   </div>
                                 </div>
                               </div>
 
                               {/* COL 2: PARAMETERS WITH TABS */}
-                              <div className="col-lg-8 col-md-12" style={{ marginBottom: '16px' }}>
-                                <div style={{ background: "white", padding: 24, borderRadius: 12, border: "1px solid var(--gray-200)", height: '100%', display: 'flex', flexDirection: 'column' }}>
-
-                                  {/* TABS */}
-                                  <div className="d-flex gap-3" style={{ display: 'flex', marginBottom: '24px' }}>
-                                    <div
-                                      onClick={() => setActiveModelTab('indobert')}
-                                      style={{
-                                        flex: 1,
-                                        cursor: 'pointer',
-                                        border: activeModelTab === 'indobert' ? '2px solid var(--gmail-blue)' : '1px solid var(--gray-200)',
-                                        background: activeModelTab === 'indobert' ? 'var(--gmail-blue-light)' : 'white',
-                                        borderRadius: 12,
-                                        padding: '16px',
-                                        textAlign: 'center',
-                                        transition: 'all 0.2s'
-                                      }}
-                                    >
-                                      <h4 style={{ margin: 0, fontSize: '1.2rem', color: activeModelTab === 'indobert' ? 'var(--gmail-blue-dark)' : 'var(--gray-800)' }}>IndoBERT</h4>
-                                      <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>Indonesian BERT Model</span>
-                                    </div>
-                                    <div
-                                      onClick={() => setActiveModelTab('gat')}
-                                      style={{
-                                        flex: 1,
-                                        cursor: 'pointer',
-                                        border: activeModelTab === 'gat' ? '2px solid var(--gmail-blue)' : '1px solid var(--gray-200)',
-                                        background: activeModelTab === 'gat' ? 'var(--gmail-blue-light)' : 'white',
-                                        borderRadius: 12,
-                                        padding: '16px',
-                                        textAlign: 'center',
-                                        transition: 'all 0.2s'
-                                      }}
-                                    >
-                                      <h4 style={{ margin: 0, fontSize: '1.2rem', color: activeModelTab === 'gat' ? 'var(--gmail-blue-dark)' : 'var(--gray-800)' }}>GAT</h4>
-                                      <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>Graph Attention Network</span>
+                              <div
+                                className="col-lg-8 col-md-12"
+                                style={{ marginBottom: "16px" }}
+                              >
+                                <div
+                                  style={{
+                                    background: "var(--app-surface)",
+                                    padding: 24,
+                                    borderRadius: 12,
+                                    border: "1px solid var(--app-border)",
+                                    height: "100%",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                  }}
+                                >
+                                  {/* INFO PARAMETER */}
+                                  <div style={{ padding: '16px', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 8, marginBottom: 20, fontSize: '0.85rem', color: 'var(--gray-600)', display: 'flex', alignItems: 'flex-start', gap: 12, lineHeight: 1.5 }}>
+                                    <Lock size={18} style={{ color: "var(--gray-500)", flexShrink: 0, marginTop: 2 }} />
+                                    <div>
+                                      <strong style={{ display: 'block', marginBottom: 4, color: 'var(--gray-800)' }}>Informasi Penguncian Parameter:</strong>
+                                      Menggunakan pre-trained model <strong>indobenchmark/indobert-base-p1</strong>. Parameter abu-abu dikunci karena merupakan arsitektur asli bawaan model. Mengubah dimensi ini akan merusak kompatibilitas bobot (<i>weights</i>) asli dan lapisan GAT.
                                     </div>
                                   </div>
 
-                                  {activeModelTab === 'indobert' ? (
-                                    <div>
+                                  {/* TABS */}
+                                  <div
+                                    className="d-flex gap-3"
+                                    style={{
+                                      display: "flex",
+                                      marginBottom: "24px",
+                                    }}
+                                  >
+                                    <div
+                                      onClick={() =>
+                                        setActiveModelTab("indobert")
+                                      }
+                                      style={{
+                                        flex: 1,
+                                        cursor: "pointer",
+                                        border:
+                                          activeModelTab === "indobert"
+                                            ? "2px solid var(--ocean)"
+                                            : "1px solid var(--app-border)",
+                                        background:
+                                          activeModelTab === "indobert"
+                                            ? "var(--ocean-light)"
+                                            : "var(--app-surface)",
+                                        borderRadius: 12,
+                                        padding: "16px",
+                                        textAlign: "center",
+                                        transition: "all 0.2s",
+                                      }}
+                                    >
+                                      <h4
+                                        style={{
+                                          margin: 0,
+                                          fontSize: "1.2rem",
+                                          color:
+                                            activeModelTab === "indobert"
+                                              ? "var(--ocean)"
+                                              : "var(--app-text)",
+                                        }}
+                                      >
+                                        IndoBERT
+                                      </h4>
+                                      <span
+                                        style={{
+                                          fontSize: "0.85rem",
+                                          color: "var(--app-text-muted)",
+                                        }}
+                                      >
+                                        Indonesian BERT Model
+                                      </span>
+                                    </div>
+                                    <div
+                                      onClick={() => setActiveModelTab("gat")}
+                                      style={{
+                                        flex: 1,
+                                        cursor: "pointer",
+                                        border:
+                                          activeModelTab === "gat"
+                                            ? "2px solid var(--ocean)"
+                                            : "1px solid var(--app-border)",
+                                        background:
+                                          activeModelTab === "gat"
+                                            ? "var(--ocean-light)"
+                                            : "var(--app-surface)",
+                                        borderRadius: 12,
+                                        padding: "16px",
+                                        textAlign: "center",
+                                        transition: "all 0.2s",
+                                      }}
+                                    >
+                                      <h4
+                                        style={{
+                                          margin: 0,
+                                          fontSize: "1.2rem",
+                                          color:
+                                            activeModelTab === "gat"
+                                              ? "var(--ocean)"
+                                              : "var(--app-text)",
+                                        }}
+                                      >
+                                        GAT
+                                      </h4>
+                                      <span
+                                        style={{
+                                          fontSize: "0.85rem",
+                                          color: "var(--app-text-muted)",
+                                        }}
+                                      >
+                                        Graph Attention Network
+                                      </span>
+                                    </div>
+                                  </div>
 
-                                      {/* ── 1. INPUT LAYER ── */}
-                                      <div style={{ borderLeft: '4px solid #3b82f6', paddingLeft: 16, marginBottom: 24 }}>
-                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#3b82f6' }}>Input Layer — Tokenizer & Embedding</p>
-                                        <div className="row g-3">
-                                          <div className="col-md-6">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Max Sequence Length</label>
-                                            <input className="form-input" type="number" value={maxSeqLength} onChange={(e) => setMaxSeqLength(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Sesuaikan panjang token. Default: 512</span>
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Tokenizer</label>
-                                            <input className="form-input" value="WordPiece" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Padding</label>
-                                            <input className="form-input" value="max_length" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Truncation</label>
-                                            <input className="form-input" value="True" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-9">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Output</label>
-                                            <input className="form-input" value="input_ids, attention_mask, token_type_ids" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                  {activeModelTab === "indobert" ? (
+                                    <div className="d-flex flex-column gap-4">
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          gap: "24px",
+                                          flexWrap: "wrap",
+                                        }}
+                                      >
+                                        {/* ── 1. INPUT LAYER ── */}
+                                        <div
+                                          style={{ flex: 1, minWidth: "220px" }}
+                                        >
+                                          <div
+                                            style={{
+                                              borderLeft: "4px solid #3b82f6",
+                                              paddingLeft: 16,
+                                              height: "100%",
+                                            }}
+                                          >
+                                            <p
+                                              style={{
+                                                margin: "0 0 12px",
+                                                fontSize: "0.75rem",
+                                                fontWeight: 700,
+                                                letterSpacing: "0.06em",
+                                                textTransform: "uppercase",
+                                                color: "#3b82f6",
+                                              }}
+                                            >
+                                              Input Layer
+                                            </p>
+                                            <div className="d-flex flex-column gap-3">
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  Max Seq Length
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  type="number"
+                                                  value={maxSeqLength}
+                                                  onChange={(e) =>
+                                                    setMaxSeqLength(
+                                                      e.target.value,
+                                                    )
+                                                  }
+                                                  disabled={training}
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  Tokenizer & Padding
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  value="WordPiece | max_length"
+                                                  disabled
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    background:
+                                                      "var(--gray-100)",
+                                                    color: "var(--gray-500)",
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  Output
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  value="input_ids, attention_mask"
+                                                  disabled
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    background:
+                                                      "var(--gray-100)",
+                                                    color: "var(--gray-500)",
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
 
-                                      {/* ── 2. HIDDEN LAYER ── */}
-                                      <div style={{ borderLeft: '4px solid #8b5cf6', paddingLeft: 16, marginBottom: 24 }}>
-                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#8b5cf6' }}>Hidden Layer — Encoder IndoBERT</p>
-                                        <div className="row g-3">
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hidden Size</label>
-                                            <input className="form-input" value="768" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hidden Layers</label>
-                                            <input className="form-input" value="12" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Attention Heads</label>
-                                            <input className="form-input" value="12" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Intermediate Size</label>
-                                            <input className="form-input" value="3072" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hidden Activation</label>
-                                            <input className="form-input" value="GELU" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hidden Dropout</label>
-                                            <input className="form-input" value="0.1" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Attn Dropout</label>
-                                            <input className="form-input" value="0.1" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                        {/* ── 2. HIDDEN LAYER ── */}
+                                        <div
+                                          style={{ flex: 1, minWidth: "220px" }}
+                                        >
+                                          <div
+                                            style={{
+                                              borderLeft: "4px solid #8b5cf6",
+                                              paddingLeft: 16,
+                                              height: "100%",
+                                            }}
+                                          >
+                                            <p
+                                              style={{
+                                                margin: "0 0 12px",
+                                                fontSize: "0.75rem",
+                                                fontWeight: 700,
+                                                letterSpacing: "0.06em",
+                                                textTransform: "uppercase",
+                                                color: "#8b5cf6",
+                                              }}
+                                            >
+                                              Hidden Layer
+                                            </p>
+                                            <div className="d-flex flex-column gap-3">
+                                              <div className="d-flex gap-2">
+                                                <div style={{ flex: 1 }}>
+                                                  <label
+                                                    className="form-label"
+                                                    style={{
+                                                      fontSize: "0.8rem",
+                                                      fontWeight: 600,
+                                                      marginBottom: 2,
+                                                    }}
+                                                  >
+                                                    Size
+                                                  </label>
+                                                  <input
+                                                    className="form-input"
+                                                    value="768"
+                                                    disabled
+                                                    style={{
+                                                      height: 36,
+                                                      borderRadius: 6,
+                                                      background:
+                                                        "var(--gray-100)",
+                                                      color: "var(--gray-500)",
+                                                      fontSize: "0.85rem",
+                                                    }}
+                                                  />
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                  <label
+                                                    className="form-label"
+                                                    style={{
+                                                      fontSize: "0.8rem",
+                                                      fontWeight: 600,
+                                                      marginBottom: 2,
+                                                    }}
+                                                  >
+                                                    Layers
+                                                  </label>
+                                                  <input
+                                                    className="form-input"
+                                                    value="12"
+                                                    disabled
+                                                    style={{
+                                                      height: 36,
+                                                      borderRadius: 6,
+                                                      background:
+                                                        "var(--gray-100)",
+                                                      color: "var(--gray-500)",
+                                                      fontSize: "0.85rem",
+                                                    }}
+                                                  />
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                  <label
+                                                    className="form-label"
+                                                    style={{
+                                                      fontSize: "0.8rem",
+                                                      fontWeight: 600,
+                                                      marginBottom: 2,
+                                                    }}
+                                                  >
+                                                    Heads
+                                                  </label>
+                                                  <input
+                                                    className="form-input"
+                                                    value="12"
+                                                    disabled
+                                                    style={{
+                                                      height: 36,
+                                                      borderRadius: 6,
+                                                      background:
+                                                        "var(--gray-100)",
+                                                      color: "var(--gray-500)",
+                                                      fontSize: "0.85rem",
+                                                    }}
+                                                  />
+                                                </div>
+                                              </div>
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  Intermediate & Activ
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  value="3072 | GELU"
+                                                  disabled
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    background:
+                                                      "var(--gray-100)",
+                                                    color: "var(--gray-500)",
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                              <div className="d-flex gap-2">
+                                                <div style={{ flex: 1 }}>
+                                                  <label
+                                                    className="form-label"
+                                                    style={{
+                                                      fontSize: "0.8rem",
+                                                      fontWeight: 600,
+                                                      marginBottom: 2,
+                                                    }}
+                                                  >
+                                                    Hidden Drop
+                                                  </label>
+                                                  <input
+                                                    className="form-input"
+                                                    value="0.1"
+                                                    disabled
+                                                    style={{
+                                                      height: 36,
+                                                      borderRadius: 6,
+                                                      background:
+                                                        "var(--gray-100)",
+                                                      color: "var(--gray-500)",
+                                                      fontSize: "0.85rem",
+                                                    }}
+                                                  />
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                  <label
+                                                    className="form-label"
+                                                    style={{
+                                                      fontSize: "0.8rem",
+                                                      fontWeight: 600,
+                                                      marginBottom: 2,
+                                                    }}
+                                                  >
+                                                    Attn Drop
+                                                  </label>
+                                                  <input
+                                                    className="form-input"
+                                                    value="0.1"
+                                                    disabled
+                                                    style={{
+                                                      height: 36,
+                                                      borderRadius: 6,
+                                                      background:
+                                                        "var(--gray-100)",
+                                                      color: "var(--gray-500)",
+                                                      fontSize: "0.85rem",
+                                                    }}
+                                                  />
+                                                </div>
+                                              </div>
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
 
-                                      {/* ── 3. OUTPUT LAYER ── */}
-                                      <div style={{ borderLeft: '4px solid #10b981', paddingLeft: 16, marginBottom: 24 }}>
-                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#10b981' }}>Output Layer — Classification Head</p>
-                                        <div className="row g-3">
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Classifier Input</label>
-                                            <input className="form-input" value="768 (hidden_size)" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Dropout Rate</label>
-                                            <input className="form-input" type="number" step="0.1" value={dropoutRate} onChange={(e) => setDropoutRate(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Default: 0.1</span>
-                                          </div>
-                                          <div className="col-md-2">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Num Labels</label>
-                                            <input className="form-input" value="2 (Spam/Ham)" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-2">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Activation</label>
-                                            <input className="form-input" value="Softmax" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-2">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Loss Function</label>
-                                            <input className="form-input" value="CrossEntropy" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                        {/* ── 3. OUTPUT LAYER ── */}
+                                        <div
+                                          style={{ flex: 1, minWidth: "220px" }}
+                                        >
+                                          <div
+                                            style={{
+                                              borderLeft: "4px solid #10b981",
+                                              paddingLeft: 16,
+                                              height: "100%",
+                                            }}
+                                          >
+                                            <p
+                                              style={{
+                                                margin: "0 0 12px",
+                                                fontSize: "0.75rem",
+                                                fontWeight: 700,
+                                                letterSpacing: "0.06em",
+                                                textTransform: "uppercase",
+                                                color: "#10b981",
+                                              }}
+                                            >
+                                              Output Layer
+                                            </p>
+                                            <div className="d-flex flex-column gap-3">
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  Classifier Input
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  value="768"
+                                                  disabled
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    background:
+                                                      "var(--gray-100)",
+                                                    color: "var(--gray-500)",
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  Dropout Rate
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  type="number"
+                                                  step="0.1"
+                                                  value={dropoutRate}
+                                                  onChange={(e) =>
+                                                    setDropoutRate(
+                                                      e.target.value,
+                                                    )
+                                                  }
+                                                  disabled={training}
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  Loss & Activ
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  value="CrossEntropy | Softmax"
+                                                  disabled
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    background:
+                                                      "var(--gray-100)",
+                                                    color: "var(--gray-500)",
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                            </div>
                                           </div>
                                         </div>
                                       </div>
 
                                       {/* ── 4. PARAMETER FINE-TUNING ── */}
-                                      <div style={{ borderLeft: '4px solid #f59e0b', paddingLeft: 16 }}>
-                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#f59e0b' }}>Parameter Fine-Tuning</p>
+                                      <div
+                                        style={{
+                                          borderLeft: "4px solid #f59e0b",
+                                          paddingLeft: 16,
+                                          marginTop: 8,
+                                        }}
+                                      >
+                                        <p
+                                          style={{
+                                            margin: "0 0 12px",
+                                            fontSize: "0.75rem",
+                                            fontWeight: 700,
+                                            letterSpacing: "0.06em",
+                                            textTransform: "uppercase",
+                                            color: "#f59e0b",
+                                          }}
+                                        >
+                                          Parameter Fine-Tuning
+                                        </p>
                                         <div className="row g-3">
+                                          <div className="col-md-2">
+                                            <label
+                                              className="form-label"
+                                              style={{
+                                                fontSize: "0.8rem",
+                                                fontWeight: 600,
+                                                marginBottom: 2,
+                                              }}
+                                            >
+                                              Learning Rate
+                                            </label>
+                                            <input
+                                              className="form-input"
+                                              type="number"
+                                              step="0.00001"
+                                              value={indoLR}
+                                              onChange={(e) =>
+                                                setIndoLR(e.target.value)
+                                              }
+                                              disabled={training}
+                                              style={{
+                                                height: 36,
+                                                borderRadius: 6,
+                                                fontSize: "0.85rem",
+                                              }}
+                                            />
+                                          </div>
+                                          <div className="col-md-2">
+                                            <label
+                                              className="form-label"
+                                              style={{
+                                                fontSize: "0.8rem",
+                                                fontWeight: 600,
+                                                marginBottom: 2,
+                                              }}
+                                            >
+                                              Batch Size
+                                            </label>
+                                            <input
+                                              className="form-input"
+                                              type="number"
+                                              value={batchSize}
+                                              onChange={(e) =>
+                                                setBatchSize(e.target.value)
+                                              }
+                                              disabled={training}
+                                              style={{
+                                                height: 36,
+                                                borderRadius: 6,
+                                                fontSize: "0.85rem",
+                                              }}
+                                            />
+                                          </div>
+                                          <div className="col-md-2">
+                                            <label
+                                              className="form-label"
+                                              style={{
+                                                fontSize: "0.8rem",
+                                                fontWeight: 600,
+                                                marginBottom: 2,
+                                              }}
+                                            >
+                                              Epochs
+                                            </label>
+                                            <input
+                                              className="form-input"
+                                              type="number"
+                                              value={indoEpochs}
+                                              onChange={(e) =>
+                                                setIndoEpochs(e.target.value)
+                                              }
+                                              disabled={training}
+                                              style={{
+                                                height: 36,
+                                                borderRadius: 6,
+                                                fontSize: "0.85rem",
+                                              }}
+                                            />
+                                          </div>
                                           <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Learning Rate</label>
-                                            <input className="form-input" type="number" step="0.00001" value={indoLR} onChange={(e) => setIndoLR(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Rentang: 2e-5 – 5e-5</span>
-                                          </div>
-                                          <div className="col-md-2">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Batch Size</label>
-                                            <input className="form-input" type="number" value={batchSize} onChange={(e) => setBatchSize(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Pilihan: 8 / 16 / 32</span>
-                                          </div>
-                                          <div className="col-md-2">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Epochs</label>
-                                            <input className="form-input" type="number" value={indoEpochs} onChange={(e) => setIndoEpochs(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Rentang: 3 – 5</span>
-                                          </div>
-                                          <div className="col-md-2">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Optimizer</label>
-                                            <select className="form-select" value={optimizer} onChange={(e) => setOptimizer(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }}>
-                                              <option value="AdamW">AdamW</option>
+                                            <label
+                                              className="form-label"
+                                              style={{
+                                                fontSize: "0.8rem",
+                                                fontWeight: 600,
+                                                marginBottom: 2,
+                                              }}
+                                            >
+                                              Optimizer
+                                            </label>
+                                            <select
+                                              className="form-select"
+                                              value={optimizer}
+                                              onChange={(e) =>
+                                                setOptimizer(e.target.value)
+                                              }
+                                              disabled={training}
+                                              style={{
+                                                height: 36,
+                                                borderRadius: 6,
+                                                fontSize: "0.85rem",
+                                              }}
+                                            >
+                                              <option value="AdamW">
+                                                AdamW
+                                              </option>
                                               <option value="Adam">Adam</option>
                                               <option value="SGD">SGD</option>
                                             </select>
                                           </div>
                                           <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Weight Decay</label>
-                                            <input className="form-input" type="number" step="0.01" value={weightDecay} onChange={(e) => setWeightDecay(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Default: 0.01</span>
+                                            <label
+                                              className="form-label"
+                                              style={{
+                                                fontSize: "0.8rem",
+                                                fontWeight: 600,
+                                                marginBottom: 2,
+                                              }}
+                                            >
+                                              Weight Decay
+                                            </label>
+                                            <input
+                                              className="form-input"
+                                              type="number"
+                                              step="0.01"
+                                              value={weightDecay}
+                                              onChange={(e) =>
+                                                setWeightDecay(e.target.value)
+                                              }
+                                              disabled={training}
+                                              style={{
+                                                height: 36,
+                                                borderRadius: 6,
+                                                fontSize: "0.85rem",
+                                              }}
+                                            />
                                           </div>
                                         </div>
                                       </div>
-
                                     </div>
                                   ) : (
-                                    <div>
-
-                                      {/* ── 1. INPUT PROJECTION ── */}
-                                      <div style={{ borderLeft: '4px solid #3b82f6', paddingLeft: 16, marginBottom: 24 }}>
-                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#3b82f6' }}>Input Projection Layer</p>
-                                        <div className="row g-3">
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Input Dim (BERT)</label>
-                                            <input className="form-input" value="768" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hidden Dim</label>
-                                            <input className="form-input" value="128" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Normalisasi</label>
-                                            <input className="form-input" value="BatchNorm1d" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Aktivasi</label>
-                                            <input className="form-input" value="ReLU" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                    <div className="d-flex flex-column gap-4">
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          gap: "24px",
+                                          flexWrap: "wrap",
+                                        }}
+                                      >
+                                        {/* ── 1. INPUT PROJECTION ── */}
+                                        <div
+                                          style={{ flex: 1, minWidth: "220px" }}
+                                        >
+                                          <div
+                                            style={{
+                                              borderLeft: "4px solid #3b82f6",
+                                              paddingLeft: 16,
+                                              height: "100%",
+                                            }}
+                                          >
+                                            <p
+                                              style={{
+                                                margin: "0 0 12px",
+                                                fontSize: "0.75rem",
+                                                fontWeight: 700,
+                                                letterSpacing: "0.06em",
+                                                textTransform: "uppercase",
+                                                color: "#3b82f6",
+                                              }}
+                                            >
+                                              Input Projection
+                                            </p>
+                                            <div className="d-flex flex-column gap-3">
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  Input Dim (BERT)
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  value="768"
+                                                  disabled
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    background:
+                                                      "var(--gray-100)",
+                                                    color: "var(--gray-500)",
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  Hidden Dim
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  value="128"
+                                                  disabled
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    background:
+                                                      "var(--gray-100)",
+                                                    color: "var(--gray-500)",
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                              <div className="d-flex gap-2">
+                                                <div style={{ flex: 1 }}>
+                                                  <label
+                                                    className="form-label"
+                                                    style={{
+                                                      fontSize: "0.8rem",
+                                                      fontWeight: 600,
+                                                      marginBottom: 2,
+                                                    }}
+                                                  >
+                                                    Norm
+                                                  </label>
+                                                  <input
+                                                    className="form-input"
+                                                    value="BatchNorm"
+                                                    disabled
+                                                    style={{
+                                                      height: 36,
+                                                      borderRadius: 6,
+                                                      background:
+                                                        "var(--gray-100)",
+                                                      color: "var(--gray-500)",
+                                                      fontSize: "0.85rem",
+                                                    }}
+                                                  />
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                  <label
+                                                    className="form-label"
+                                                    style={{
+                                                      fontSize: "0.8rem",
+                                                      fontWeight: 600,
+                                                      marginBottom: 2,
+                                                    }}
+                                                  >
+                                                    Activ
+                                                  </label>
+                                                  <input
+                                                    className="form-input"
+                                                    value="ReLU"
+                                                    disabled
+                                                    style={{
+                                                      height: 36,
+                                                      borderRadius: 6,
+                                                      background:
+                                                        "var(--gray-100)",
+                                                      color: "var(--gray-500)",
+                                                      fontSize: "0.85rem",
+                                                    }}
+                                                  />
+                                                </div>
+                                              </div>
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
 
-                                      {/* ── 2. GRAPH ATTENTION LAYERS ── */}
-                                      <div style={{ borderLeft: '4px solid #8b5cf6', paddingLeft: 16, marginBottom: 24 }}>
-                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#8b5cf6' }}>Graph Attention Layers</p>
-                                        <div className="row g-3">
-                                          <div className="col-md-4">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>GAT Layer 1</label>
-                                            <input className="form-input" value="128 → 128 × heads" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>concat=True</span>
-                                          </div>
-                                          <div className="col-md-4">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>GAT Layer 2</label>
-                                            <input className="form-input" value="128 × heads → 128" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>concat=False (avg)</span>
-                                          </div>
-                                          <div className="col-md-2">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Attention Heads</label>
-                                            <input className="form-input" value="4" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-2">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Aktivasi</label>
-                                            <input className="form-input" value="ELU" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                        {/* ── 2. GAT LAYERS ── */}
+                                        <div
+                                          style={{ flex: 1, minWidth: "220px" }}
+                                        >
+                                          <div
+                                            style={{
+                                              borderLeft: "4px solid #8b5cf6",
+                                              paddingLeft: 16,
+                                              height: "100%",
+                                            }}
+                                          >
+                                            <p
+                                              style={{
+                                                margin: "0 0 12px",
+                                                fontSize: "0.75rem",
+                                                fontWeight: 700,
+                                                letterSpacing: "0.06em",
+                                                textTransform: "uppercase",
+                                                color: "#8b5cf6",
+                                              }}
+                                            >
+                                              GAT Layers
+                                            </p>
+                                            <div className="d-flex flex-column gap-3">
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  GAT Layer 1 (concat=True)
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  value="128 → 128 × heads"
+                                                  disabled
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    background:
+                                                      "var(--gray-100)",
+                                                    color: "var(--gray-500)",
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  GAT Layer 2 (concat=False)
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  value="128 × heads → 128"
+                                                  disabled
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    background:
+                                                      "var(--gray-100)",
+                                                    color: "var(--gray-500)",
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                              <div className="d-flex gap-2">
+                                                <div style={{ flex: 1 }}>
+                                                  <label
+                                                    className="form-label"
+                                                    style={{
+                                                      fontSize: "0.8rem",
+                                                      fontWeight: 600,
+                                                      marginBottom: 2,
+                                                    }}
+                                                  >
+                                                    Attn Heads
+                                                  </label>
+                                                  <input
+                                                    className="form-input"
+                                                    value="4"
+                                                    disabled
+                                                    style={{
+                                                      height: 36,
+                                                      borderRadius: 6,
+                                                      background:
+                                                        "var(--gray-100)",
+                                                      color: "var(--gray-500)",
+                                                      fontSize: "0.85rem",
+                                                    }}
+                                                  />
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                  <label
+                                                    className="form-label"
+                                                    style={{
+                                                      fontSize: "0.8rem",
+                                                      fontWeight: 600,
+                                                      marginBottom: 2,
+                                                    }}
+                                                  >
+                                                    Activ
+                                                  </label>
+                                                  <input
+                                                    className="form-input"
+                                                    value="ELU"
+                                                    disabled
+                                                    style={{
+                                                      height: 36,
+                                                      borderRadius: 6,
+                                                      background:
+                                                        "var(--gray-100)",
+                                                      color: "var(--gray-500)",
+                                                      fontSize: "0.85rem",
+                                                    }}
+                                                  />
+                                                </div>
+                                              </div>
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
 
-                                      {/* ── 3. CLASSIFIER HEAD ── */}
-                                      <div style={{ borderLeft: '4px solid #10b981', paddingLeft: 16, marginBottom: 24 }}>
-                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#10b981' }}>Classifier Head</p>
-                                        <div className="row g-3">
-                                          <div className="col-md-4">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hidden Layer</label>
-                                            <input className="form-input" value="128 → 64 (ReLU)" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-4">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Output Layer</label>
-                                            <input className="form-input" value="64 → 2 (num_classes)" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
-                                          </div>
-                                          <div className="col-md-4">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Num Classes</label>
-                                            <input className="form-input" value="2 (Spam / Ham)" disabled style={{ height: 42, borderRadius: 8, background: 'var(--gray-100)', color: 'var(--gray-500)' }} />
+                                        {/* ── 3. CLASSIFIER HEAD ── */}
+                                        <div
+                                          style={{ flex: 1, minWidth: "220px" }}
+                                        >
+                                          <div
+                                            style={{
+                                              borderLeft: "4px solid #10b981",
+                                              paddingLeft: 16,
+                                              height: "100%",
+                                            }}
+                                          >
+                                            <p
+                                              style={{
+                                                margin: "0 0 12px",
+                                                fontSize: "0.75rem",
+                                                fontWeight: 700,
+                                                letterSpacing: "0.06em",
+                                                textTransform: "uppercase",
+                                                color: "#10b981",
+                                              }}
+                                            >
+                                              Classifier Head
+                                            </p>
+                                            <div className="d-flex flex-column gap-3">
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  Hidden Layer
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  value="128 → 64 (ReLU)"
+                                                  disabled
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    background:
+                                                      "var(--gray-100)",
+                                                    color: "var(--gray-500)",
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  Output Layer
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  value="64 → 2 (classes)"
+                                                  disabled
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    background:
+                                                      "var(--gray-100)",
+                                                    color: "var(--gray-500)",
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label
+                                                  className="form-label"
+                                                  style={{
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600,
+                                                    marginBottom: 2,
+                                                  }}
+                                                >
+                                                  Classes
+                                                </label>
+                                                <input
+                                                  className="form-input"
+                                                  value="2 (Spam / Ham)"
+                                                  disabled
+                                                  style={{
+                                                    height: 36,
+                                                    borderRadius: 6,
+                                                    background:
+                                                      "var(--gray-100)",
+                                                    color: "var(--gray-500)",
+                                                    fontSize: "0.85rem",
+                                                  }}
+                                                />
+                                              </div>
+                                            </div>
                                           </div>
                                         </div>
                                       </div>
 
                                       {/* ── 4. PARAMETER TRAINING GAT ── */}
-                                      <div style={{ borderLeft: '4px solid #f59e0b', paddingLeft: 16 }}>
-                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#f59e0b' }}>Parameter Training GAT</p>
+                                      <div
+                                        style={{
+                                          borderLeft: "4px solid #f59e0b",
+                                          paddingLeft: 16,
+                                          marginTop: 8,
+                                        }}
+                                      >
+                                        <p
+                                          style={{
+                                            margin: "0 0 12px",
+                                            fontSize: "0.75rem",
+                                            fontWeight: 700,
+                                            letterSpacing: "0.06em",
+                                            textTransform: "uppercase",
+                                            color: "#f59e0b",
+                                          }}
+                                        >
+                                          Parameter Training GAT
+                                        </p>
                                         <div className="row g-3">
                                           <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Learning Rate</label>
-                                            <input className="form-input" type="number" step="0.001" value={gatLR} onChange={(e) => setGatLR(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Default: 0.001</span>
+                                            <label
+                                              className="form-label"
+                                              style={{
+                                                fontSize: "0.8rem",
+                                                fontWeight: 600,
+                                                marginBottom: 2,
+                                              }}
+                                            >
+                                              Learning Rate
+                                            </label>
+                                            <input
+                                              className="form-input"
+                                              type="number"
+                                              step="0.001"
+                                              value={gatLR}
+                                              onChange={(e) =>
+                                                setGatLR(e.target.value)
+                                              }
+                                              disabled={training}
+                                              style={{
+                                                height: 36,
+                                                borderRadius: 6,
+                                                fontSize: "0.85rem",
+                                              }}
+                                            />
                                           </div>
                                           <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Epochs</label>
-                                            <input className="form-input" type="number" value={gatEpochs} onChange={(e) => setGatEpochs(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Default: 100</span>
+                                            <label
+                                              className="form-label"
+                                              style={{
+                                                fontSize: "0.8rem",
+                                                fontWeight: 600,
+                                                marginBottom: 2,
+                                              }}
+                                            >
+                                              Epochs
+                                            </label>
+                                            <input
+                                              className="form-input"
+                                              type="number"
+                                              value={gatEpochs}
+                                              onChange={(e) =>
+                                                setGatEpochs(e.target.value)
+                                              }
+                                              disabled={training}
+                                              style={{
+                                                height: 36,
+                                                borderRadius: 6,
+                                                fontSize: "0.85rem",
+                                              }}
+                                            />
                                           </div>
                                           <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Weight Decay</label>
-                                            <input className="form-input" type="number" step="0.0001" value={gatWeightDecay} onChange={(e) => setGatWeightDecay(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Default: 1e-4</span>
+                                            <label
+                                              className="form-label"
+                                              style={{
+                                                fontSize: "0.8rem",
+                                                fontWeight: 600,
+                                                marginBottom: 2,
+                                              }}
+                                            >
+                                              Weight Decay
+                                            </label>
+                                            <input
+                                              className="form-input"
+                                              type="number"
+                                              step="0.0001"
+                                              value={gatWeightDecay}
+                                              onChange={(e) =>
+                                                setGatWeightDecay(
+                                                  e.target.value,
+                                                )
+                                              }
+                                              disabled={training}
+                                              style={{
+                                                height: 36,
+                                                borderRadius: 6,
+                                                fontSize: "0.85rem",
+                                              }}
+                                            />
                                           </div>
                                           <div className="col-md-3">
-                                            <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Early Stopping Patience</label>
-                                            <input className="form-input" type="number" value={earlyStopping} onChange={(e) => setEarlyStopping(e.target.value)} disabled={training} style={{ height: 42, borderRadius: 8 }} />
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--gray-400)' }}>Epoch menunggu sebelum stop</span>
+                                            <label
+                                              className="form-label"
+                                              style={{
+                                                fontSize: "0.8rem",
+                                                fontWeight: 600,
+                                                marginBottom: 2,
+                                              }}
+                                            >
+                                              Early Stopping
+                                            </label>
+                                            <input
+                                              className="form-input"
+                                              type="number"
+                                              value={earlyStopping}
+                                              onChange={(e) =>
+                                                setEarlyStopping(e.target.value)
+                                              }
+                                              disabled={training}
+                                              style={{
+                                                height: 36,
+                                                borderRadius: 6,
+                                                fontSize: "0.85rem",
+                                              }}
+                                            />
                                           </div>
                                         </div>
                                       </div>
-
                                     </div>
                                   )}
                                 </div>
                               </div>
                             </div>
-{/* ACTION BAR */}
-                            <div style={{ display: 'flex', gap: '12px' }}>
+                            {/* ACTION BAR */}
+                            <div style={{ display: "flex", gap: "12px" }}>
                               {/* <button
                                 type="button"
                                 className="btn"
@@ -882,24 +2078,37 @@ export default function ProcessingPage() {
                               <button
                                 type="submit"
                                 className="btn"
-                                disabled={training || !!globalLock || (dbStats?.total_processed === 0 && !activeDatasetId)}
+                                disabled={
+                                  training ||
+                                  !!globalLock ||
+                                  (dbStats?.total_processed === 0 &&
+                                    !activeDatasetId)
+                                }
                                 style={{
                                   height: 48,
                                   borderRadius: 8,
                                   fontSize: "0.95rem",
                                   fontWeight: 600,
                                   flex: 1,
-                                  background: '#10b981',
-                                  color: 'white',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
+                                  background: "#10b981",
+                                  color: "white",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
                                   gap: 8,
                                 }}
                               >
                                 {training ? (
                                   <>
-                                    <div className="spinner" style={{ width: 18, height: 18, borderTopColor: "white", borderLeftColor: "white" }}></div>
+                                    <div
+                                      className="spinner"
+                                      style={{
+                                        width: 18,
+                                        height: 18,
+                                        borderTopColor: "white",
+                                        borderLeftColor: "white",
+                                      }}
+                                    ></div>
                                     Melatih...
                                   </>
                                 ) : (
@@ -977,8 +2186,8 @@ export default function ProcessingPage() {
                                     color: "#ef4444",
                                   }}
                                 >
-                                  * (bisa 5-15 menit tergantung
-                                  spesifikasi hardware).
+                                  * (bisa 5-15 menit tergantung spesifikasi
+                                  hardware).
                                 </p>
                                 <button
                                   onClick={handleCancelTrain}
@@ -1141,7 +2350,7 @@ export default function ProcessingPage() {
                                 </div>
                               </div>
 
-                              <div style={{ display: 'flex', gap: 12 }}>
+                              <div style={{ display: "flex", gap: 12 }}>
                                 <button
                                   className="btn btn-outline-dark btn-lg w-100 py-3"
                                   onClick={clearPersistence}
@@ -1150,7 +2359,9 @@ export default function ProcessingPage() {
                                 </button>
                                 <button
                                   className="btn btn-dark btn-lg w-100 py-3"
-                                  onClick={() => window.location.href = '/testing'}
+                                  onClick={() =>
+                                    (window.location.href = "/testing")
+                                  }
                                 >
                                   <Save size={18} /> Lanjut ke Testing
                                 </button>

@@ -615,6 +615,30 @@ async def get_history_detail(history_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Riwayat tidak ditemukan")
     return history
 
+@router.delete("/history/{history_id}")
+async def delete_training_history(history_id: int, db: Session = Depends(get_db)):
+    """Hapus riwayat pelatihan model tertentu."""
+    from app.models.email import TrainingHistory
+    history = db.query(TrainingHistory).filter(TrainingHistory.id == history_id).first()
+    if not history:
+        raise HTTPException(status_code=404, detail="Riwayat tidak ditemukan")
+    if getattr(history, 'is_active', False):
+        raise HTTPException(status_code=400, detail="Tidak dapat menghapus model yang sedang aktif")
+    
+    # Try to clean up local model files if they exist
+    try:
+        import os
+        import shutil
+        model_path = os.path.join(settings.MODELS_DIR, f"model_{history_id}")
+        if os.path.exists(model_path):
+            shutil.rmtree(model_path)
+    except Exception as e:
+        print(f"Warning: Failed to delete model files: {e}")
+        
+    db.delete(history)
+    db.commit()
+    return {"status": "success", "message": "Riwayat model berhasil dihapus"}
+
 
 @router.post("/activate/{history_id}")
 async def activate_model(history_id: int, db: Session = Depends(get_db)):

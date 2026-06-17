@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Database, Upload, FileSpreadsheet, CheckCircle, Clock, Trash2, Layers, ChevronLeft, ChevronRight, Activity, X, FileText } from 'lucide-react';
 import { modelAPI } from '../services/api';
+import Pagination from '../components/Pagination';
 import Papa from 'papaparse';
 
 export default function DataCollection() {
@@ -37,8 +38,8 @@ export default function DataCollection() {
   };
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-  const totalPages = Math.ceil(datasets.length / itemsPerPage);
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(datasets.length / itemsPerPage) || 1;
 
   const currentData = datasets.slice(
     (currentPage - 1) * itemsPerPage,
@@ -55,6 +56,7 @@ export default function DataCollection() {
   const [previewRowsTotal, setPreviewRowsTotal] = useState(0);
   const [previewRowsLoading, setPreviewRowsLoading] = useState(false);
   const PREVIEW_LIMIT = 10;
+  const [previewPage, setPreviewPage] = useState(1);
 
   // New state for previewing rows of the selected file before saving
   const [previewFileRows, setPreviewFileRows] = useState([]);
@@ -237,9 +239,9 @@ export default function DataCollection() {
         <p className="page-subtitle">Upload dan kelola dataset email mentah sebelum masuk ke tahap pembersihan (Pre-processing).</p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: Upload Area */}
-        <div style={{ maxWidth: 500 }}>
+        <div className="lg:col-span-1">
           <div className="card" style={{ padding: 20 }}>
             <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
               <Upload size={16} /> Upload Dataset Baru
@@ -463,7 +465,7 @@ export default function DataCollection() {
         )}
 
         {/* Right: Dataset List */}
-        <div>
+        <div className="lg:col-span-2">
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: 20, borderBottom: '1px solid var(--gray-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -550,27 +552,13 @@ export default function DataCollection() {
             </div>
 
             {/* Pagination Footer */}
-            <div style={{ padding: '16px 20px', background: 'var(--gray-50)', borderTop: '1px solid var(--gray-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
-                Halaman {currentPage} dari {totalPages}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  className="btn btn-sm btn-outline"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => prev - 1)}
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <button
-                  className="btn btn-sm btn-outline"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(prev => prev + 1)}
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            )}
           </div>
         </div>
       </div>

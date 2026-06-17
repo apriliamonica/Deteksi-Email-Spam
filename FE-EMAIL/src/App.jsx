@@ -32,6 +32,13 @@ export default function App() {
   });
 
   useEffect(() => {
+    // Initialize theme based on localStorage or system preferences
+    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
     // Keep sync if needed, though direct state is better for initial load
     const handleStorage = () => {
       const saved = localStorage.getItem('user');

@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
 import { UserPlus, Search, Edit2, Trash2, Shield, User, X, Activity } from 'lucide-react';
 import { usersAPI } from '../services/api';
+import Pagination from '../components/Pagination';
 
 export default function ManageAccounts() {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
@@ -30,10 +35,18 @@ export default function ManageAccounts() {
     fetchUsers();
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   const filteredUsers = users.filter(u => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
 
   const openAddModal = () => {
     setModalMode('add');
@@ -128,7 +141,7 @@ export default function ManageAccounts() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map(u => (
+              {paginatedUsers.map(u => (
                 <tr key={u.id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -164,6 +177,16 @@ export default function ManageAccounts() {
           </table>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--app-border)', display: 'flex', justifyContent: 'center', background: 'var(--app-bg)/10', marginBottom: 24 }}>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(p) => setCurrentPage(p)}
+          />
+        </div>
+      )}
 
       {!loading && filteredUsers.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gray-400)' }}>
