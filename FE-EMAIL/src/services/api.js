@@ -51,7 +51,14 @@ export const emailAPI = {
   stats: (dataset_id = null) =>
     api.get("/email/stats", { params: { dataset_id } }),
   getById: (id) => api.get(`/email/${id}`),
+
+  // Riwayat Klasifikasi
+  getClassifyHistory: (params = {}) =>
+    api.get("/email/classify-history", { params }),
+  deleteClassifyItem: (id) => api.delete(`/email/classify-history/${id}`),
+  deleteAllClassifyHistory: () => api.delete("/email/classify-history"),
 };
+
 
 // === Model API ===
 export const modelAPI = {

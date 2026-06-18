@@ -13,9 +13,9 @@ class IndoBERTClassifier(nn.Module):
     Arsitektur:
     ┌─────────────────────────────────────────────────────────┐
     │ INPUT LAYER (Tokenizer & Embedding)                     │
-    │  - max_sequence_length: 256        BISA DIUBAH                     │
+    │  - max_sequence_length: 256        BISA DIUBAH          │
     │  - tokenizer: WordPiece (bawaan IndoBERT)               │
-    │  - padding: max_length   MENYESUAIKAN DGN MAX LENGHT                               │
+    │  - padding: max_length   MENYESUAIKAN DGN MAX LENGHT    │
     │  - truncation: True                                     │
     │  - output: input_ids, attention_mask, token_type_ids    │
     ├─────────────────────────────────────────────────────────┤

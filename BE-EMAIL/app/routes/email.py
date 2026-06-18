@@ -252,6 +252,48 @@ async def list_emails(
     return emails
 
 
+@router.get("/classify-history")
+async def get_classify_history(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    search: Optional[str] = Query(None),
+    label: Optional[str] = Query(None, pattern="^(spam|ham)$"),
+    db: Session = Depends(get_db),
+):
+    """Ambil riwayat klasifikasi (is_prediction=True) dengan paginasi dan pencarian."""
+    from app.models.email import Email
+    from sqlalchemy import or_
+
+    query = db.query(Email).filter(Email.is_prediction == True)
+    if label:
+        query = query.filter(Email.label == label)
+    if search:
+        query = query.filter(
+            or_(
+                Email.body.ilike(f"%{search}%"),
+                Email.subject.ilike(f"%{search}%"),
+                Email.sender.ilike(f"%{search}%"),
+            )
+        )
+    total = query.count()
+    items = query.order_by(Email.created_at.desc()).offset(skip).limit(limit).all()
+    return {
+        "total": total,
+        "items": [
+            {
+                "id": e.id,
+                "subject": e.subject,
+                "body": e.body,
+                "sender": e.sender,
+                "label": e.label,
+                "confidence": e.confidence,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+            }
+            for e in items
+        ],
+    }
+
+
 @router.get("/stats", response_model=DashboardStats)
 async def get_dashboard_stats(
     dataset_id: Optional[int] = Query(None),
@@ -285,3 +327,36 @@ async def get_email(email_id: int, db: Session = Depends(get_db)):
     if not email:
         raise HTTPException(status_code=404, detail="Email tidak ditemukan")
     return email
+
+
+@router.delete("/classify-history/{email_id}")
+async def delete_classify_history_item(
+    email_id: int,
+    db: Session = Depends(get_db),
+):
+    """Hapus satu item riwayat klasifikasi berdasarkan ID."""
+    from app.models.email import Email
+
+    email = db.query(Email).filter(
+        Email.id == email_id, Email.is_prediction == True
+    ).first()
+    if not email:
+        raise HTTPException(
+            status_code=404,
+            detail="Data riwayat klasifikasi tidak ditemukan",
+        )
+    db.delete(email)
+    db.commit()
+    return {"status": "success", "message": f"Riwayat klasifikasi ID {email_id} berhasil dihapus."}
+
+
+@router.delete("/classify-history")
+async def delete_all_classify_history(
+    db: Session = Depends(get_db),
+):
+    """Hapus semua riwayat klasifikasi."""
+    from app.models.email import Email
+
+    deleted = db.query(Email).filter(Email.is_prediction == True).delete()
+    db.commit()
+    return {"status": "success", "message": f"Berhasil menghapus {deleted} riwayat klasifikasi."}

@@ -14,6 +14,10 @@ import {
   XCircle,
   Lock,
   ShieldAlert,
+  HelpCircle,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -78,31 +82,13 @@ export default function ProcessingPage() {
   const [epoch, setEpoch] = useState(() => getInitial("epoch", 30));
   const [lr, setLr] = useState(() => getInitial("lr", 0.001));
 
-  // --- New UI States ---
-  const [activeModelTab, setActiveModelTab] = useState("indobert");
-  const [cvFolds, setCvFolds] = useState(5);
-  const [randomSeed, setRandomSeed] = useState(42);
-  const [shuffleData, setShuffleData] = useState(true);
+  // --- UI States ---
+  const [activeModelTab, setActiveModelTab] = useState("gat");
 
-  // IndoBERT Config
-  const [indoLR, setIndoLR] = useState(0.00002);
-  const [batchSize, setBatchSize] = useState(16);
-  const [indoEpochs, setIndoEpochs] = useState(10);
-  const [maxSeqLength, setMaxSeqLength] = useState(512);
-  const [warmupSteps, setWarmupSteps] = useState(500);
-  const [weightDecay, setWeightDecay] = useState(0.01);
-  const [dropoutRate, setDropoutRate] = useState(0.1);
-  const [optimizer, setOptimizer] = useState("AdamW");
-
-  // GAT Config
-  const [gatLR, setGatLR] = useState(0.001);
+  // GAT Config (IndoBERT config di-skip karena hanya sebagai feature extractor)
+  const [gatLR, setGatLR] = useState("1e-3");
   const [gatEpochs, setGatEpochs] = useState(100);
-  const [gatWeightDecay, setGatWeightDecay] = useState(0.0001);
-
-  const [earlyStopping, setEarlyStopping] = useState(3);
-  const [gatHiddenDim, setGatHiddenDim] = useState(128);
-  const [gatHeads, setGatHeads] = useState(4);
-  const [gatDropout, setGatDropout] = useState(0.4);
+  const [gatWeightDecay, setGatWeightDecay] = useState("1e-4");
   // ----------------------
   const [datasets, setDatasets] = useState([]);
   const [training, setTraining] = useState(false);
@@ -280,10 +266,10 @@ export default function ProcessingPage() {
         model_name: modelName,
         test_split: parseInt(testRatio) / 100,
         val_split: parseInt(valRatio) / 100,
-        finetune_epochs: parseInt(indoEpochs),
-        finetune_lr: parseFloat(indoLR),
-        finetune_batch_size: parseInt(batchSize),
-        weight_decay: parseFloat(weightDecay),
+        finetune_epochs: 0,
+        finetune_lr: 2e-5,
+        finetune_batch_size: 16,
+        weight_decay: 0.01,
         gat_epochs: parseInt(gatEpochs),
         gat_lr: parseFloat(gatLR),
         gat_weight_decay: parseFloat(gatWeightDecay),
@@ -768,82 +754,6 @@ export default function ProcessingPage() {
                                     </span>
                                   </div>
 
-                                  <div style={{ marginBottom: 20 }}>
-                                    <label
-                                      className="form-label"
-                                      style={{
-                                        fontSize: "0.9rem",
-                                        fontWeight: 600,
-                                      }}
-                                    >
-                                      Cross Validation Folds
-                                    </label>
-                                    <input
-                                      className="form-input"
-                                      type="number"
-                                      value={cvFolds}
-                                      onChange={(e) =>
-                                        setCvFolds(e.target.value)
-                                      }
-                                      disabled={training}
-                                      style={{ height: 42, borderRadius: 8 }}
-                                    />
-                                  </div>
-                                  <div style={{ marginBottom: 20 }}>
-                                    <label
-                                      className="form-label"
-                                      style={{
-                                        fontSize: "0.9rem",
-                                        fontWeight: 600,
-                                      }}
-                                    >
-                                      Random Seed
-                                    </label>
-                                    <input
-                                      className="form-input"
-                                      type="number"
-                                      value={randomSeed}
-                                      onChange={(e) =>
-                                        setRandomSeed(e.target.value)
-                                      }
-                                      disabled={training}
-                                      style={{ height: 42, borderRadius: 8 }}
-                                    />
-                                  </div>
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 10,
-                                      marginTop: 12,
-                                    }}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      id="shuffle"
-                                      checked={shuffleData}
-                                      onChange={(e) =>
-                                        setShuffleData(e.target.checked)
-                                      }
-                                      disabled={training}
-                                      style={{
-                                        width: 18,
-                                        height: 18,
-                                        cursor: "pointer",
-                                      }}
-                                    />
-                                    <label
-                                      htmlFor="shuffle"
-                                      style={{
-                                        fontSize: "0.95rem",
-                                        fontWeight: 600,
-                                        cursor: "pointer",
-                                        margin: 0,
-                                      }}
-                                    >
-                                      Shuffle data sebelum split
-                                    </label>
-                                  </div>
                                 </div>
                               </div>
 
@@ -864,1178 +774,142 @@ export default function ProcessingPage() {
                                   }}
                                 >
                                   {/* INFO PARAMETER */}
-                                  <div style={{ padding: '16px', background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 8, marginBottom: 20, fontSize: '0.85rem', color: 'var(--gray-600)', display: 'flex', alignItems: 'flex-start', gap: 12, lineHeight: 1.5 }}>
-                                    <Lock size={18} style={{ color: "var(--gray-500)", flexShrink: 0, marginTop: 2 }} />
-                                    <div>
-                                      <strong style={{ display: 'block', marginBottom: 4, color: 'var(--gray-800)' }}>Informasi Penguncian Parameter:</strong>
-                                      Menggunakan pre-trained model <strong>indobenchmark/indobert-base-p1</strong>. Parameter abu-abu dikunci karena merupakan arsitektur asli bawaan model. Mengubah dimensi ini akan merusak kompatibilitas bobot (<i>weights</i>) asli dan lapisan GAT.
-                                    </div>
-                                  </div>
-
-                                  {/* TABS */}
                                   <div
-                                    className="d-flex gap-3"
                                     style={{
+                                      padding: "16px",
+                                      background: "var(--gray-50)",
+                                      border: "1px solid var(--gray-200)",
+                                      borderRadius: 8,
+                                      marginBottom: 20,
+                                      fontSize: "0.85rem",
+                                      color: "var(--gray-600)",
                                       display: "flex",
-                                      marginBottom: "24px",
+                                      alignItems: "flex-start",
+                                      gap: 12,
+                                      lineHeight: 1.5,
                                     }}
                                   >
-                                    <div
-                                      onClick={() =>
-                                        setActiveModelTab("indobert")
-                                      }
+                                    <Lock
+                                      size={18}
                                       style={{
-                                        flex: 1,
-                                        cursor: "pointer",
-                                        border:
-                                          activeModelTab === "indobert"
-                                            ? "2px solid var(--ocean)"
-                                            : "1px solid var(--app-border)",
-                                        background:
-                                          activeModelTab === "indobert"
-                                            ? "var(--ocean-light)"
-                                            : "var(--app-surface)",
-                                        borderRadius: 12,
-                                        padding: "16px",
-                                        textAlign: "center",
-                                        transition: "all 0.2s",
+                                        color: "var(--gray-500)",
+                                        flexShrink: 0,
+                                        marginTop: 2,
                                       }}
-                                    >
-                                      <h4
+                                    />
+                                    <div>
+                                      <strong
                                         style={{
-                                          margin: 0,
-                                          fontSize: "1.2rem",
-                                          color:
-                                            activeModelTab === "indobert"
-                                              ? "var(--ocean)"
-                                              : "var(--app-text)",
+                                          display: "block",
+                                          marginBottom: 4,
+                                          color: "var(--gray-800)",
                                         }}
                                       >
-                                        IndoBERT
-                                      </h4>
-                                      <span
-                                        style={{
-                                          fontSize: "0.85rem",
-                                          color: "var(--app-text-muted)",
-                                        }}
-                                      >
-                                        Indonesian BERT Model
-                                      </span>
-                                    </div>
-                                    <div
-                                      onClick={() => setActiveModelTab("gat")}
-                                      style={{
-                                        flex: 1,
-                                        cursor: "pointer",
-                                        border:
-                                          activeModelTab === "gat"
-                                            ? "2px solid var(--ocean)"
-                                            : "1px solid var(--app-border)",
-                                        background:
-                                          activeModelTab === "gat"
-                                            ? "var(--ocean-light)"
-                                            : "var(--app-surface)",
-                                        borderRadius: 12,
-                                        padding: "16px",
-                                        textAlign: "center",
-                                        transition: "all 0.2s",
-                                      }}
-                                    >
-                                      <h4
-                                        style={{
-                                          margin: 0,
-                                          fontSize: "1.2rem",
-                                          color:
-                                            activeModelTab === "gat"
-                                              ? "var(--ocean)"
-                                              : "var(--app-text)",
-                                        }}
-                                      >
-                                        GAT
-                                      </h4>
-                                      <span
-                                        style={{
-                                          fontSize: "0.85rem",
-                                          color: "var(--app-text-muted)",
-                                        }}
-                                      >
-                                        Graph Attention Network
-                                      </span>
+                                        Informasi Arsitektur Model:
+                                      </strong>
+                                      Menggunakan pre-trained model{" "}
+                                      <strong>
+                                        indobenchmark/indobert-base-p1
+                                      </strong>{" "}
+                                      sebagai feature extractor statis (tidak dilatih ulang). Parameter IndoBERT dikunci karena
+                                      merupakan arsitektur asli bawaan model.
+                                      Mengubah dimensi ini akan merusak
+                                      kompatibilitas bobot (<i>weights</i>) asli
+                                      dan lapisan GAT.
                                     </div>
                                   </div>
 
-                                  {activeModelTab === "indobert" ? (
-                                    <div className="d-flex flex-column gap-4">
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          gap: "24px",
-                                          flexWrap: "wrap",
-                                        }}
-                                      >
-                                        {/* ── 1. INPUT LAYER ── */}
-                                        <div
-                                          style={{ flex: 1, minWidth: "220px" }}
-                                        >
-                                          <div
-                                            style={{
-                                              borderLeft: "4px solid #3b82f6",
-                                              paddingLeft: 16,
-                                              height: "100%",
-                                            }}
-                                          >
-                                            <p
-                                              style={{
-                                                margin: "0 0 12px",
-                                                fontSize: "0.75rem",
-                                                fontWeight: 700,
-                                                letterSpacing: "0.06em",
-                                                textTransform: "uppercase",
-                                                color: "#3b82f6",
-                                              }}
-                                            >
-                                              Input Layer
-                                            </p>
-                                            <div className="d-flex flex-column gap-3">
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  Max Seq Length
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  type="number"
-                                                  value={maxSeqLength}
-                                                  onChange={(e) =>
-                                                    setMaxSeqLength(
-                                                      e.target.value,
-                                                    )
-                                                  }
-                                                  disabled={training}
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  Tokenizer & Padding
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  value="WordPiece | max_length"
-                                                  disabled
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    background:
-                                                      "var(--gray-100)",
-                                                    color: "var(--gray-500)",
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  Output
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  value="input_ids, attention_mask"
-                                                  disabled
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    background:
-                                                      "var(--gray-100)",
-                                                    color: "var(--gray-500)",
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        {/* ── 2. HIDDEN LAYER ── */}
-                                        <div
-                                          style={{ flex: 1, minWidth: "220px" }}
-                                        >
-                                          <div
-                                            style={{
-                                              borderLeft: "4px solid #8b5cf6",
-                                              paddingLeft: 16,
-                                              height: "100%",
-                                            }}
-                                          >
-                                            <p
-                                              style={{
-                                                margin: "0 0 12px",
-                                                fontSize: "0.75rem",
-                                                fontWeight: 700,
-                                                letterSpacing: "0.06em",
-                                                textTransform: "uppercase",
-                                                color: "#8b5cf6",
-                                              }}
-                                            >
-                                              Hidden Layer
-                                            </p>
-                                            <div className="d-flex flex-column gap-3">
-                                              <div className="d-flex gap-2">
-                                                <div style={{ flex: 1 }}>
-                                                  <label
-                                                    className="form-label"
-                                                    style={{
-                                                      fontSize: "0.8rem",
-                                                      fontWeight: 600,
-                                                      marginBottom: 2,
-                                                    }}
-                                                  >
-                                                    Size
-                                                  </label>
-                                                  <input
-                                                    className="form-input"
-                                                    value="768"
-                                                    disabled
-                                                    style={{
-                                                      height: 36,
-                                                      borderRadius: 6,
-                                                      background:
-                                                        "var(--gray-100)",
-                                                      color: "var(--gray-500)",
-                                                      fontSize: "0.85rem",
-                                                    }}
-                                                  />
-                                                </div>
-                                                <div style={{ flex: 1 }}>
-                                                  <label
-                                                    className="form-label"
-                                                    style={{
-                                                      fontSize: "0.8rem",
-                                                      fontWeight: 600,
-                                                      marginBottom: 2,
-                                                    }}
-                                                  >
-                                                    Layers
-                                                  </label>
-                                                  <input
-                                                    className="form-input"
-                                                    value="12"
-                                                    disabled
-                                                    style={{
-                                                      height: 36,
-                                                      borderRadius: 6,
-                                                      background:
-                                                        "var(--gray-100)",
-                                                      color: "var(--gray-500)",
-                                                      fontSize: "0.85rem",
-                                                    }}
-                                                  />
-                                                </div>
-                                                <div style={{ flex: 1 }}>
-                                                  <label
-                                                    className="form-label"
-                                                    style={{
-                                                      fontSize: "0.8rem",
-                                                      fontWeight: 600,
-                                                      marginBottom: 2,
-                                                    }}
-                                                  >
-                                                    Heads
-                                                  </label>
-                                                  <input
-                                                    className="form-input"
-                                                    value="12"
-                                                    disabled
-                                                    style={{
-                                                      height: 36,
-                                                      borderRadius: 6,
-                                                      background:
-                                                        "var(--gray-100)",
-                                                      color: "var(--gray-500)",
-                                                      fontSize: "0.85rem",
-                                                    }}
-                                                  />
-                                                </div>
-                                              </div>
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  Intermediate & Activ
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  value="3072 | GELU"
-                                                  disabled
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    background:
-                                                      "var(--gray-100)",
-                                                    color: "var(--gray-500)",
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                              <div className="d-flex gap-2">
-                                                <div style={{ flex: 1 }}>
-                                                  <label
-                                                    className="form-label"
-                                                    style={{
-                                                      fontSize: "0.8rem",
-                                                      fontWeight: 600,
-                                                      marginBottom: 2,
-                                                    }}
-                                                  >
-                                                    Hidden Drop
-                                                  </label>
-                                                  <input
-                                                    className="form-input"
-                                                    value="0.1"
-                                                    disabled
-                                                    style={{
-                                                      height: 36,
-                                                      borderRadius: 6,
-                                                      background:
-                                                        "var(--gray-100)",
-                                                      color: "var(--gray-500)",
-                                                      fontSize: "0.85rem",
-                                                    }}
-                                                  />
-                                                </div>
-                                                <div style={{ flex: 1 }}>
-                                                  <label
-                                                    className="form-label"
-                                                    style={{
-                                                      fontSize: "0.8rem",
-                                                      fontWeight: 600,
-                                                      marginBottom: 2,
-                                                    }}
-                                                  >
-                                                    Attn Drop
-                                                  </label>
-                                                  <input
-                                                    className="form-input"
-                                                    value="0.1"
-                                                    disabled
-                                                    style={{
-                                                      height: 36,
-                                                      borderRadius: 6,
-                                                      background:
-                                                        "var(--gray-100)",
-                                                      color: "var(--gray-500)",
-                                                      fontSize: "0.85rem",
-                                                    }}
-                                                  />
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        {/* ── 3. OUTPUT LAYER ── */}
-                                        <div
-                                          style={{ flex: 1, minWidth: "220px" }}
-                                        >
-                                          <div
-                                            style={{
-                                              borderLeft: "4px solid #10b981",
-                                              paddingLeft: 16,
-                                              height: "100%",
-                                            }}
-                                          >
-                                            <p
-                                              style={{
-                                                margin: "0 0 12px",
-                                                fontSize: "0.75rem",
-                                                fontWeight: 700,
-                                                letterSpacing: "0.06em",
-                                                textTransform: "uppercase",
-                                                color: "#10b981",
-                                              }}
-                                            >
-                                              Output Layer
-                                            </p>
-                                            <div className="d-flex flex-column gap-3">
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  Classifier Input
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  value="768"
-                                                  disabled
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    background:
-                                                      "var(--gray-100)",
-                                                    color: "var(--gray-500)",
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  Dropout Rate
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  type="number"
-                                                  step="0.1"
-                                                  value={dropoutRate}
-                                                  onChange={(e) =>
-                                                    setDropoutRate(
-                                                      e.target.value,
-                                                    )
-                                                  }
-                                                  disabled={training}
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  Loss & Activ
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  value="CrossEntropy | Softmax"
-                                                  disabled
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    background:
-                                                      "var(--gray-100)",
-                                                    color: "var(--gray-500)",
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-
-                                      {/* ── 4. PARAMETER FINE-TUNING ── */}
-                                      <div
-                                        style={{
-                                          borderLeft: "4px solid #f59e0b",
-                                          paddingLeft: 16,
-                                          marginTop: 8,
-                                        }}
-                                      >
-                                        <p
+                                  <div
+                                    style={{
+                                      borderLeft: "4px solid #f59e0b",
+                                      paddingLeft: 16,
+                                      marginTop: 8,
+                                      flex: 1,
+                                    }}
+                                  >
+                                    <p
+                                      style={{
+                                        margin: "0 0 12px",
+                                        fontSize: "0.75rem",
+                                        fontWeight: 700,
+                                        letterSpacing: "0.06em",
+                                        textTransform: "uppercase",
+                                        color: "#f59e0b",
+                                      }}
+                                    >
+                                      Parameter Training GAT
+                                    </p>
+                                    <div className="row g-3">
+                                        <ParamField
+                                          label="Learning Rate (GAT)"
+                                          paramKey="gatLR"
+                                          value={gatLR}
+                                          onChange={setGatLR}
+                                          disabled={training}
+                                          isScientific
+                                        />
+                                      <div className="col-md-3">
+                                        <label
+                                          className="form-label"
                                           style={{
-                                            margin: "0 0 12px",
-                                            fontSize: "0.75rem",
-                                            fontWeight: 700,
-                                            letterSpacing: "0.06em",
-                                            textTransform: "uppercase",
-                                            color: "#f59e0b",
+                                            fontSize: "0.8rem",
+                                            fontWeight: 600,
+                                            marginBottom: 2,
                                           }}
                                         >
-                                          Parameter Fine-Tuning
-                                        </p>
-                                        <div className="row g-3">
-                                          <div className="col-md-2">
-                                            <label
-                                              className="form-label"
-                                              style={{
-                                                fontSize: "0.8rem",
-                                                fontWeight: 600,
-                                                marginBottom: 2,
-                                              }}
-                                            >
-                                              Learning Rate
-                                            </label>
-                                            <input
-                                              className="form-input"
-                                              type="number"
-                                              step="0.00001"
-                                              value={indoLR}
-                                              onChange={(e) =>
-                                                setIndoLR(e.target.value)
-                                              }
-                                              disabled={training}
-                                              style={{
-                                                height: 36,
-                                                borderRadius: 6,
-                                                fontSize: "0.85rem",
-                                              }}
-                                            />
-                                          </div>
-                                          <div className="col-md-2">
-                                            <label
-                                              className="form-label"
-                                              style={{
-                                                fontSize: "0.8rem",
-                                                fontWeight: 600,
-                                                marginBottom: 2,
-                                              }}
-                                            >
-                                              Batch Size
-                                            </label>
-                                            <input
-                                              className="form-input"
-                                              type="number"
-                                              value={batchSize}
-                                              onChange={(e) =>
-                                                setBatchSize(e.target.value)
-                                              }
-                                              disabled={training}
-                                              style={{
-                                                height: 36,
-                                                borderRadius: 6,
-                                                fontSize: "0.85rem",
-                                              }}
-                                            />
-                                          </div>
-                                          <div className="col-md-2">
-                                            <label
-                                              className="form-label"
-                                              style={{
-                                                fontSize: "0.8rem",
-                                                fontWeight: 600,
-                                                marginBottom: 2,
-                                              }}
-                                            >
-                                              Epochs
-                                            </label>
-                                            <input
-                                              className="form-input"
-                                              type="number"
-                                              value={indoEpochs}
-                                              onChange={(e) =>
-                                                setIndoEpochs(e.target.value)
-                                              }
-                                              disabled={training}
-                                              style={{
-                                                height: 36,
-                                                borderRadius: 6,
-                                                fontSize: "0.85rem",
-                                              }}
-                                            />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label
-                                              className="form-label"
-                                              style={{
-                                                fontSize: "0.8rem",
-                                                fontWeight: 600,
-                                                marginBottom: 2,
-                                              }}
-                                            >
-                                              Optimizer
-                                            </label>
-                                            <select
-                                              className="form-select"
-                                              value={optimizer}
-                                              onChange={(e) =>
-                                                setOptimizer(e.target.value)
-                                              }
-                                              disabled={training}
-                                              style={{
-                                                height: 36,
-                                                borderRadius: 6,
-                                                fontSize: "0.85rem",
-                                              }}
-                                            >
-                                              <option value="AdamW">
-                                                AdamW
-                                              </option>
-                                              <option value="Adam">Adam</option>
-                                              <option value="SGD">SGD</option>
-                                            </select>
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label
-                                              className="form-label"
-                                              style={{
-                                                fontSize: "0.8rem",
-                                                fontWeight: 600,
-                                                marginBottom: 2,
-                                              }}
-                                            >
-                                              Weight Decay
-                                            </label>
-                                            <input
-                                              className="form-input"
-                                              type="number"
-                                              step="0.01"
-                                              value={weightDecay}
-                                              onChange={(e) =>
-                                                setWeightDecay(e.target.value)
-                                              }
-                                              disabled={training}
-                                              style={{
-                                                height: 36,
-                                                borderRadius: 6,
-                                                fontSize: "0.85rem",
-                                              }}
-                                            />
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="d-flex flex-column gap-4">
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          gap: "24px",
-                                          flexWrap: "wrap",
-                                        }}
-                                      >
-                                        {/* ── 1. INPUT PROJECTION ── */}
-                                        <div
-                                          style={{ flex: 1, minWidth: "220px" }}
-                                        >
-                                          <div
-                                            style={{
-                                              borderLeft: "4px solid #3b82f6",
-                                              paddingLeft: 16,
-                                              height: "100%",
-                                            }}
-                                          >
-                                            <p
-                                              style={{
-                                                margin: "0 0 12px",
-                                                fontSize: "0.75rem",
-                                                fontWeight: 700,
-                                                letterSpacing: "0.06em",
-                                                textTransform: "uppercase",
-                                                color: "#3b82f6",
-                                              }}
-                                            >
-                                              Input Projection
-                                            </p>
-                                            <div className="d-flex flex-column gap-3">
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  Input Dim (BERT)
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  value="768"
-                                                  disabled
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    background:
-                                                      "var(--gray-100)",
-                                                    color: "var(--gray-500)",
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  Hidden Dim
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  value="128"
-                                                  disabled
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    background:
-                                                      "var(--gray-100)",
-                                                    color: "var(--gray-500)",
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                              <div className="d-flex gap-2">
-                                                <div style={{ flex: 1 }}>
-                                                  <label
-                                                    className="form-label"
-                                                    style={{
-                                                      fontSize: "0.8rem",
-                                                      fontWeight: 600,
-                                                      marginBottom: 2,
-                                                    }}
-                                                  >
-                                                    Norm
-                                                  </label>
-                                                  <input
-                                                    className="form-input"
-                                                    value="BatchNorm"
-                                                    disabled
-                                                    style={{
-                                                      height: 36,
-                                                      borderRadius: 6,
-                                                      background:
-                                                        "var(--gray-100)",
-                                                      color: "var(--gray-500)",
-                                                      fontSize: "0.85rem",
-                                                    }}
-                                                  />
-                                                </div>
-                                                <div style={{ flex: 1 }}>
-                                                  <label
-                                                    className="form-label"
-                                                    style={{
-                                                      fontSize: "0.8rem",
-                                                      fontWeight: 600,
-                                                      marginBottom: 2,
-                                                    }}
-                                                  >
-                                                    Activ
-                                                  </label>
-                                                  <input
-                                                    className="form-input"
-                                                    value="ReLU"
-                                                    disabled
-                                                    style={{
-                                                      height: 36,
-                                                      borderRadius: 6,
-                                                      background:
-                                                        "var(--gray-100)",
-                                                      color: "var(--gray-500)",
-                                                      fontSize: "0.85rem",
-                                                    }}
-                                                  />
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        {/* ── 2. GAT LAYERS ── */}
-                                        <div
-                                          style={{ flex: 1, minWidth: "220px" }}
-                                        >
-                                          <div
-                                            style={{
-                                              borderLeft: "4px solid #8b5cf6",
-                                              paddingLeft: 16,
-                                              height: "100%",
-                                            }}
-                                          >
-                                            <p
-                                              style={{
-                                                margin: "0 0 12px",
-                                                fontSize: "0.75rem",
-                                                fontWeight: 700,
-                                                letterSpacing: "0.06em",
-                                                textTransform: "uppercase",
-                                                color: "#8b5cf6",
-                                              }}
-                                            >
-                                              GAT Layers
-                                            </p>
-                                            <div className="d-flex flex-column gap-3">
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  GAT Layer 1 (concat=True)
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  value="128 → 128 × heads"
-                                                  disabled
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    background:
-                                                      "var(--gray-100)",
-                                                    color: "var(--gray-500)",
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  GAT Layer 2 (concat=False)
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  value="128 × heads → 128"
-                                                  disabled
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    background:
-                                                      "var(--gray-100)",
-                                                    color: "var(--gray-500)",
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                              <div className="d-flex gap-2">
-                                                <div style={{ flex: 1 }}>
-                                                  <label
-                                                    className="form-label"
-                                                    style={{
-                                                      fontSize: "0.8rem",
-                                                      fontWeight: 600,
-                                                      marginBottom: 2,
-                                                    }}
-                                                  >
-                                                    Attn Heads
-                                                  </label>
-                                                  <input
-                                                    className="form-input"
-                                                    value="4"
-                                                    disabled
-                                                    style={{
-                                                      height: 36,
-                                                      borderRadius: 6,
-                                                      background:
-                                                        "var(--gray-100)",
-                                                      color: "var(--gray-500)",
-                                                      fontSize: "0.85rem",
-                                                    }}
-                                                  />
-                                                </div>
-                                                <div style={{ flex: 1 }}>
-                                                  <label
-                                                    className="form-label"
-                                                    style={{
-                                                      fontSize: "0.8rem",
-                                                      fontWeight: 600,
-                                                      marginBottom: 2,
-                                                    }}
-                                                  >
-                                                    Activ
-                                                  </label>
-                                                  <input
-                                                    className="form-input"
-                                                    value="ELU"
-                                                    disabled
-                                                    style={{
-                                                      height: 36,
-                                                      borderRadius: 6,
-                                                      background:
-                                                        "var(--gray-100)",
-                                                      color: "var(--gray-500)",
-                                                      fontSize: "0.85rem",
-                                                    }}
-                                                  />
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        {/* ── 3. CLASSIFIER HEAD ── */}
-                                        <div
-                                          style={{ flex: 1, minWidth: "220px" }}
-                                        >
-                                          <div
-                                            style={{
-                                              borderLeft: "4px solid #10b981",
-                                              paddingLeft: 16,
-                                              height: "100%",
-                                            }}
-                                          >
-                                            <p
-                                              style={{
-                                                margin: "0 0 12px",
-                                                fontSize: "0.75rem",
-                                                fontWeight: 700,
-                                                letterSpacing: "0.06em",
-                                                textTransform: "uppercase",
-                                                color: "#10b981",
-                                              }}
-                                            >
-                                              Classifier Head
-                                            </p>
-                                            <div className="d-flex flex-column gap-3">
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  Hidden Layer
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  value="128 → 64 (ReLU)"
-                                                  disabled
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    background:
-                                                      "var(--gray-100)",
-                                                    color: "var(--gray-500)",
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  Output Layer
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  value="64 → 2 (classes)"
-                                                  disabled
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    background:
-                                                      "var(--gray-100)",
-                                                    color: "var(--gray-500)",
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label
-                                                  className="form-label"
-                                                  style={{
-                                                    fontSize: "0.8rem",
-                                                    fontWeight: 600,
-                                                    marginBottom: 2,
-                                                  }}
-                                                >
-                                                  Classes
-                                                </label>
-                                                <input
-                                                  className="form-input"
-                                                  value="2 (Spam / Ham)"
-                                                  disabled
-                                                  style={{
-                                                    height: 36,
-                                                    borderRadius: 6,
-                                                    background:
-                                                      "var(--gray-100)",
-                                                    color: "var(--gray-500)",
-                                                    fontSize: "0.85rem",
-                                                  }}
-                                                />
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-
-                                      {/* ── 4. PARAMETER TRAINING GAT ── */}
-                                      <div
-                                        style={{
-                                          borderLeft: "4px solid #f59e0b",
-                                          paddingLeft: 16,
-                                          marginTop: 8,
-                                        }}
-                                      >
-                                        <p
+                                          Epochs
+                                        </label>
+                                        <input
+                                          className="form-input"
+                                          type="number"
+                                          value={gatEpochs}
+                                          onChange={(e) =>
+                                            setGatEpochs(e.target.value)
+                                          }
+                                          disabled={training}
                                           style={{
-                                            margin: "0 0 12px",
-                                            fontSize: "0.75rem",
-                                            fontWeight: 700,
-                                            letterSpacing: "0.06em",
-                                            textTransform: "uppercase",
-                                            color: "#f59e0b",
+                                            height: 36,
+                                            borderRadius: 6,
+                                            fontSize: "0.85rem",
+                                          }}
+                                        />
+                                      </div>
+                                        <ParamField
+                                          label="Weight Decay (GAT)"
+                                          paramKey="gatWeightDecay"
+                                          value={gatWeightDecay}
+                                          onChange={setGatWeightDecay}
+                                          disabled={training}
+                                          isScientific
+                                        />
+                                      <div className="col-md-3">
+                                        <label
+                                          className="form-label"
+                                          style={{
+                                            fontSize: "0.8rem",
+                                            fontWeight: 600,
+                                            marginBottom: 2,
                                           }}
                                         >
-                                          Parameter Training GAT
-                                        </p>
-                                        <div className="row g-3">
-                                          <div className="col-md-3">
-                                            <label
-                                              className="form-label"
-                                              style={{
-                                                fontSize: "0.8rem",
-                                                fontWeight: 600,
-                                                marginBottom: 2,
-                                              }}
-                                            >
-                                              Learning Rate
-                                            </label>
-                                            <input
-                                              className="form-input"
-                                              type="number"
-                                              step="0.001"
-                                              value={gatLR}
-                                              onChange={(e) =>
-                                                setGatLR(e.target.value)
-                                              }
-                                              disabled={training}
-                                              style={{
-                                                height: 36,
-                                                borderRadius: 6,
-                                                fontSize: "0.85rem",
-                                              }}
-                                            />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label
-                                              className="form-label"
-                                              style={{
-                                                fontSize: "0.8rem",
-                                                fontWeight: 600,
-                                                marginBottom: 2,
-                                              }}
-                                            >
-                                              Epochs
-                                            </label>
-                                            <input
-                                              className="form-input"
-                                              type="number"
-                                              value={gatEpochs}
-                                              onChange={(e) =>
-                                                setGatEpochs(e.target.value)
-                                              }
-                                              disabled={training}
-                                              style={{
-                                                height: 36,
-                                                borderRadius: 6,
-                                                fontSize: "0.85rem",
-                                              }}
-                                            />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label
-                                              className="form-label"
-                                              style={{
-                                                fontSize: "0.8rem",
-                                                fontWeight: 600,
-                                                marginBottom: 2,
-                                              }}
-                                            >
-                                              Weight Decay
-                                            </label>
-                                            <input
-                                              className="form-input"
-                                              type="number"
-                                              step="0.0001"
-                                              value={gatWeightDecay}
-                                              onChange={(e) =>
-                                                setGatWeightDecay(
-                                                  e.target.value,
-                                                )
-                                              }
-                                              disabled={training}
-                                              style={{
-                                                height: 36,
-                                                borderRadius: 6,
-                                                fontSize: "0.85rem",
-                                              }}
-                                            />
-                                          </div>
-                                          <div className="col-md-3">
-                                            <label
-                                              className="form-label"
-                                              style={{
-                                                fontSize: "0.8rem",
-                                                fontWeight: 600,
-                                                marginBottom: 2,
-                                              }}
-                                            >
-                                              Early Stopping
-                                            </label>
-                                            <input
-                                              className="form-input"
-                                              type="number"
-                                              value={earlyStopping}
-                                              onChange={(e) =>
-                                                setEarlyStopping(e.target.value)
-                                              }
-                                              disabled={training}
-                                              style={{
-                                                height: 36,
-                                                borderRadius: 6,
-                                                fontSize: "0.85rem",
-                                              }}
-                                            />
-                                          </div>
-                                        </div>
+                                          Early Stopping
+                                        </label>
+                                        <input
+                                          className="form-input"
+                                          value="25"
+                                          disabled
+                                          style={{
+                                            height: 36,
+                                            borderRadius: 6,
+                                            background:
+                                              "var(--gray-100)",
+                                            color: "var(--gray-500)",
+                                            fontSize: "0.85rem",
+                                          }}
+                                        />
                                       </div>
                                     </div>
-                                  )}
+                                  </div>
+
                                 </div>
                               </div>
                             </div>
@@ -2388,6 +1262,191 @@ export default function ProcessingPage() {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════
+// PARAM FIELD COMPONENT
+// ════════════════════════════════════════════════════
+
+const PARAM_CONFIG = {
+  indoLR: {
+    label: "Learning Rate",
+    desc: "Mengontrol seberapa besar model memperbarui bobotnya setiap iterasi pelatihan. Nilai terlalu besar = model tidak stabil; terlalu kecil = pelatihan sangat lambat.",
+    ideal: "2e-5 hingga 5e-5 untuk fine-tuning IndoBERT",
+    evaluate: (v) => {
+      if (v > 1e-3) return { type: "danger", msg: "⛔ Terlalu tinggi! Loss akan melonjak-lonjak dan model gagal belajar. Turunkan ke rentang 2e-5–5e-5." };
+      if (v > 1e-4) return { type: "warn", msg: "⚠️ Cukup tinggi. Bisa menyebabkan instabilitas pelatihan. Disarankan turunkan ke ≤ 5e-5." };
+      if (v > 0 && v < 1e-6) return { type: "warn", msg: "⚠️ Terlalu rendah. Pelatihan akan sangat lambat dan bisa terjebak di local minima. Naikkan ke minimal 1e-6." };
+      return { type: "ok", msg: "✅ Nilai ideal untuk fine-tuning BERT. Model dapat belajar dengan stabil." };
+    },
+  },
+  batchSize: {
+    label: "Batch Size",
+    desc: "Jumlah sampel email yang diproses sekaligus sebelum model memperbarui bobotnya. Nilai kecil = lebih sering update tapi tidak stabil; nilai besar = lebih stabil tapi butuh memori GPU lebih besar.",
+    ideal: "16 atau 32",
+    evaluate: (v) => {
+      if (v > 128) return { type: "danger", msg: "⛔ Sangat besar! Kemungkinan besar akan menyebabkan Out of Memory (OOM) pada GPU." };
+      if (v > 64) return { type: "warn", msg: "⚠️ Cukup besar. Bisa memakan banyak memori GPU. Monitor penggunaan VRAM Anda." };
+      if (v < 4) return { type: "warn", msg: "⚠️ Terlalu kecil. Estimasi gradien menjadi sangat bising (noisy) dan training tidak stabil." };
+      return { type: "ok", msg: "✅ Ukuran batch ideal. Keseimbangan baik antara kecepatan dan stabilitas pelatihan." };
+    },
+  },
+  indoEpochs: {
+    label: "Epochs",
+    desc: "Berapa kali model melihat seluruh dataset pelatihan dari awal hingga akhir. Lebih banyak tidak selalu lebih baik karena model bisa 'menghafal' data (overfitting).",
+    ideal: "3–5 untuk fine-tuning BERT",
+    evaluate: (v) => {
+      if (v > 15) return { type: "danger", msg: "⛔ Terlalu banyak! Model hampir pasti akan overfitting dan performanya buruk pada data baru." };
+      if (v > 8) return { type: "warn", msg: "⚠️ Cukup tinggi. Pantau validation loss—jika naik, hentikan lebih awal (gunakan early stopping)." };
+      if (v < 2) return { type: "warn", msg: "⚠️ Terlalu sedikit. Model mungkin belum sempat belajar pola yang cukup (underfitting)." };
+      return { type: "ok", msg: "✅ Jumlah epoch ideal untuk fine-tuning model berbasis BERT." };
+    },
+  },
+  weightDecay: {
+    label: "Weight Decay",
+    desc: "Regularisasi L2 yang secara bertahap 'menyusutkan' bobot model agar tidak terlalu besar. Membantu mencegah overfitting, terutama pada dataset kecil.",
+    ideal: "1e-2 (0.01)",
+    evaluate: (v) => {
+      if (v > 0.5) return { type: "danger", msg: "⛔ Terlalu tinggi! Regularisasi terlalu kuat—model tidak dapat belajar dengan baik (underfitting)." };
+      if (v > 0.1) return { type: "warn", msg: "⚠️ Agak tinggi. Bisa membatasi kapasitas belajar model. Coba turunkan ke 0.01." };
+      if (v === 0) return { type: "warn", msg: "⚠️ Nilai 0 = tidak ada regularisasi. Model rentan overfitting, terutama dengan dataset kecil." };
+      return { type: "ok", msg: "✅ Nilai weight decay yang sesuai untuk mencegah overfitting." };
+    },
+  },
+  gatLR: {
+    label: "Learning Rate (GAT)",
+    desc: "Learning rate khusus untuk lapisan Graph Attention Network (GAT). Mengontrol seberapa cepat GAT memperbarui cara memperhatikan (attend) node-node dalam graf email.",
+    ideal: "1e-3 hingga 5e-3",
+    evaluate: (v) => {
+      if (v > 0.1) return { type: "danger", msg: "⛔ Terlalu tinggi! GAT tidak akan konvergen dan akan menghasilkan output acak." };
+      if (v > 0.01) return { type: "warn", msg: "⚠️ Agak tinggi untuk GAT. Coba turunkan ke rentang 1e-3–5e-3 untuk hasil yang lebih stabil." };
+      if (v < 1e-5) return { type: "warn", msg: "⚠️ Terlalu rendah. GAT akan belajar sangat lambat dan butuh epoch sangat banyak untuk konvergen." };
+      return { type: "ok", msg: "✅ Learning rate GAT dalam rentang ideal." };
+    },
+  },
+  gatWeightDecay: {
+    label: "Weight Decay (GAT)",
+    desc: "Regularisasi L2 khusus untuk lapisan GAT. Mencegah bobot attention menjadi terlalu ekstrem yang bisa membuat model hanya fokus pada satu node saja.",
+    ideal: "1e-4 hingga 1e-3",
+    evaluate: (v) => {
+      if (v > 0.1) return { type: "danger", msg: "⛔ Terlalu tinggi! GAT tidak dapat mempelajari pola keterhubungan antar node secara efektif." };
+      if (v > 0.01) return { type: "warn", msg: "⚠️ Agak tinggi. Bisa melemahkan kemampuan GAT memodelkan hubungan antar kata/entitas." };
+      return { type: "ok", msg: "✅ Weight decay GAT dalam rentang ideal untuk regularisasi yang seimbang." };
+    },
+  },
+};
+
+function ParamField({ label, paramKey, value, onChange, disabled, isScientific }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const config = PARAM_CONFIG[paramKey] || {};
+  const numVal = parseFloat(value);
+  const isValid = !isNaN(numVal);
+  const evalResult = isValid && config.evaluate ? config.evaluate(numVal) : null;
+
+  const statusColor = {
+    ok: "#10b981",
+    warn: "#f59e0b",
+    danger: "#ef4444",
+  };
+  const statusBg = {
+    ok: "#f0fdf4",
+    warn: "#fffbeb",
+    danger: "#fef2f2",
+  };
+  const statusBorder = {
+    ok: "#a7f3d0",
+    warn: "#fde68a",
+    danger: "#fecaca",
+  };
+
+  return (
+    <div style={{ position: "relative", width: "100%" }}>
+      {/* Label + Info Icon */}
+      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
+        <label
+          className="form-label"
+          style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 0, color: "var(--app-text)" }}
+        >
+          {config.label || label}
+        </label>
+        {config.desc && (
+          <div
+            style={{ position: "relative", display: "inline-flex", cursor: "help" }}
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+          >
+            <HelpCircle size={13} color="#94a3b8" />
+            {showTooltip && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: 18,
+                  top: -4,
+                  zIndex: 9999,
+                  background: "#1e293b",
+                  color: "#f8fafc",
+                  borderRadius: 8,
+                  padding: "10px 14px",
+                  width: 260,
+                  fontSize: "0.75rem",
+                  lineHeight: 1.6,
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+                  pointerEvents: "none",
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: 4, color: "#93c5fd" }}>{config.label || label}</div>
+                <div>{config.desc}</div>
+                {config.ideal && (
+                  <div style={{ marginTop: 6, color: "#86efac", fontWeight: 600 }}>✅ Ideal: {config.ideal}</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <input
+        className="form-input"
+        type={isScientific ? "text" : "number"}
+        placeholder={isScientific ? `cth: ${value}` : undefined}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        style={{
+          height: 36,
+          borderRadius: 6,
+          fontSize: "0.85rem",
+          width: "100%",
+          borderColor: evalResult ? statusColor[evalResult.type] : undefined,
+        }}
+      />
+
+      {/* Decimal hint for scientific notation */}
+      {isScientific && isValid && (
+        <div style={{ fontSize: "0.65rem", color: "var(--app-text-muted)", marginTop: 2 }}>
+          = {numVal.toFixed(10).replace(/\.?0+$/, "")}
+        </div>
+      )}
+
+      {/* Warning / Feedback Panel */}
+      {evalResult && evalResult.type !== "ok" && (
+        <div
+          style={{
+            marginTop: 4,
+            borderLeft: `2px solid ${statusColor[evalResult.type]}`,
+            paddingLeft: 6,
+            fontSize: "0.65rem",
+            color: statusColor[evalResult.type],
+            opacity: 0.8,
+            lineHeight: 1.5,
+          }}
+        >
+          {evalResult.msg}
+        </div>
+      )}
     </div>
   );
 }
