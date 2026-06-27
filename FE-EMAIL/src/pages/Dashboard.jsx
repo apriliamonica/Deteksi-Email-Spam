@@ -7,13 +7,14 @@ import {
   Cpu,
   ChevronRight,
   Calendar,
+  Users
 } from "lucide-react";
-import { modelAPI } from "../services/api";
+import { modelAPI, usersAPI } from "../services/api";
 import { useNavigate } from "react-router-dom";
 import UserChatDashboard from "./UserChatDashboard";
 
 export default function Dashboard({ user }) {
-  const [dbStats, setDbStats] = useState({ total: 0, training: 0, testing: 0 });
+  const [dbStats, setDbStats] = useState({ totalDataset: 0, totalModel: 0, totalAkun: 0 });
   const [models, setModels] = useState([]);
   const [datasets, setDatasets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,17 +24,19 @@ export default function Dashboard({ user }) {
   useEffect(() => {
     (async () => {
       try {
-        const [dRes, hRes, aRes] = await Promise.all([
+        const [dRes, hRes, aRes, uRes] = await Promise.all([
           modelAPI.listDatasets().catch(() => ({ data: [] })),
           modelAPI.getHistory().catch(() => ({ data: [] })),
           modelAPI.getActiveModel().catch(() => ({ data: null })),
+          usersAPI.list().catch(() => ({ data: [] })),
         ]);
         const datasets = dRes.data || [];
         const history = hRes.data || [];
+        const usersList = uRes.data || [];
         setDbStats({
-          total: datasets.reduce((a, b) => a + (b.total_rows || 0), 0),
-          training: history.reduce((a, b) => a + (b.train_size || 0), 0),
-          testing: history.reduce((a, b) => a + (b.test_size || 0), 0),
+          totalDataset: datasets.length,
+          totalModel: history.length,
+          totalAkun: usersList.length,
         });
         setDatasets(datasets);
         setModels(history.slice(0, 4));
@@ -122,19 +125,19 @@ export default function Dashboard({ user }) {
       >
         {[
           {
-            label: "Total Email",
-            value: dbStats.total,
+            label: "Total Dataset",
+            value: dbStats.totalDataset,
             icon: <Database size={18} />,
           },
           {
-            label: "Data Training",
-            value: dbStats.training,
+            label: "Total Model",
+            value: dbStats.totalModel,
             icon: <Layers size={18} />,
           },
           {
-            label: "Data Testing",
-            value: dbStats.testing,
-            icon: <FlaskConical size={18} />,
+            label: "Total Akun",
+            value: dbStats.totalAkun,
+            icon: <Users size={18} />,
           },
         ].map((s) => (
           <div

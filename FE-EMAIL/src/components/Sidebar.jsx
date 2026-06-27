@@ -12,6 +12,8 @@ import {
   Sun,
   Moon,
   History,
+  Cpu,
+  ClipboardList,
 } from "lucide-react";
 
 export default function Sidebar({ user, onLogout }) {
@@ -61,7 +63,8 @@ export default function Sidebar({ user, onLogout }) {
           to="/beranda"
           className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
         >
-          <LayoutDashboard /> {user?.role === "admin" ? "Beranda" : "Deteksi Email"}
+          <LayoutDashboard />{" "}
+          {user?.role === "admin" ? "Beranda" : "Deteksi Email"}
         </NavLink>
 
         {/* Menu khusus user biasa */}
@@ -94,15 +97,6 @@ export default function Sidebar({ user, onLogout }) {
             >
               <Layers size={18} /> Pre-Processing
             </NavLink>
-            <NavLink
-              to="/riwayat-preprocessing"
-              className={({ isActive }) =>
-                `nav-link sub-link ${isActive ? "active" : ""}`
-              }
-              style={{ paddingLeft: 40, fontSize: "0.85rem" }}
-            >
-              Hasil Pre-Processing
-            </NavLink>
 
             <NavLink
               to="/processing"
@@ -119,7 +113,15 @@ export default function Sidebar({ user, onLogout }) {
               }
               style={{ paddingLeft: 40, fontSize: "0.85rem" }}
             >
-              Model
+              <Cpu size={15} /> Model
+            </NavLink>
+            <NavLink
+              to="/evaluasi"
+              className={({ isActive }) =>
+                `nav-link ${isActive ? "active" : ""}`
+              }
+            >
+              <BarChart3 /> Evaluation
             </NavLink>
 
             <div className="sidebar-section">Uji</div>
@@ -129,15 +131,7 @@ export default function Sidebar({ user, onLogout }) {
                 `nav-link ${isActive ? "active" : ""}`
               }
             >
-              <FlaskConical /> Klasifikasi
-            </NavLink>
-            <NavLink
-              to="/evaluasi"
-              className={({ isActive }) =>
-                `nav-link ${isActive ? "active" : ""}`
-              }
-            >
-              <BarChart3 /> Evaluasi Performa
+              <FlaskConical /> Testing
             </NavLink>
 
             <div className="sidebar-section">Pengguna</div>
