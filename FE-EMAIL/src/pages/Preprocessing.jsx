@@ -573,7 +573,21 @@ export default function PreprocessingPage() {
                 </div>
               )}
 
-              <div style={{ padding: '32px 24px', textAlign: 'center', background: 'white', borderTop: '1px solid var(--gray-200)' }}>
+              <div style={{ padding: '32px 24px', display: 'flex', justifyContent: 'center', gap: 16, background: 'white', borderTop: '1px solid var(--gray-200)' }}>
+                <button 
+                  style={{ padding: '14px 28px', fontSize: '1rem', display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: '8px', border: '1px solid var(--gray-300)', background: 'white', color: 'var(--gray-700)', fontWeight: 600, cursor: 'pointer' }}
+                  onClick={() => {
+                    localStorage.removeItem('preproc_step');
+                    localStorage.removeItem('preproc_selectedDataset');
+                    localStorage.removeItem('preproc_selectedDatasetId');
+                    localStorage.removeItem('preproc_running');
+                    setCurrentStep(-1);
+                    setSelectedDataset('');
+                    navigate('/data-collection');
+                  }}
+                >
+                  Selesai & Tutup
+                </button>
                 <button 
                   className="btn btn-primary" 
                   style={{ padding: '14px 40px', fontSize: '1.1rem', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)', borderRadius: '8px' }}

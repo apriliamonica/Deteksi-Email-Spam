@@ -753,7 +753,6 @@ export default function ProcessingPage() {
                                       %
                                     </span>
                                   </div>
-
                                 </div>
                               </div>
 
@@ -811,9 +810,10 @@ export default function ProcessingPage() {
                                       <strong>
                                         indobenchmark/indobert-base-p1
                                       </strong>{" "}
-                                      sebagai feature extractor statis (tidak dilatih ulang). Parameter IndoBERT dikunci karena
-                                      merupakan arsitektur asli bawaan model.
-                                      Mengubah dimensi ini akan merusak
+                                      sebagai feature extractor statis (tidak
+                                      dilatih ulang). Parameter IndoBERT dikunci
+                                      karena merupakan arsitektur asli bawaan
+                                      model. Mengubah dimensi ini akan merusak
                                       kompatibilitas bobot (<i>weights</i>) asli
                                       dan lapisan GAT.
                                     </div>
@@ -837,17 +837,17 @@ export default function ProcessingPage() {
                                         color: "#f59e0b",
                                       }}
                                     >
-                                      Parameter Training GAT
+                                      Parameter Training
                                     </p>
                                     <div className="row g-3">
-                                        <ParamField
-                                          label="Learning Rate (GAT)"
-                                          paramKey="gatLR"
-                                          value={gatLR}
-                                          onChange={setGatLR}
-                                          disabled={training}
-                                          isScientific
-                                        />
+                                      <ParamField
+                                        label="Learning Rate (GAT)"
+                                        paramKey="gatLR"
+                                        value={gatLR}
+                                        onChange={setGatLR}
+                                        disabled={training}
+                                        isScientific
+                                      />
                                       <div className="col-md-3">
                                         <label
                                           className="form-label"
@@ -874,14 +874,14 @@ export default function ProcessingPage() {
                                           }}
                                         />
                                       </div>
-                                        <ParamField
-                                          label="Weight Decay (GAT)"
-                                          paramKey="gatWeightDecay"
-                                          value={gatWeightDecay}
-                                          onChange={setGatWeightDecay}
-                                          disabled={training}
-                                          isScientific
-                                        />
+                                      <ParamField
+                                        label="Weight Decay (GAT)"
+                                        paramKey="gatWeightDecay"
+                                        value={gatWeightDecay}
+                                        onChange={setGatWeightDecay}
+                                        disabled={training}
+                                        isScientific
+                                      />
                                       <div className="col-md-3">
                                         <label
                                           className="form-label"
@@ -900,8 +900,7 @@ export default function ProcessingPage() {
                                           style={{
                                             height: 36,
                                             borderRadius: 6,
-                                            background:
-                                              "var(--gray-100)",
+                                            background: "var(--gray-100)",
                                             color: "var(--gray-500)",
                                             fontSize: "0.85rem",
                                           }}
@@ -909,7 +908,6 @@ export default function ProcessingPage() {
                                       </div>
                                     </div>
                                   </div>
-
                                 </div>
                               </div>
                             </div>
@@ -948,6 +946,24 @@ export default function ProcessingPage() {
                               >
                                 <Activity size={18} /> Reset ke Default
                               </button> */}
+                              <button
+                                type="button"
+                                className="btn"
+                                disabled={training}
+                                // onClick={() => navigate('/preprocessing')}
+                                style={{
+                                  height: 48,
+                                  borderRadius: 8,
+                                  fontSize: "0.95rem",
+                                  fontWeight: 600,
+                                  flex: 0.5,
+                                  background: "white",
+                                  border: "1px solid var(--gray-300)",
+                                  color: "var(--gray-700)",
+                                }}
+                              >
+                                Batal / Kembali
+                              </button>
 
                               <button
                                 type="submit"
@@ -1276,10 +1292,25 @@ const PARAM_CONFIG = {
     desc: "Mengontrol seberapa besar model memperbarui bobotnya setiap iterasi pelatihan. Nilai terlalu besar = model tidak stabil; terlalu kecil = pelatihan sangat lambat.",
     ideal: "2e-5 hingga 5e-5 untuk fine-tuning IndoBERT",
     evaluate: (v) => {
-      if (v > 1e-3) return { type: "danger", msg: "⛔ Terlalu tinggi! Loss akan melonjak-lonjak dan model gagal belajar. Turunkan ke rentang 2e-5–5e-5." };
-      if (v > 1e-4) return { type: "warn", msg: "⚠️ Cukup tinggi. Bisa menyebabkan instabilitas pelatihan. Disarankan turunkan ke ≤ 5e-5." };
-      if (v > 0 && v < 1e-6) return { type: "warn", msg: "⚠️ Terlalu rendah. Pelatihan akan sangat lambat dan bisa terjebak di local minima. Naikkan ke minimal 1e-6." };
-      return { type: "ok", msg: "✅ Nilai ideal untuk fine-tuning BERT. Model dapat belajar dengan stabil." };
+      if (v > 1e-3)
+        return {
+          type: "danger",
+          msg: "⛔ Terlalu tinggi! Loss akan melonjak-lonjak dan model gagal belajar. Turunkan ke rentang 2e-5–5e-5.",
+        };
+      if (v > 1e-4)
+        return {
+          type: "warn",
+          msg: "⚠️ Cukup tinggi. Bisa menyebabkan instabilitas pelatihan. Disarankan turunkan ke ≤ 5e-5.",
+        };
+      if (v > 0 && v < 1e-6)
+        return {
+          type: "warn",
+          msg: "⚠️ Terlalu rendah. Pelatihan akan sangat lambat dan bisa terjebak di local minima. Naikkan ke minimal 1e-6.",
+        };
+      return {
+        type: "ok",
+        msg: "✅ Nilai ideal untuk fine-tuning BERT. Model dapat belajar dengan stabil.",
+      };
     },
   },
   batchSize: {
@@ -1287,10 +1318,25 @@ const PARAM_CONFIG = {
     desc: "Jumlah sampel email yang diproses sekaligus sebelum model memperbarui bobotnya. Nilai kecil = lebih sering update tapi tidak stabil; nilai besar = lebih stabil tapi butuh memori GPU lebih besar.",
     ideal: "16 atau 32",
     evaluate: (v) => {
-      if (v > 128) return { type: "danger", msg: "⛔ Sangat besar! Kemungkinan besar akan menyebabkan Out of Memory (OOM) pada GPU." };
-      if (v > 64) return { type: "warn", msg: "⚠️ Cukup besar. Bisa memakan banyak memori GPU. Monitor penggunaan VRAM Anda." };
-      if (v < 4) return { type: "warn", msg: "⚠️ Terlalu kecil. Estimasi gradien menjadi sangat bising (noisy) dan training tidak stabil." };
-      return { type: "ok", msg: "✅ Ukuran batch ideal. Keseimbangan baik antara kecepatan dan stabilitas pelatihan." };
+      if (v > 128)
+        return {
+          type: "danger",
+          msg: "⛔ Sangat besar! Kemungkinan besar akan menyebabkan Out of Memory (OOM) pada GPU.",
+        };
+      if (v > 64)
+        return {
+          type: "warn",
+          msg: "⚠️ Cukup besar. Bisa memakan banyak memori GPU. Monitor penggunaan VRAM Anda.",
+        };
+      if (v < 4)
+        return {
+          type: "warn",
+          msg: "⚠️ Terlalu kecil. Estimasi gradien menjadi sangat bising (noisy) dan training tidak stabil.",
+        };
+      return {
+        type: "ok",
+        msg: "✅ Ukuran batch ideal. Keseimbangan baik antara kecepatan dan stabilitas pelatihan.",
+      };
     },
   },
   indoEpochs: {
@@ -1298,10 +1344,25 @@ const PARAM_CONFIG = {
     desc: "Berapa kali model melihat seluruh dataset pelatihan dari awal hingga akhir. Lebih banyak tidak selalu lebih baik karena model bisa 'menghafal' data (overfitting).",
     ideal: "3–5 untuk fine-tuning BERT",
     evaluate: (v) => {
-      if (v > 15) return { type: "danger", msg: "⛔ Terlalu banyak! Model hampir pasti akan overfitting dan performanya buruk pada data baru." };
-      if (v > 8) return { type: "warn", msg: "⚠️ Cukup tinggi. Pantau validation loss—jika naik, hentikan lebih awal (gunakan early stopping)." };
-      if (v < 2) return { type: "warn", msg: "⚠️ Terlalu sedikit. Model mungkin belum sempat belajar pola yang cukup (underfitting)." };
-      return { type: "ok", msg: "✅ Jumlah epoch ideal untuk fine-tuning model berbasis BERT." };
+      if (v > 15)
+        return {
+          type: "danger",
+          msg: "⛔ Terlalu banyak! Model hampir pasti akan overfitting dan performanya buruk pada data baru.",
+        };
+      if (v > 8)
+        return {
+          type: "warn",
+          msg: "⚠️ Cukup tinggi. Pantau validation loss—jika naik, hentikan lebih awal (gunakan early stopping).",
+        };
+      if (v < 2)
+        return {
+          type: "warn",
+          msg: "⚠️ Terlalu sedikit. Model mungkin belum sempat belajar pola yang cukup (underfitting).",
+        };
+      return {
+        type: "ok",
+        msg: "✅ Jumlah epoch ideal untuk fine-tuning model berbasis BERT.",
+      };
     },
   },
   weightDecay: {
@@ -1309,10 +1370,25 @@ const PARAM_CONFIG = {
     desc: "Regularisasi L2 yang secara bertahap 'menyusutkan' bobot model agar tidak terlalu besar. Membantu mencegah overfitting, terutama pada dataset kecil.",
     ideal: "1e-2 (0.01)",
     evaluate: (v) => {
-      if (v > 0.5) return { type: "danger", msg: "⛔ Terlalu tinggi! Regularisasi terlalu kuat—model tidak dapat belajar dengan baik (underfitting)." };
-      if (v > 0.1) return { type: "warn", msg: "⚠️ Agak tinggi. Bisa membatasi kapasitas belajar model. Coba turunkan ke 0.01." };
-      if (v === 0) return { type: "warn", msg: "⚠️ Nilai 0 = tidak ada regularisasi. Model rentan overfitting, terutama dengan dataset kecil." };
-      return { type: "ok", msg: "✅ Nilai weight decay yang sesuai untuk mencegah overfitting." };
+      if (v > 0.5)
+        return {
+          type: "danger",
+          msg: "⛔ Terlalu tinggi! Regularisasi terlalu kuat—model tidak dapat belajar dengan baik (underfitting).",
+        };
+      if (v > 0.1)
+        return {
+          type: "warn",
+          msg: "⚠️ Agak tinggi. Bisa membatasi kapasitas belajar model. Coba turunkan ke 0.01.",
+        };
+      if (v === 0)
+        return {
+          type: "warn",
+          msg: "⚠️ Nilai 0 = tidak ada regularisasi. Model rentan overfitting, terutama dengan dataset kecil.",
+        };
+      return {
+        type: "ok",
+        msg: "✅ Nilai weight decay yang sesuai untuk mencegah overfitting.",
+      };
     },
   },
   gatLR: {
@@ -1320,9 +1396,21 @@ const PARAM_CONFIG = {
     desc: "Learning rate khusus untuk lapisan Graph Attention Network (GAT). Mengontrol seberapa cepat GAT memperbarui cara memperhatikan (attend) node-node dalam graf email.",
     ideal: "1e-3 hingga 5e-3",
     evaluate: (v) => {
-      if (v > 0.1) return { type: "danger", msg: "⛔ Terlalu tinggi! GAT tidak akan konvergen dan akan menghasilkan output acak." };
-      if (v > 0.01) return { type: "warn", msg: "⚠️ Agak tinggi untuk GAT. Coba turunkan ke rentang 1e-3–5e-3 untuk hasil yang lebih stabil." };
-      if (v < 1e-5) return { type: "warn", msg: "⚠️ Terlalu rendah. GAT akan belajar sangat lambat dan butuh epoch sangat banyak untuk konvergen." };
+      if (v > 0.1)
+        return {
+          type: "danger",
+          msg: "⛔ Terlalu tinggi! GAT tidak akan konvergen dan akan menghasilkan output acak.",
+        };
+      if (v > 0.01)
+        return {
+          type: "warn",
+          msg: "⚠️ Agak tinggi untuk GAT. Coba turunkan ke rentang 1e-3–5e-3 untuk hasil yang lebih stabil.",
+        };
+      if (v < 1e-5)
+        return {
+          type: "warn",
+          msg: "⚠️ Terlalu rendah. GAT akan belajar sangat lambat dan butuh epoch sangat banyak untuk konvergen.",
+        };
       return { type: "ok", msg: "✅ Learning rate GAT dalam rentang ideal." };
     },
   },
@@ -1331,19 +1419,38 @@ const PARAM_CONFIG = {
     desc: "Regularisasi L2 khusus untuk lapisan GAT. Mencegah bobot attention menjadi terlalu ekstrem yang bisa membuat model hanya fokus pada satu node saja.",
     ideal: "1e-4 hingga 1e-3",
     evaluate: (v) => {
-      if (v > 0.1) return { type: "danger", msg: "⛔ Terlalu tinggi! GAT tidak dapat mempelajari pola keterhubungan antar node secara efektif." };
-      if (v > 0.01) return { type: "warn", msg: "⚠️ Agak tinggi. Bisa melemahkan kemampuan GAT memodelkan hubungan antar kata/entitas." };
-      return { type: "ok", msg: "✅ Weight decay GAT dalam rentang ideal untuk regularisasi yang seimbang." };
+      if (v > 0.1)
+        return {
+          type: "danger",
+          msg: "⛔ Terlalu tinggi! GAT tidak dapat mempelajari pola keterhubungan antar node secara efektif.",
+        };
+      if (v > 0.01)
+        return {
+          type: "warn",
+          msg: "⚠️ Agak tinggi. Bisa melemahkan kemampuan GAT memodelkan hubungan antar kata/entitas.",
+        };
+      return {
+        type: "ok",
+        msg: "✅ Weight decay GAT dalam rentang ideal untuk regularisasi yang seimbang.",
+      };
     },
   },
 };
 
-function ParamField({ label, paramKey, value, onChange, disabled, isScientific }) {
+function ParamField({
+  label,
+  paramKey,
+  value,
+  onChange,
+  disabled,
+  isScientific,
+}) {
   const [showTooltip, setShowTooltip] = useState(false);
   const config = PARAM_CONFIG[paramKey] || {};
   const numVal = parseFloat(value);
   const isValid = !isNaN(numVal);
-  const evalResult = isValid && config.evaluate ? config.evaluate(numVal) : null;
+  const evalResult =
+    isValid && config.evaluate ? config.evaluate(numVal) : null;
 
   const statusColor = {
     ok: "#10b981",
@@ -1364,16 +1471,32 @@ function ParamField({ label, paramKey, value, onChange, disabled, isScientific }
   return (
     <div style={{ position: "relative", width: "100%" }}>
       {/* Label + Info Icon */}
-      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          marginBottom: 4,
+        }}
+      >
         <label
           className="form-label"
-          style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 0, color: "var(--app-text)" }}
+          style={{
+            fontSize: "0.8rem",
+            fontWeight: 600,
+            marginBottom: 0,
+            color: "var(--app-text)",
+          }}
         >
           {config.label || label}
         </label>
         {config.desc && (
           <div
-            style={{ position: "relative", display: "inline-flex", cursor: "help" }}
+            style={{
+              position: "relative",
+              display: "inline-flex",
+              cursor: "help",
+            }}
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
           >
@@ -1396,10 +1519,18 @@ function ParamField({ label, paramKey, value, onChange, disabled, isScientific }
                   pointerEvents: "none",
                 }}
               >
-                <div style={{ fontWeight: 700, marginBottom: 4, color: "#93c5fd" }}>{config.label || label}</div>
+                <div
+                  style={{ fontWeight: 700, marginBottom: 4, color: "#93c5fd" }}
+                >
+                  {config.label || label}
+                </div>
                 <div>{config.desc}</div>
                 {config.ideal && (
-                  <div style={{ marginTop: 6, color: "#86efac", fontWeight: 600 }}>✅ Ideal: {config.ideal}</div>
+                  <div
+                    style={{ marginTop: 6, color: "#86efac", fontWeight: 600 }}
+                  >
+                    ✅ Ideal: {config.ideal}
+                  </div>
                 )}
               </div>
             )}
@@ -1426,7 +1557,13 @@ function ParamField({ label, paramKey, value, onChange, disabled, isScientific }
 
       {/* Decimal hint for scientific notation */}
       {isScientific && isValid && (
-        <div style={{ fontSize: "0.65rem", color: "var(--app-text-muted)", marginTop: 2 }}>
+        <div
+          style={{
+            fontSize: "0.65rem",
+            color: "var(--app-text-muted)",
+            marginTop: 2,
+          }}
+        >
           = {numVal.toFixed(10).replace(/\.?0+$/, "")}
         </div>
       )}
