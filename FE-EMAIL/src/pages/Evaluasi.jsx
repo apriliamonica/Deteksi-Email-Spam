@@ -226,18 +226,33 @@ export default function EvaluationPage() {
 
   const getRatio = (item) => {
     if (item.req_val_split != null && item.req_test_split != null) {
-      const tr = Math.round(
-        (1 - item.req_val_split - item.req_test_split) * 100,
-      );
+      const tr = Math.round((1 - item.req_val_split - item.req_test_split) * 100);
+      const val = Math.round(item.req_val_split * 100);
       const te = Math.round(item.req_test_split * 100);
-      return `${tr}:${te}`;
+      return `${tr}:${val}:${te}`;
     }
+    
+    // Fallback jika ambil dari size dan total_data
     if (item.train_size && item.total_data) {
-      const tr = Math.round((item.train_size / item.total_data) * 100);
       const te = Math.round((item.test_size / item.total_data) * 100);
-      return `${tr}:${te}`;
+      let val = 0;
+      
+      // Ambil val_size dari metrics_json jika ada
+      try {
+        if (item.metrics_json) {
+          const mj = JSON.parse(item.metrics_json);
+          if (mj.val_size) {
+            val = Math.round((mj.val_size / item.total_data) * 100);
+          }
+        }
+      } catch (e) {}
+
+      const tr = Math.round((item.train_size / item.total_data) * 100);
+      
+      // Jika val ada, tampilkan 3 bagian, jika tidak tampilkan 2 bagian
+      return val > 0 ? `${tr}:${val}:${te}` : `${tr}:${te}`;
     }
-    return "80:20";
+    return "80:10:10";
   };
 
   const allRatios = [...new Set(filteredResults.map(getRatio))].sort();

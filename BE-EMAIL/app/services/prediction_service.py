@@ -324,18 +324,38 @@ class PredictionService:
             self.gat_model.eval()
             with torch.no_grad():
                 test_out = self.gat_model(x, edge_index)
+                
+                # Testing Metrics
                 test_probs = F.softmax(test_out[test_mask], dim=1)
                 test_pred = test_probs.argmax(dim=1).cpu().numpy()
                 test_true = y[test_mask].cpu().numpy()
                 test_conf = test_probs.max(dim=1)[0].cpu().numpy()
+                
+                # Training Metrics
+                train_probs = F.softmax(test_out[train_mask], dim=1)
+                train_pred = train_probs.argmax(dim=1).cpu().numpy()
+                train_true = y[train_mask].cpu().numpy()
+                train_conf = train_probs.max(dim=1)[0].cpu().numpy()
 
             metrics = {
+                # Testing metrics sebagai utama
                 "accuracy": float(accuracy_score(test_true, test_pred)),
                 "precision": float(precision_score(test_true, test_pred, zero_division=0)),
                 "recall": float(recall_score(test_true, test_pred, zero_division=0)),
                 "f1_score": float(f1_score(test_true, test_pred, zero_division=0)),
                 "mcc": float(matthews_corrcoef(test_true, test_pred)),
                 "roc_auc": float(roc_auc_score(test_true, test_conf)) if len(np.unique(test_true)) > 1 else 0.5,
+                
+                # Training metrics untuk perbandingan
+                "train_metrics": {
+                    "accuracy": float(accuracy_score(train_true, train_pred)),
+                    "precision": float(precision_score(train_true, train_pred, zero_division=0)),
+                    "recall": float(recall_score(train_true, train_pred, zero_division=0)),
+                    "f1_score": float(f1_score(train_true, train_pred, zero_division=0)),
+                    "mcc": float(matthews_corrcoef(train_true, train_pred)),
+                    "roc_auc": float(roc_auc_score(train_true, train_conf)) if len(np.unique(train_true)) > 1 else 0.5,
+                },
+                
                 "total_data": N,
                 "train_size": len(train_idx),
                 "val_size": len(val_idx),
