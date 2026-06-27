@@ -27,4 +27,10 @@ def init_db():
     with engine.begin() as conn:
         conn.execute(text('ALTER TABLE training_history ADD COLUMN IF NOT EXISTS req_val_split DOUBLE PRECISION'))
         conn.execute(text('ALTER TABLE training_history ADD COLUMN IF NOT EXISTS req_test_split DOUBLE PRECISION'))
+        # Tambah kolom user_id ke tabel emails jika belum ada
+        conn.execute(text('ALTER TABLE emails ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'))
+        # Tambah kolom batch_id dan batch_name untuk pengelompokan upload batch
+        conn.execute(text('ALTER TABLE emails ADD COLUMN IF NOT EXISTS batch_id VARCHAR(64)'))
+        conn.execute(text('ALTER TABLE emails ADD COLUMN IF NOT EXISTS batch_name VARCHAR(255)'))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_emails_batch_id ON emails(batch_id)'))
 

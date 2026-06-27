@@ -11,6 +11,9 @@ class Email(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     dataset_id = Column(Integer, ForeignKey("datasets.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True, comment="ID user yang melakukan prediksi")
+    batch_id = Column(String(64), nullable=True, index=True, comment="ID unik untuk mengelompokkan hasil upload batch")
+    batch_name = Column(String(255), nullable=True, comment="Nama file yang diupload pada batch")
     subject = Column(String(500), nullable=True)
     body = Column(Text, nullable=False)
     processed_body = Column(Text, nullable=True)

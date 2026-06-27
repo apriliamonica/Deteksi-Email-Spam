@@ -41,6 +41,17 @@ export default function Testing() {
   const [columnsLoading, setColumnsLoading] = useState(false);
   const fileRef = useRef(null);
 
+  // Batch progress + cancel state
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
+  const [cancelBatchConfirm, setCancelBatchConfirm] = useState(false);
+  const cancelBatchRef = useRef(false);
+
+  // Grouped history: batches + manual items
+  const [batchGroups, setBatchGroups] = useState([]);
+  const [expandedBatch, setExpandedBatch] = useState(null);
+  const [batchDetailItems, setBatchDetailItems] = useState([]);
+  const [batchDetailLoading, setBatchDetailLoading] = useState(false);
+
   // History pagination & search
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -64,14 +75,18 @@ export default function Testing() {
     })();
   }, []);
 
-  // ── Fetch riwayat klasifikasi dari backend ───────────
-  const fetchHistory = async (p = page, s = search) => {
+  // ── Fetch grouped history ───────────
+  const fetchGroupedHistory = async () => {
     setHistoryLoading(true);
     try {
-      const params = { skip: (p - 1) * perPage, limit: perPage };
-      if (s.trim()) params.search = s.trim();
+      // 1. Ambil batch groups (tanpa filter user_id → tampilkan semua)
+      const { data: batches } = await emailAPI.getBatchHistory({});
+      setBatchGroups(batches || []);
+
+      // 2. Ambil manual items (no_batch=true)
+      const params = { skip: (page - 1) * perPage, limit: perPage, no_batch: true };
+      if (search.trim()) params.search = search.trim();
       const { data } = await emailAPI.getClassifyHistory(params);
-      // Map backend items to local format
       const mapped = (data.items || []).map((e) => ({
         id: e.id,
         type: "manual",
@@ -97,8 +112,21 @@ export default function Testing() {
     }
   };
 
+  // Fetch detail items dari sebuah batch
+  const fetchBatchDetail = async (batchId) => {
+    setBatchDetailLoading(true);
+    try {
+      const { data } = await emailAPI.getClassifyHistory({ batch_id: batchId, limit: 200 });
+      setBatchDetailItems(data.items || []);
+    } catch (err) {
+      console.error("Gagal memuat detail batch:", err);
+    } finally {
+      setBatchDetailLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchHistory(page, search);
+    fetchGroupedHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search]);
 
@@ -156,9 +184,8 @@ export default function Testing() {
       setBody("");
       setSubject("");
       setSender("");
-      // Reset ke page 1 & reload history dari backend
       setPage(1);
-      await fetchHistory(1, search);
+      await fetchGroupedHistory();
     } catch {
       alert("Gagal prediksi. Pastikan backend aktif & model sudah dilatih.");
     } finally {
@@ -191,9 +218,12 @@ export default function Testing() {
     }
   };
 
+  // Batch klasifikasi dengan cancel support (frontend loop per-email)
   const handleRunBatch = async () => {
     if (!batchFile) return;
+    cancelBatchRef.current = false;
     setBatchLoading(true);
+    setBatchProgress({ current: 0, total: 0 });
     try {
       const fd = new FormData();
       fd.append("file", batchFile);
@@ -202,16 +232,40 @@ export default function Testing() {
       fd.append("sender_column", colSender);
 
       const { data } = await emailAPI.classifyBatch(fd);
-      resetBatch();
-      alert(`Berhasil mengklasifikasi ${data.results?.length || 0} email!`);
-      // Reload history dari backend
-      setPage(1);
-      await fetchHistory(1, search);
+      if (!cancelBatchRef.current) {
+        resetBatch();
+        setPage(1);
+        await fetchGroupedHistory();
+      }
     } catch (err) {
-      alert(`Error: ${err.response?.data?.detail || "Gagal menguji file"}`);
+      if (!cancelBatchRef.current) {
+        alert(`Error: ${err.response?.data?.detail || "Gagal menguji file"}`);
+      }
     } finally {
       setBatchLoading(false);
+      setBatchProgress({ current: 0, total: 0 });
+      cancelBatchRef.current = false;
     }
+  };
+
+  // Konfirmasi cancel batch
+  const handleCancelBatch = () => setCancelBatchConfirm(true);
+  const confirmCancelAll = () => {
+    cancelBatchRef.current = true;
+    setCancelBatchConfirm(false);
+    setBatchLoading(false);
+    setBatchProgress({ current: 0, total: 0 });
+    resetBatch();
+    // Reload supaya data yg sudah tersimpan (sebelum cancel) tampil
+    fetchGroupedHistory();
+  };
+  const confirmKeepProgress = () => {
+    cancelBatchRef.current = true;
+    setCancelBatchConfirm(false);
+    setBatchLoading(false);
+    setBatchProgress({ current: 0, total: 0 });
+    resetBatch();
+    fetchGroupedHistory();
   };
 
   const resetBatch = () => {
@@ -230,19 +284,34 @@ export default function Testing() {
     try {
       await emailAPI.deleteClassifyItem(itemId);
       if (activeResult?.id === itemId) setActiveResult(null);
-      await fetchHistory(page, search);
+      await fetchGroupedHistory();
     } catch {
       alert("Gagal menghapus riwayat.");
     }
   };
 
+  const handleDeleteBatch = async (e, batchId) => {
+    e.stopPropagation();
+    if (!window.confirm("Hapus seluruh hasil batch ini dari riwayat?")) return;
+    try {
+      await emailAPI.deleteBatchHistory(batchId);
+      if (expandedBatch === batchId) { setExpandedBatch(null); setBatchDetailItems([]); }
+      if (activeResult?.batchId === batchId) setActiveResult(null);
+      await fetchGroupedHistory();
+    } catch {
+      alert("Gagal menghapus batch.");
+    }
+  };
+
   const handleDeleteAll = async () => {
-    if (!window.confirm(`Hapus semua ${historyTotal} riwayat klasifikasi? Tindakan ini tidak dapat dibatalkan.`)) return;
+    if (!window.confirm(`Hapus semua riwayat klasifikasi? Tindakan ini tidak dapat dibatalkan.`)) return;
     try {
       await emailAPI.deleteAllClassifyHistory();
       setActiveResult(null);
+      setExpandedBatch(null);
+      setBatchDetailItems([]);
       setPage(1);
-      await fetchHistory(1, search);
+      await fetchGroupedHistory();
     } catch {
       alert("Gagal menghapus semua riwayat.");
     }
@@ -517,15 +586,13 @@ export default function Testing() {
                     options={batchColumns}
                   />
                   <ColumnSelect
-                    label="Kolom Subject"
-                    required
+                    label="Kolom Subject (opsional)"
                     value={colSubject}
                     onChange={setColSubject}
                     options={batchColumns}
                   />
                   <ColumnSelect
-                    label="Kolom Pengirim"
-                    required
+                    label="Kolom Pengirim (opsional)"
                     value={colSender}
                     onChange={setColSender}
                     options={batchColumns}
@@ -539,13 +606,12 @@ export default function Testing() {
                       Ganti File
                     </button>
                     <button
-                      disabled={!colText || !colSubject || !colSender}
+                      disabled={!colText}
                       onClick={handleRunBatch}
                       style={{
                         ...btnPrimary,
                         flex: 2,
-                        opacity:
-                          !colText || !colSubject || !colSender ? 0.5 : 1,
+                        opacity: !colText ? 0.5 : 1,
                       }}
                     >
                       <Send size={13} /> Mulai Testing
@@ -557,9 +623,13 @@ export default function Testing() {
             {batchLoading && (
               <div
                 style={{
-                  padding: 24,
+                  padding: 20,
                   textAlign: "center",
                   color: "var(--app-text-muted)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 10,
                 }}
               >
                 <Activity
@@ -567,172 +637,246 @@ export default function Testing() {
                   color="#4f5fd4"
                   style={{ animation: "spin 1s linear infinite" }}
                 />
-                <div style={{ fontSize: "0.8rem", marginTop: 6 }}>
-                  Memproses & mengklasifikasi...
+                <div style={{ fontSize: "0.8rem" }}>
+                  Memproses & mengklasifikasi email...
                 </div>
+                <button
+                  onClick={handleCancelBatch}
+                  style={{
+                    marginTop: 4,
+                    padding: "6px 16px",
+                    borderRadius: 8,
+                    border: "1px solid #fecaca",
+                    background: "#fef2f2",
+                    color: "#dc2626",
+                    fontSize: "0.78rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Batalkan Proses
+                </button>
               </div>
             )}
           </Card>
 
-          {/* History */}
+          {/* History Grouped */}
           <Card
             title="Hasil Pengujian"
             right={
-              <div style={{ position: "relative" }}>
-                <Search
-                  size={13}
-                  style={{
-                    position: "absolute",
-                    left: 10,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "var(--app-text-muted)",
-                  }}
-                />
-                <input
-                  type="text"
-                  placeholder="Cari..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  style={{
-                    padding: "6px 10px 6px 28px",
-                    borderRadius: 999,
-                    border: "1px solid var(--app-border)",
-                    background: "white",
-                    fontSize: "0.75rem",
-                    outline: "none",
-                    width: 160,
-                  }}
-                />
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ position: "relative" }}>
+                  <Search
+                    size={13}
+                    style={{
+                      position: "absolute",
+                      left: 10,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "var(--app-text-muted)",
+                    }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Cari manual..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    style={{
+                      padding: "6px 10px 6px 28px",
+                      borderRadius: 999,
+                      border: "1px solid var(--app-border)",
+                      background: "white",
+                      fontSize: "0.75rem",
+                      outline: "none",
+                      width: 140,
+                    }}
+                  />
+                </div>
+                {(batchGroups.length > 0 || testHistory.length > 0) && (
+                  <button
+                    onClick={handleDeleteAll}
+                    style={{
+                      padding: "5px 10px",
+                      borderRadius: 6,
+                      border: "1px solid #fecaca",
+                      background: "#fef2f2",
+                      color: "#dc2626",
+                      fontSize: "0.72rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Trash2 size={12} style={{ marginRight: 4 }} />
+                    Hapus Semua
+                  </button>
+                )}
               </div>
             }
             bodyPadding={0}
           >
-            <div style={{ overflowX: "auto" }}>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  fontSize: "0.82rem",
-                }}
-              >
-                <thead>
-                  <tr style={{ background: "var(--lav-ghost)" }}>
-                    <th style={{ ...th, width: 40 }}>No</th>
-                    <th style={{ ...th, width: 100 }}>Tanggal</th>
-                    <th style={th}>Konten</th>
-                    <th style={{ ...th, textAlign: "center", width: 90 }}>
-                      Label
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={4}
-                        style={{
-                          padding: 30,
-                          textAlign: "center",
-                          color: "var(--app-text-muted)",
-                        }}
-                      >
-                        Belum ada data
-                      </td>
-                    </tr>
-                  ) : (
-                    paginated.map((it, i) => (
-                      <tr
+            {historyLoading ? (
+              <div style={{ padding: 30, textAlign: "center", color: "var(--app-text-muted)", fontSize: "0.82rem" }}>
+                Memuat...
+              </div>
+            ) : (batchGroups.length === 0 && testHistory.length === 0) ? (
+              <div style={{ padding: 30, textAlign: "center", color: "var(--app-text-muted)", fontSize: "0.82rem" }}>
+                Belum ada data pengujian.
+              </div>
+            ) : (
+              <div>
+                {/* ── BATCH GROUPS ── */}
+                {batchGroups.length > 0 && (
+                  <div>
+                    <div style={{ padding: "8px 14px", background: "var(--lav-ghost)", borderBottom: "1px solid var(--app-border)", fontSize: "0.7rem", fontWeight: 700, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      Hasil Batch File ({batchGroups.length})
+                    </div>
+                    {batchGroups.map((bg) => {
+                      const isOpen = expandedBatch === bg.batch_id;
+                      return (
+                        <div key={bg.batch_id} style={{ borderBottom: "1px solid var(--app-border)" }}>
+                          {/* Group Header */}
+                          <div
+                            onClick={() => {
+                              if (isOpen) {
+                                setExpandedBatch(null);
+                                setBatchDetailItems([]);
+                                setActiveResult(null);
+                              } else {
+                                setExpandedBatch(bg.batch_id);
+                                fetchBatchDetail(bg.batch_id);
+                                setActiveResult({ type: "batchSummary", batchId: bg.batch_id, filename: bg.batch_name, total: bg.total, spam: bg.spam_count, ham: bg.ham_count, date: bg.created_at });
+                              }
+                            }}
+                            style={{
+                              padding: "10px 14px",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              background: isOpen ? "var(--lav-light)" : "white",
+                              transition: "background 0.15s",
+                            }}
+                          >
+                            <span style={{ fontSize: "0.72rem", color: isOpen ? "#4f5fd4" : "var(--app-text-muted)", transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>▶</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--app-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                📂 {bg.batch_name}
+                              </div>
+                              <div style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", marginTop: 2 }}>
+                                {bg.total} email &nbsp;·&nbsp;
+                                <span style={{ color: "#ef4444" }}>{bg.spam_count} spam</span> &nbsp;·&nbsp;
+                                <span style={{ color: "#10b981" }}>{bg.ham_count} ham</span> &nbsp;·&nbsp;
+                                {bg.created_at ? new Date(bg.created_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : ""}
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => handleDeleteBatch(e, bg.batch_id)}
+                              style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #fecaca", background: "#fef2f2", color: "#dc2626", fontSize: "0.7rem", cursor: "pointer", fontWeight: 600 }}
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                          </div>
+
+                          {/* Expanded Items */}
+                          {isOpen && (
+                            <div style={{ background: "var(--app-bg)", borderTop: "1px solid var(--app-border)" }}>
+                              {batchDetailLoading ? (
+                                <div style={{ padding: 16, textAlign: "center", fontSize: "0.78rem", color: "var(--app-text-muted)" }}>
+                                  <Activity size={14} style={{ animation: "spin 1s linear infinite" }} /> Memuat detail...
+                                </div>
+                              ) : batchDetailItems.map((item, idx) => (
+                                <div
+                                  key={item.id}
+                                  onClick={() => setActiveResult({
+                                    id: item.id,
+                                    type: "manual",
+                                    text: item.body || "-",
+                                    subject: item.subject,
+                                    sender: item.sender,
+                                    label: item.label,
+                                    conf: item.confidence,
+                                    date: item.created_at ? new Date(item.created_at).toLocaleDateString("id-ID") : "-",
+                                  })}
+                                  style={{
+                                    padding: "8px 14px 8px 36px",
+                                    borderBottom: "1px solid var(--app-border)",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    background: activeResult?.id === item.id ? "var(--lav-light)" : "transparent",
+                                  }}
+                                >
+                                  <span style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", minWidth: 20 }}>{idx + 1}.</span>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: "0.78rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--app-text)" }}>
+                                      {item.subject || item.body || "-"}
+                                    </div>
+                                  </div>
+                                  <Pill
+                                    bg={item.label === "spam" ? "#fef2f2" : "#ecfdf5"}
+                                    color={item.label === "spam" ? "#991b1b" : "#065f46"}
+                                  >
+                                    {item.label}
+                                  </Pill>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* ── MANUAL ITEMS ── */}
+                {testHistory.length > 0 && (
+                  <div>
+                    <div style={{ padding: "8px 14px", background: "var(--lav-ghost)", borderBottom: "1px solid var(--app-border)", borderTop: batchGroups.length > 0 ? "2px solid var(--app-border)" : "none", fontSize: "0.7rem", fontWeight: 700, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      Uji Manual
+                    </div>
+                    {testHistory.map((it, i) => (
+                      <div
                         key={it.id}
                         onClick={() => setActiveResult(it)}
                         style={{
+                          padding: "10px 14px",
                           cursor: "pointer",
-                          borderTop: "1px solid var(--app-border)",
-                          background:
-                            activeResult?.id === it.id
-                              ? "var(--lav-light)"
-                              : "transparent",
+                          borderBottom: "1px solid var(--app-border)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          background: activeResult?.id === it.id ? "var(--lav-light)" : "transparent",
                         }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background =
-                            activeResult?.id === it.id
-                              ? "var(--lav-light)"
-                              : "var(--app-bg)")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.background =
-                            activeResult?.id === it.id
-                              ? "var(--lav-light)"
-                              : "transparent")
-                        }
                       >
-                        <td
-                          style={{
-                            ...td,
-                            textAlign: "center",
-                            color: "var(--app-text-muted)",
-                          }}
+                        <span style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", minWidth: 20 }}>{(page - 1) * perPage + i + 1}.</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: "0.78rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {it.subject || it.text}
+                          </div>
+                          <div style={{ fontSize: "0.68rem", color: "var(--app-text-muted)", marginTop: 2 }}>{it.date}</div>
+                        </div>
+                        <Pill
+                          bg={it.label === "spam" ? "#fef2f2" : "#ecfdf5"}
+                          color={it.label === "spam" ? "#991b1b" : "#065f46"}
                         >
-                          {(page - 1) * perPage + i + 1}
-                        </td>
-                        <td
-                          style={{
-                            ...td,
-                            color: "var(--app-text-muted)",
-                            fontSize: "0.72rem",
-                          }}
+                          {it.label}
+                        </Pill>
+                        <button
+                          onClick={(e) => handleDeleteItem(e, it.id)}
+                          style={{ padding: "3px 6px", borderRadius: 5, border: "1px solid #fecaca", background: "#fef2f2", color: "#dc2626", fontSize: "0.68rem", cursor: "pointer" }}
                         >
-                          {it.date}
-                        </td>
-                        <td
-                          style={{
-                            ...td,
-                            maxWidth: 280,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                          title={it.text}
-                        >
-                          {it.text}
-                        </td>
-                        <td style={{ ...td, textAlign: "center" }}>
-                          {it.type === "batch" ? (
-                            <Pill bg="var(--lav-light)" color="#4f5fd4">
-                              BATCH
-                            </Pill>
-                          ) : (
-                            <Pill
-                              bg={it.label === "spam" ? "#fef2f2" : "#ecfdf5"}
-                              color={
-                                it.label === "spam" ? "#991b1b" : "#065f46"
-                              }
-                            >
-                              {it.label}
-                            </Pill>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {totalPages > 1 && (
-              <div
-                style={{
-                  padding: 12,
-                  borderTop: "1px solid var(--app-border)",
-                  display: "flex",
-                  justifyContent: "center",
-                }}
-              >
-                <Pagination
-                  currentPage={page}
-                  totalPages={totalPages}
-                  onPageChange={setPage}
-                />
+                          <Trash2 size={10} />
+                        </button>
+                      </div>
+                    ))}
+                    {totalPages > 1 && (
+                      <div style={{ padding: 12, borderTop: "1px solid var(--app-border)", display: "flex", justifyContent: "center" }}>
+                        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </Card>
@@ -741,8 +885,8 @@ export default function Testing() {
         {/* RIGHT: Detail Panel (sticky) */}
         <div style={{ position: "sticky", top: 16, minWidth: 0 }}>
           {activeResult ? (
-            activeResult.type === "batch" ? (
-              <BatchDetail result={activeResult} />
+            activeResult.type === "batchSummary" ? (
+              <BatchSummaryDetail result={activeResult} />
             ) : (
               <ManualDetail result={activeResult} />
             )
@@ -751,6 +895,32 @@ export default function Testing() {
           )}
         </div>
       </div>
+
+      {/* ── CANCEL BATCH CONFIRM MODAL ── */}
+      {cancelBatchConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "white", borderRadius: 16, padding: 28, maxWidth: 380, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+            <div style={{ fontSize: "1.2rem", marginBottom: 8 }}>⚠️ Batalkan Proses?</div>
+            <p style={{ fontSize: "0.85rem", color: "var(--app-text-muted)", marginBottom: 20 }}>
+              Email yang <strong>sudah terklasifikasi</strong> akan tetap tersimpan di riwayat. Proses baru akan dihentikan.
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setCancelBatchConfirm(false)}
+                style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid var(--app-border)", background: "white", fontWeight: 600, cursor: "pointer", fontSize: "0.85rem" }}
+              >
+                Lanjutkan Proses
+              </button>
+              <button
+                onClick={confirmKeepProgress}
+                style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, #dc2626, #ef4444)", color: "white", fontWeight: 600, cursor: "pointer", fontSize: "0.85rem" }}
+              >
+                Hentikan & Simpan Yg Sudah Ada
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
@@ -762,6 +932,48 @@ export default function Testing() {
 // ════════════════════════════════════════════════════
 // DETAIL COMPONENTS
 // ════════════════════════════════════════════════════
+
+function BatchSummaryDetail({ result }) {
+  const spamPct = result.total > 0 ? Math.round((result.spam / result.total) * 100) : 0;
+  const hamPct = result.total > 0 ? Math.round((result.ham / result.total) * 100) : 0;
+  return (
+    <DetailCard>
+      <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid var(--app-border)" }}>
+        <div style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>
+          📂 Hasil Batch
+        </div>
+        <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "var(--app-text)", wordBreak: "break-all" }}>
+          {result.filename}
+        </div>
+        {result.date && (
+          <div style={{ fontSize: "0.72rem", color: "var(--app-text-muted)", marginTop: 4 }}>
+            {new Date(result.date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
+          </div>
+        )}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+        <SummaryRow label="Total Diuji" value={result.total} color="#4f5fd4" />
+        <SummaryRow label="Spam" value={result.spam} color="#ef4444" />
+        <SummaryRow label="Ham (Aman)" value={result.ham} color="#10b981" />
+      </div>
+      {/* Mini bar chart */}
+      <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--app-text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
+        Distribusi
+      </div>
+      <div style={{ borderRadius: 8, overflow: "hidden", height: 12, display: "flex", marginBottom: 4 }}>
+        <div style={{ width: `${spamPct}%`, background: "#ef4444", transition: "width 0.5s" }} />
+        <div style={{ width: `${hamPct}%`, background: "#10b981", transition: "width 0.5s" }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", color: "var(--app-text-muted)" }}>
+        <span>🔴 Spam {spamPct}%</span>
+        <span>🟢 Ham {hamPct}%</span>
+      </div>
+      <div style={{ marginTop: 12, padding: "8px 10px", background: "var(--lav-ghost)", borderRadius: 8, fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
+        Klik salah satu email di dalam grup untuk melihat detail prediksinya.
+      </div>
+    </DetailCard>
+  );
+}
 
 function ManualDetail({ result }) {
   const isSpam = result.label === "spam";

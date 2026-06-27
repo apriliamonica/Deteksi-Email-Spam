@@ -10,6 +10,7 @@ class EmailInput(BaseModel):
     subject: Optional[str] = Field(None, max_length=500, description="Subjek email")
     body: str = Field(..., min_length=1, description="Isi/body email")
     sender: Optional[str] = Field(None, max_length=255, description="Pengirim email")
+    user_id: Optional[int] = Field(None, description="ID user yang melakukan klasifikasi")
 
 
 class PreprocessRequest(BaseModel):

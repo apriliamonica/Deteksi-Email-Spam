@@ -52,11 +52,26 @@ export const emailAPI = {
     api.get("/email/stats", { params: { dataset_id } }),
   getById: (id) => api.get(`/email/${id}`),
 
-  // Riwayat Klasifikasi
+  // Riwayat Klasifikasi — bisa difilter per user
   getClassifyHistory: (params = {}) =>
     api.get("/email/classify-history", { params }),
+  // Riwayat Batch (terkelompok per upload file)
+  getBatchHistory: (params = {}) =>
+    api.get("/email/classify-history/batches", { params }),
+  deleteBatchHistory: (batchId) => 
+    api.delete(`/email/classify-history/batches/${batchId}`),
   deleteClassifyItem: (id) => api.delete(`/email/classify-history/${id}`),
   deleteAllClassifyHistory: () => api.delete("/email/classify-history"),
+};
+
+// Helper: ambil user dari localStorage
+export const getCurrentUser = () => {
+  try {
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
 };
 
 

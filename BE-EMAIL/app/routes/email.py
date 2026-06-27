@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
+from sqlalchemy import Integer
 from typing import Optional, List
 import pandas as pd
 import io
+import uuid
 from app.config.database import get_db
 from app.schemas.email import (
     EmailInput,
@@ -107,6 +109,7 @@ async def classify_email(email_input: EmailInput, db: Session = Depends(get_db))
             "label": result["label"],
             "confidence": result["confidence"],
             "is_prediction": True,
+            "user_id": email_input.user_id,
         })
 
         return PredictionResponse(**result)
@@ -120,19 +123,14 @@ async def classify_email(email_input: EmailInput, db: Session = Depends(get_db))
 @router.post("/classify-batch")
 async def classify_batch(
     file: UploadFile = File(..., description="CSV file dengan kolom 'text' atau 'body'"),
-    text_column: str = Form(..., description="Nama kolom teks (text/body) yang akan dipakai"),
-    subject_column: str = Form(..., description="Nama kolom subject (wajib)"),
-    sender_column: str = Form(..., description="Nama kolom sender (wajib)"),
+    text_column: str = Form("", description="Nama kolom teks (text/body) yang akan dipakai"),
+    subject_column: str = Form("", description="Nama kolom subject (opsional)"),
+    sender_column: str = Form("", description="Nama kolom sender (opsional)"),
+    user_id: Optional[int] = Form(None, description="ID user yang melakukan klasifikasi"),
     db: Session = Depends(get_db)
 ):
     """
-    Klasifikasi email sebagai spam atau ham.
-
-    Proses:
-    1. Preprocessing teks
-    2. Ekstraksi fitur IndoBERT
-    3. Konstruksi graph
-    4. Prediksi menggunakan GAT
+    Klasifikasi email sebagai spam atau ham secara batch.
     """
     is_excel = file.filename.endswith((".xlsx", ".xls"))
     is_csv = file.filename.endswith(".csv")
@@ -142,6 +140,9 @@ async def classify_batch(
 
     try:
         content = await file.read()
+        original_filename = file.filename
+        # Generate batch_id unik untuk mengelompokkan semua email dari file ini
+        batch_uid = str(uuid.uuid4())
         df = None
         # Deteksi otomatis jika file sebenarnya Excel (.xlsx) tapi di-rename jadi .csv (Header PK = ZIP/Excel)
         if is_excel or content.startswith(b"PK"):
@@ -161,7 +162,7 @@ async def classify_batch(
                         temp_cols = [str(c).strip().lower() for c in temp_df.columns]
                         
                         # Jika delimiter ini berhasil memisahkan kolom dan menemukan text/body, gunakan!
-                        if any(c in temp_cols for c in ["text_id", "text", "body"]):
+                        if any(c in temp_cols for c in ["text_id", "text", "body", text_column.strip().lower() if text_column else ""]):
                             df = temp_df
                             break
                     except Exception:
@@ -185,27 +186,34 @@ async def classify_batch(
         text_col = None
         subj_col = None
         sender_col = None
-        # Use user-provided mapping if present, else fallback to auto-detect
-        if text_column:
-            if text_column not in df.columns:
+        
+        # Text column (wajib ada setidaknya 1 kolom untuk diproses)
+        if text_column and text_column.strip():
+            target_text = text_column.strip().lower()
+            if target_text not in df.columns:
                 raise HTTPException(status_code=400, detail=f"Kolom teks '{text_column}' tidak ditemukan dalam file.")
-            text_col = text_column
+            text_col = target_text
         else:
             text_col = next((c for c in ["text_id", "text", "body"] if c in df.columns), None)
-
-        if subject_column not in df.columns:
-            raise HTTPException(status_code=400, detail=f"Kolom subject '{subject_column}' tidak ditemukan dalam file.")
-        subj_col = subject_column
-
-        if sender_column not in df.columns:
-            raise HTTPException(status_code=400, detail=f"Kolom sender '{sender_column}' tidak ditemukan dalam file.")
-        sender_col = sender_column
-
-        # If text column still not found, fallback to first column
-        if not text_col:
+            
+        if not text_col and len(df.columns) > 0:
             first_col = df.columns[0]
             df = df.rename(columns={first_col: "text"})
             text_col = "text"
+
+        # Subject column (opsional)
+        if subject_column and subject_column.strip():
+            target_subj = subject_column.strip().lower()
+            if target_subj not in df.columns:
+                raise HTTPException(status_code=400, detail=f"Kolom subject '{subject_column}' tidak ditemukan dalam file.")
+            subj_col = target_subj
+
+        # Sender column (opsional)
+        if sender_column and sender_column.strip():
+            target_sender = sender_column.strip().lower()
+            if target_sender not in df.columns:
+                raise HTTPException(status_code=400, detail=f"Kolom sender '{sender_column}' tidak ditemukan dalam file.")
+            sender_col = target_sender
 
         results = []
         for _, row in df.iterrows():
@@ -218,7 +226,7 @@ async def classify_batch(
             # Predict
             pred_result = prediction_service.predict(text=text, subject=subject, sender=sender)
             
-            # Save to db
+            # Save to db dengan batch_id dan batch_name
             email_record = EmailService.create_email(db, {
                 "subject": subject,
                 "body": text,
@@ -226,6 +234,9 @@ async def classify_batch(
                 "label": pred_result["label"],
                 "confidence": pred_result["confidence"],
                 "is_prediction": True,
+                "user_id": user_id,
+                "batch_id": batch_uid,
+                "batch_name": original_filename,
             })
             
             # Append full result similar to single prediction but with record id
@@ -234,7 +245,17 @@ async def classify_batch(
                 **pred_result
             })
             
-        return {"status": "success", "results": results}
+        spam_count = sum(1 for r in results if r.get("label") == "spam")
+        ham_count = len(results) - spam_count
+        return {
+            "status": "success",
+            "batch_id": batch_uid,
+            "batch_name": original_filename,
+            "total": len(results),
+            "spam_count": spam_count,
+            "ham_count": ham_count,
+            "results": results
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gagal memproses batch: {str(e)}")
 
@@ -252,12 +273,57 @@ async def list_emails(
     return emails
 
 
+@router.get("/classify-history/batches")
+async def get_batch_history(
+    user_id: Optional[int] = Query(None, description="Filter berdasarkan user_id"),
+    db: Session = Depends(get_db),
+):
+    """Ambil daftar riwayat batch upload yang terkelompok berdasarkan batch_id."""
+    from app.models.email import Email
+    from sqlalchemy import func as sqlfunc
+
+    query = db.query(
+        Email.batch_id,
+        Email.batch_name,
+        sqlfunc.count(Email.id).label("total"),
+        sqlfunc.sum(
+            sqlfunc.cast(Email.label == "spam", Integer)
+        ).label("spam_count"),
+        sqlfunc.min(Email.created_at).label("created_at"),
+    ).filter(
+        Email.is_prediction == True,
+        Email.batch_id != None,
+    )
+
+    if user_id is not None:
+        query = query.filter(Email.user_id == user_id)
+
+    batches = query.group_by(Email.batch_id, Email.batch_name).order_by(
+        sqlfunc.min(Email.created_at).desc()
+    ).all()
+
+    return [
+        {
+            "batch_id": b.batch_id,
+            "batch_name": b.batch_name,
+            "total": b.total,
+            "spam_count": int(b.spam_count or 0),
+            "ham_count": int(b.total - (b.spam_count or 0)),
+            "created_at": b.created_at.isoformat() if b.created_at else None,
+        }
+        for b in batches
+    ]
+
+
 @router.get("/classify-history")
 async def get_classify_history(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     search: Optional[str] = Query(None),
     label: Optional[str] = Query(None, pattern="^(spam|ham)$"),
+    user_id: Optional[int] = Query(None, description="Filter riwayat berdasarkan user_id"),
+    batch_id: Optional[str] = Query(None, description="Filter berdasarkan batch_id tertentu"),
+    no_batch: Optional[bool] = Query(None, description="Jika True, hanya tampilkan email manual (tanpa batch_id)"),
     db: Session = Depends(get_db),
 ):
     """Ambil riwayat klasifikasi (is_prediction=True) dengan paginasi dan pencarian."""
@@ -265,6 +331,12 @@ async def get_classify_history(
     from sqlalchemy import or_
 
     query = db.query(Email).filter(Email.is_prediction == True)
+    if user_id is not None:
+        query = query.filter(Email.user_id == user_id)
+    if batch_id is not None:
+        query = query.filter(Email.batch_id == batch_id)
+    if no_batch:
+        query = query.filter(Email.batch_id == None)
     if label:
         query = query.filter(Email.label == label)
     if search:
@@ -360,3 +432,20 @@ async def delete_all_classify_history(
     deleted = db.query(Email).filter(Email.is_prediction == True).delete()
     db.commit()
     return {"status": "success", "message": f"Berhasil menghapus {deleted} riwayat klasifikasi."}
+
+
+@router.delete("/classify-history/batches/{batch_id}")
+async def delete_batch_history(
+    batch_id: str,
+    db: Session = Depends(get_db),
+):
+    """Hapus semua riwayat klasifikasi dari sebuah batch upload."""
+    from app.models.email import Email
+
+    deleted = db.query(Email).filter(Email.batch_id == batch_id).delete()
+    db.commit()
+    
+    if deleted == 0:
+        raise HTTPException(status_code=404, detail="Batch tidak ditemukan")
+        
+    return {"status": "success", "message": f"Berhasil menghapus batch berisi {deleted} email."}
