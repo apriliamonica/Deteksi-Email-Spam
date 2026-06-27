@@ -226,17 +226,19 @@ export default function EvaluationPage() {
 
   const getRatio = (item) => {
     if (item.req_val_split != null && item.req_test_split != null) {
-      const tr = Math.round((1 - item.req_val_split - item.req_test_split) * 100);
+      const tr = Math.round(
+        (1 - item.req_val_split - item.req_test_split) * 100,
+      );
       const val = Math.round(item.req_val_split * 100);
       const te = Math.round(item.req_test_split * 100);
       return `${tr}:${val}:${te}`;
     }
-    
+
     // Fallback jika ambil dari size dan total_data
     if (item.train_size && item.total_data) {
       const te = Math.round((item.test_size / item.total_data) * 100);
       let val = 0;
-      
+
       // Ambil val_size dari metrics_json jika ada
       try {
         if (item.metrics_json) {
@@ -248,7 +250,7 @@ export default function EvaluationPage() {
       } catch (e) {}
 
       const tr = Math.round((item.train_size / item.total_data) * 100);
-      
+
       // Jika val ada, tampilkan 3 bagian, jika tidak tampilkan 2 bagian
       return val > 0 ? `${tr}:${val}:${te}` : `${tr}:${te}`;
     }
@@ -647,7 +649,7 @@ function ComparisonView({ result }) {
         </table>
       </div>
 
-      {/* Bar Chart */}
+      {/* Bar Chart
       <div style={{ height: 200, width: "100%" }}>
         <ResponsiveContainer>
           <BarChart data={chartData} barCategoryGap="30%">
@@ -703,7 +705,7 @@ function ComparisonView({ result }) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </div> */}
     </div>
   );
 }

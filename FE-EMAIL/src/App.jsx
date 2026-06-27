@@ -32,12 +32,9 @@ export default function App() {
   });
 
   useEffect(() => {
-    // Initialize theme based on localStorage or system preferences
-    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    // Always use light mode — dark mode has been removed
+    document.documentElement.classList.remove('dark');
+    localStorage.removeItem('theme');
 
     // Keep sync if needed, though direct state is better for initial load
     const handleStorage = () => {
@@ -47,6 +44,7 @@ export default function App() {
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
+
 
   return (
     <BrowserRouter>

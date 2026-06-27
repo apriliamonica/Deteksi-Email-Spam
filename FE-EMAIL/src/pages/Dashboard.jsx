@@ -7,14 +7,18 @@ import {
   Cpu,
   ChevronRight,
   Calendar,
-  Users
+  Users,
 } from "lucide-react";
 import { modelAPI, usersAPI } from "../services/api";
 import { useNavigate } from "react-router-dom";
 import UserChatDashboard from "./UserChatDashboard";
 
 export default function Dashboard({ user }) {
-  const [dbStats, setDbStats] = useState({ totalDataset: 0, totalModel: 0, totalAkun: 0 });
+  const [dbStats, setDbStats] = useState({
+    totalDataset: 0,
+    totalModel: 0,
+    totalAkun: 0,
+  });
   const [models, setModels] = useState([]);
   const [datasets, setDatasets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,10 +87,11 @@ export default function Dashboard({ user }) {
               fontSize: "1.5rem",
               fontWeight: 700,
               margin: 0,
+              color: "white",
               marginBottom: 4,
             }}
           >
-            Halo, {user?.name?.split(" ")[0] || "Admin"} 👋
+            Halo, {user?.name?.split(" ")[0] || "Admin"}
           </h1>
           <p
             style={{

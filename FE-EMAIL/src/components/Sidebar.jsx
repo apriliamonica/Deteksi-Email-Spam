@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -9,8 +9,6 @@ import {
   BarChart3,
   LogOut,
   Users,
-  Sun,
-  Moon,
   History,
   Cpu,
   ClipboardList,
@@ -33,21 +31,7 @@ export default function Sidebar({ user, onLogout }) {
           .slice(0, 2)
       : "U";
 
-  const [isDark, setIsDark] = useState(() => {
-    return document.documentElement.classList.contains("dark");
-  });
 
-  const toggleTheme = () => {
-    if (document.documentElement.classList.contains("dark")) {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-      setIsDark(false);
-    } else {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-      setIsDark(true);
-    }
-  };
 
   return (
     <aside className="sidebar">
@@ -151,24 +135,17 @@ export default function Sidebar({ user, onLogout }) {
           <div className="user-info-left flex items-center gap-2">
             <div className="user-avatar">{initials}</div>
             <div className="user-details">
-              <div className="name font-bold text-slate-800 dark:text-slate-200 leading-tight">
+              <div className="name font-bold text-slate-800 leading-tight">
                 {user?.name || "User"}
               </div>
-              <div className="role text-xs text-slate-500 dark:text-slate-400">
+              <div className="role text-xs text-slate-500">
                 {user?.role === "admin" ? "Admin" : "Pengguna"}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-1">
             <button
-              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-              onClick={toggleTheme}
-              title={isDark ? "Light Mode" : "Dark Mode"}
-            >
-              {isDark ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-            <button
-              className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
+              className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition"
               onClick={handleLogout}
               title="Logout"
             >
