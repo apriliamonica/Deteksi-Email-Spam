@@ -11,6 +11,7 @@ import RiwayatModelPage from './pages/RiwayatModel';
 import ManageAccountsPage from './pages/ManageAccounts';
 import Testing from './pages/Testing';
 import Evaluasi from './pages/Evaluasi';
+import UserRiwayat from './pages/UserRiwayat';
 import './index.css';
 
 function Guard({ user, children, admin = false }) {
@@ -61,6 +62,7 @@ export default function App() {
         <Route path="/testing" element={<Guard user={user}><Testing /></Guard>} />
         <Route path="/evaluasi" element={<Guard user={user}><Evaluasi /></Guard>} />
         <Route path="/manage-accounts" element={<Guard user={user} admin><ManageAccountsPage /></Guard>} />
+        <Route path="/riwayat-saya" element={<Guard user={user}><UserRiwayat /></Guard>} />
         <Route path="*" element={<Navigate to={user ? '/beranda' : '/login'} replace />} />
       </Routes>
     </BrowserRouter>

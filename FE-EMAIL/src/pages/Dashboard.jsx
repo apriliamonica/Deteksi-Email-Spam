@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { modelAPI } from "../services/api";
 import { useNavigate } from "react-router-dom";
+import UserChatDashboard from "./UserChatDashboard";
 
 export default function Dashboard({ user }) {
   const [dbStats, setDbStats] = useState({ total: 0, training: 0, testing: 0 });
@@ -52,6 +53,10 @@ export default function Dashboard({ user }) {
       month: "short",
       year: "numeric",
     });
+
+  if (user?.role !== "admin") {
+    return <UserChatDashboard user={user} />;
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>

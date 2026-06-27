@@ -11,6 +11,7 @@ import {
   Users,
   Sun,
   Moon,
+  History,
 } from "lucide-react";
 
 export default function Sidebar({ user, onLogout }) {
@@ -60,8 +61,20 @@ export default function Sidebar({ user, onLogout }) {
           to="/beranda"
           className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
         >
-          <LayoutDashboard /> Beranda
+          <LayoutDashboard /> {user?.role === "admin" ? "Beranda" : "Deteksi Email"}
         </NavLink>
+
+        {/* Menu khusus user biasa */}
+        {user?.role !== "admin" && (
+          <NavLink
+            to="/riwayat-saya"
+            className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+          >
+            <History size={18} /> Riwayat Saya
+          </NavLink>
+        )}
+
+        {/* Menu khusus admin */}
         {user?.role === "admin" && (
           <>
             <div className="sidebar-section">Kelola</div>
