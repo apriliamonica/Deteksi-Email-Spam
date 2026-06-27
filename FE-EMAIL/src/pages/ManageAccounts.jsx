@@ -99,7 +99,7 @@ export default function ManageAccounts() {
   };
 
   return (
-    <div className="page-container">
+    <div className="page-container page-manage-accounts">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
           <h1 className="page-title">Kelola Akun</h1>

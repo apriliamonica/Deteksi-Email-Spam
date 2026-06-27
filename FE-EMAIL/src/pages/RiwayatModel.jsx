@@ -243,7 +243,7 @@ function DatasetSection({
   const bestAccuracy = Math.max(...group.items.map((i) => i.accuracy || 0));
 
   return (
-    <section>
+    <section className="page-container page-riwayat-model">
       <SectionHeader
         icon={<Layers size={16} color="#0C447C" />}
         title={dsName}

@@ -535,7 +535,7 @@ function ComparisonView({ result }) {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div className="page-container page-evaluasi" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Metric Cards */}
       <div
         style={{

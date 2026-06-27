@@ -122,7 +122,7 @@ export default function DataCollection() {
     });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <div className="page-container page-data-collection" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {/* ── HEADER ── */}
       <div>
         <h1 style={{ fontSize: "1.4rem", fontWeight: 700, margin: 0 }}>

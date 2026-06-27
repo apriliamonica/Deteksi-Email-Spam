@@ -36,7 +36,7 @@ export default function UserRiwayat() {
   const currentUser = getCurrentUser();
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div className="page-container page-user-riwayat" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Header */}
       <div>
         <h1 style={{ fontSize: "1.3rem", fontWeight: 700, margin: 0, color: "var(--app-text)" }}>

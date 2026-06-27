@@ -35,7 +35,7 @@ export default function LoginPage({ onLogin }) {
   };
 
   return (
-    <div style={{
+    <div className="page-login" style={{
       minHeight: '100vh',
       display: 'flex',
       background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',

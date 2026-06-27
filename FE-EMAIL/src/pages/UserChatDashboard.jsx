@@ -310,7 +310,7 @@ export default function UserChatDashboard({ user }) {
   const isEmpty = messages.length === 0;
 
   return (
-    <div
+    <div className="page-container page-user-dashboard"
       style={{
         display: "flex",
         flexDirection: "column",

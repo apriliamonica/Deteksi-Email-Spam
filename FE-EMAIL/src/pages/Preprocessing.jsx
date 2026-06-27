@@ -389,7 +389,7 @@ export default function PreprocessingPage() {
   // };
 
   return (
-    <div style={{ width: "100%", maxWidth: "1400px", margin: "0 auto" }}>
+    <div className="page-container page-preprocessing" style={{ width: "100%", maxWidth: "1400px", margin: "0 auto" }}>
       <div
         className="page-header"
         style={{ textAlign: "center", marginBottom: 32 }}

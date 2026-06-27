@@ -321,7 +321,7 @@ export default function ProcessingPage() {
   };
 
   return (
-    <div style={{ maxWidth: "100%", padding: "0 24px", paddingBottom: 60 }}>
+    <div className="page-container page-processing" style={{ maxWidth: "100%", padding: "0 24px", paddingBottom: 60 }}>
       {toast.show && (
         <div
           className={`alert alert-${toast.type}`}

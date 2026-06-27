@@ -39,7 +39,57 @@
   --radius-xl: 28px;
   --radius-pill: 9999px;
   --transition: 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* ════════════════════════════════════════════════
+     PAGE BACKGROUND COLORS — ubah di sini untuk
+     mengubah warna latar setiap halaman
+     ════════════════════════════════════════════════
+
+     Halaman yang pakai .page-container atau main-content
+     mendapatkan background dari var(--app-bg-secondary).
+     Setiap halaman juga punya variabel sendiri di bawah.
+  */
+
+  /* Beranda / Dashboard  ← src/pages/Dashboard.jsx */
+  --page-bg-dashboard: var(--app-bg-secondary);
+
+  /* Data Collection      ← src/pages/DataCollection.jsx */
+  --page-bg-data-collection: var(--app-bg-secondary);
+
+  /* Preprocessing        ← src/pages/Preprocessing.jsx */
+  --page-bg-preprocessing: var(--app-bg-secondary);
+
+  /* Processing (Training)← src/pages/Processing.jsx */
+  --page-bg-processing: var(--app-bg-secondary);
+
+  /* Riwayat Model        ← src/pages/RiwayatModel.jsx */
+  --page-bg-riwayat-model: var(--app-bg-secondary);
+
+  /* Riwayat Preprocessing← src/pages/RiwayatPreprocessing.jsx */
+  --page-bg-riwayat-preproc: var(--app-bg-secondary);
+
+  /* Evaluasi             ← src/pages/Evaluasi.jsx */
+  --page-bg-evaluasi: var(--app-bg-secondary);
+
+  /* Testing / Deteksi    ← src/pages/Testing.jsx */
+  --page-bg-testing: var(--app-bg-secondary);
+
+  /* Kelola Akun          ← src/pages/ManageAccounts.jsx */
+  --page-bg-manage-accounts: var(--app-bg-secondary);
+
+  /* Riwayat User         ← src/pages/UserRiwayat.jsx */
+  --page-bg-user-riwayat: var(--app-bg-secondary);
+
+  /* Dashboard User (chat)← src/pages/UserChatDashboard.jsx */
+  --page-bg-user-dashboard: var(--app-bg-secondary);
+
+  /* Login                ← src/pages/Login.jsx */
+  --page-bg-login: #f2f3ff;
+
+  /* Sidebar              ← src/components/Sidebar.jsx */
+  --sidebar-bg: var(--glass-bg);
 }
+
 
 
 
@@ -75,7 +125,7 @@ h3 {
 /* ===== SIDEBAR — FROSTED LAVENDER GLASS ===== */
 .sidebar {
   width: 260px;
-  background: var(--glass-bg);
+  background: var(--sidebar-bg); /* ← ubah --sidebar-bg di :root untuk ganti warna sidebar */
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   border-right: 0.5px solid var(--glass-border);
@@ -186,7 +236,10 @@ h3 {
   font-size: 0.75rem;
 }
 
-/* ===== MAIN CONTENT ===== */
+/* ===== MAIN CONTENT =====
+   Background diatur oleh --app-bg-secondary di :root
+   atau bisa override per halaman dengan class di bawah.
+*/
 .main-content {
   margin-left: 260px;
   padding: 36px 44px;
@@ -206,6 +259,50 @@ h3 {
   gap: 28px;
   width: 100%;
 }
+
+/* ════════════════════════════════════════════════════
+   BACKGROUND OVERRIDE PER HALAMAN
+   Tambahkan class ini ke root <div> di masing-masing
+   halaman agar background bisa dikontrol dari sini.
+
+   Cara ubah warna: ganti nilai --page-bg-xxx di :root
+   ════════════════════════════════════════════════════ */
+
+/* src/pages/Dashboard.jsx — halaman beranda admin */
+.page-dashboard    { background: var(--page-bg-dashboard); }
+
+/* src/pages/UserChatDashboard.jsx — beranda user biasa (chat AI) */
+.page-user-dashboard { background: var(--page-bg-user-dashboard); }
+
+/* src/pages/DataCollection.jsx — pengumpulan data / email scraping */
+.page-data-collection { background: var(--page-bg-data-collection); }
+
+/* src/pages/Preprocessing.jsx — preprocessing teks email */
+.page-preprocessing { background: var(--page-bg-preprocessing); }
+
+/* src/pages/Processing.jsx — training model IndoBERT + GAT */
+.page-processing   { background: var(--page-bg-processing); }
+
+/* src/pages/RiwayatModel.jsx — riwayat & detail model terlatih */
+.page-riwayat-model { background: var(--page-bg-riwayat-model); }
+
+/* src/pages/RiwayatPreprocessing.jsx — riwayat hasil preprocessing */
+.page-riwayat-preproc { background: var(--page-bg-riwayat-preproc); }
+
+/* src/pages/Evaluasi.jsx — evaluasi perbandingan model */
+.page-evaluasi     { background: var(--page-bg-evaluasi); }
+
+/* src/pages/Testing.jsx — deteksi email / testing model */
+.page-testing      { background: var(--page-bg-testing); }
+
+/* src/pages/ManageAccounts.jsx — kelola akun pengguna */
+.page-manage-accounts { background: var(--page-bg-manage-accounts); }
+
+/* src/pages/UserRiwayat.jsx — riwayat deteksi milik user biasa */
+.page-user-riwayat { background: var(--page-bg-user-riwayat); }
+
+/* src/pages/Login.jsx — halaman login */
+.page-login        { background: var(--page-bg-login); min-height: 100vh; }
 
 .page-header {
   display: flex;

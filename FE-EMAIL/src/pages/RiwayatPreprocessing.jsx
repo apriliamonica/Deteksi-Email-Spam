@@ -79,7 +79,7 @@ export default function RiwayatPreprocessingPage() {
   const paginatedDetailRows = detailRows.slice(detailStartIndex, detailStartIndex + detailItemsPerPage);
 
   return (
-    <div className="w-full animate-in fade-in duration-300">
+    <div className="page-container page-riwayat-preproc w-full animate-in fade-in duration-300">
       <style>{`
         .tooltip-content {
           visibility: hidden;

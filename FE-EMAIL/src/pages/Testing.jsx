@@ -333,7 +333,7 @@ export default function Testing() {
   }, [search]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <div className="page-container page-testing" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {/* ── HEADER ── */}
       <div>
         <h1
