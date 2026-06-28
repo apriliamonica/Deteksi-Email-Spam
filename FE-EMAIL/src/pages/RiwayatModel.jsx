@@ -20,6 +20,9 @@ import {
   AlertCircle,
   ShieldCheck,
   HelpCircle,
+  Download,
+  BookOpen,
+  ChevronDown,
 } from "lucide-react";
 import { modelAPI } from "../services/api";
 import Pagination from "../components/Pagination";
@@ -539,6 +542,29 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
     }
   };
 
+  const handleDownload = async () => {
+    try {
+      const res = await modelAPI.downloadHistory(item.id);
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      
+      const contentDisposition = res.headers["content-disposition"];
+      let fileName = `SpamGAT_Model_${item.id}.zip`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (match && match.length === 2) fileName = match[1];
+      }
+      
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (e) {
+      alert("Gagal mengunduh model. File model mungkin sudah terhapus.");
+    }
+  };
+
   return (
     <div
       className="w-full animate-in fade-in duration-300 pb-10"
@@ -649,16 +675,14 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
 
         <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
           <button
-            onClick={() =>
-              alert("Fitur unduh model sedang dalam pengembangan.")
-            }
+            onClick={handleDownload}
             style={{
               ...btnDelete,
               color: "var(--app-text)",
               border: "1px solid var(--app-border)",
             }}
           >
-            Unduh model
+            Unduh model (.zip)
           </button>
           {!isActive && (
             <button
@@ -672,49 +696,77 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
       </div>
 
       {/* ── 4 STAT CARDS ── */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 14,
+      <Panel
+        title="Metrik Evaluasi"
+        icon={<BarChart2 size={15} />}
+        infoContent={{
+          title: "Apa itu Metrik Evaluasi?",
+          definition: "Metrik evaluasi adalah ukuran kuantitatif yang digunakan untuk menilai seberapa baik kinerja model dalam mengklasifikasi email sebagai spam atau bukan spam (ham).",
+          howItWorks: [
+            "Akurasi — Persentase prediksi yang benar dari seluruh data uji. Semakin tinggi semakin baik, tetapi bisa menyesatkan jika data tidak seimbang.",
+            "F1-Score — Rata-rata harmonis dari Precision dan Recall. Metrik ini lebih adil untuk dataset yang tidak seimbang karena memperhitungkan keduanya.",
+            "Precision — Dari semua email yang diprediksi sebagai spam, berapa persen yang memang benar-benar spam. Precision tinggi berarti sedikit email normal yang salah ditandai.",
+            "Recall — Dari semua email spam yang sebenarnya, berapa persen yang berhasil terdeteksi. Recall tinggi berarti sedikit spam yang lolos ke inbox.",
+          ],
         }}
       >
-        {[
-          {
-            label: "Akurasi",
-            val: item.accuracy,
-            color: "#10b981",
-            icon: <CheckCircle size={13} />,
-          },
-          {
-            label: "F1-Score",
-            val: item.f1_score,
-            color: "#4f5fd4",
-            icon: <Activity size={13} />,
-          },
-          {
-            label: "Precision",
-            val: item.precision,
-            color: "#8b5cf6",
-            icon: <BarChart2 size={13} />,
-          },
-          {
-            label: "Recall",
-            val: item.recall,
-            color: "#f59e0b",
-            icon: <Activity size={13} />,
-          },
-        ].map((s) => (
-          <MetricCard key={s.label} {...s} />
-        ))}
-      </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: 14,
+          }}
+        >
+          {[
+            {
+              label: "Akurasi",
+              val: item.accuracy,
+              color: "#10b981",
+              icon: <CheckCircle size={13} />,
+            },
+            {
+              label: "F1-Score",
+              val: item.f1_score,
+              color: "#4f5fd4",
+              icon: <Activity size={13} />,
+            },
+            {
+              label: "Precision",
+              val: item.precision,
+              color: "#8b5cf6",
+              icon: <BarChart2 size={13} />,
+            },
+            {
+              label: "Recall",
+              val: item.recall,
+              color: "#f59e0b",
+              icon: <Activity size={13} />,
+            },
+          ].map((s) => (
+            <MetricCard key={s.label} {...s} />
+          ))}
+        </div>
+      </Panel>
 
       {/* ── CONFUSION MATRIX ── */}
       <ConfusionMatrixBlock tn={tn} fp={fp} fn={fn} tp={tp} />
 
       {/* ── CHART + TRAIN VS TEST COMPARISON ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <Panel title="GAT Loss History" icon={<Activity size={15} />}>
+        <Panel
+          title="GAT Loss History"
+          icon={<Activity size={15} />}
+          infoContent={{
+            title: "Apa itu Grafik Loss?",
+            definition: "Loss (kerugian) adalah nilai numerik yang mengukur seberapa jauh prediksi model dari jawaban yang benar. Semakin kecil nilainya, semakin baik model belajar.",
+            howItWorks: [
+              "Sumbu X (horizontal) menunjukkan jumlah Epoch, yaitu berapa kali model telah melihat seluruh dataset selama pelatihan.",
+              "Sumbu Y (vertikal) menunjukkan nilai Loss. Grafik yang menurun menandakan model semakin pandai membedakan spam dan ham.",
+              "Jika grafik terus menurun lalu mendatar, itu artinya model sudah konvergen (mencapai titik optimal).",
+              "Jika grafik naik-turun tidak stabil, kemungkinan learning rate terlalu tinggi atau data terlalu sedikit.",
+            ],
+          }}
+        >
           <div style={{ height: 240 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={lossData}>
@@ -747,22 +799,48 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
           </div>
         </Panel>
 
-        <TrainVsTest test={item} train={trainM} />
+        <TrainVsTestWithInfo test={item} train={trainM} />
       </div>
 
-      {/* ── CLASS DISTRIBUTION + CLASSIFICATION REPORT ── */}
-      <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 14 }}
-      >
-        <ClassDistribution spam={spam} ham={ham} total={item.total_data} />
-        <ClassificationReport report={clsReport} />
+      {/* ── CLASS DISTRIBUTION ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <ClassDistributionWithInfo spam={spam} ham={ham} total={item.total_data} />
+
+        {/* ── ADDITIONAL METRICS ── */}
+        <Panel
+          title="Metrik Tambahan"
+          icon={<Activity size={15} />}
+          infoContent={{
+            title: "Apa itu MCC & ROC-AUC?",
+            definition: "Dua metrik tambahan yang sering diminta dalam penelitian untuk memberikan gambaran lebih lengkap tentang kinerja model.",
+            howItWorks: [
+              "MCC (Matthews Correlation Coefficient) — Nilainya dari -1 hingga +1. Nilai +1 berarti prediksi sempurna, 0 berarti model sebaik menebak acak, -1 berarti prediksi selalu salah. MCC dianggap metrik paling seimbang untuk klasifikasi biner.",
+              "ROC-AUC (Receiver Operating Characteristic - Area Under Curve) — Nilainya dari 0 hingga 1. Semakin mendekati 1, model semakin mampu membedakan antara kelas spam dan ham. Nilai 0.5 berarti model tidak lebih baik dari tebakan acak.",
+            ],
+          }}
+        >
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <MetricCard label="MCC Score" val={item.metrics.mcc} color="#0891b2" icon={<Activity size={13} />} isRaw />
+            <MetricCard label="ROC-AUC" val={item.metrics.roc_auc} color="#7c3aed" icon={<BarChart2 size={13} />} isRaw />
+          </div>
+        </Panel>
       </div>
 
       {/* ── HYPERPARAMETERS ── */}
       <Panel
-        title="Hyperparameters & Configuration"
+        title="Hyperparameters & Konfigurasi"
         icon={<Settings2 size={15} />}
         bg="var(--lav-ghost)"
+        infoContent={{
+          title: "Apa itu Hyperparameters?",
+          definition: "Hyperparameters adalah pengaturan yang ditentukan sebelum proses pelatihan dimulai. Mereka mengontrol bagaimana model belajar, bukan apa yang model pelajari.",
+          howItWorks: [
+            "Learning Rate — Seberapa besar langkah yang diambil model saat memperbarui bobotnya. Terlalu besar = model melompat-lompat. Terlalu kecil = model belajar sangat lambat.",
+            "Epochs — Jumlah siklus penuh model melihat seluruh dataset. Terlalu banyak bisa menyebabkan overfitting (model menghafal data).",
+            "Weight Decay — Teknik untuk mencegah overfitting dengan membatasi ukuran bobot model.",
+            "Data Split — Pembagian dataset menjadi data Training (untuk belajar), Validation (untuk tuning), dan Testing (untuk evaluasi akhir).",
+          ],
+        }}
       >
         <div
           style={{
@@ -775,8 +853,6 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
           <ParamBox label="Epochs" value={item.epochs} />
           <ParamBox label="Weight Decay" value={item.weight_decay} />
           <ParamBox label="GAT Weight Decay" value={item.gat_weight_decay} />
-          <ParamBox label="MCC Score" value={item.metrics.mcc?.toFixed(4)} />
-          <ParamBox label="ROC-AUC" value={item.metrics.roc_auc?.toFixed(4)} />
           <ParamBox label="Batch Size" value={item.batch_size} />
           <ParamBox label="Max Seq Length" value={item.max_seq_length} />
         </div>
@@ -787,10 +863,10 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
 }
 
 // ════════════════════════════════════════════════════
-// 🆕 SECTION 1: TRAIN VS TEST
+// 🆕 SECTION 1: TRAIN VS TEST (with info)
 // ════════════════════════════════════════════════════
 
-function TrainVsTest({ test, train }) {
+function TrainVsTestWithInfo({ test, train }) {
   const hasTrain = Object.keys(train).length > 0;
   const rows = [
     { label: "Akurasi", test: test.accuracy, train: train.accuracy },
@@ -803,6 +879,15 @@ function TrainVsTest({ test, train }) {
     <Panel
       title="Perbandingan Training vs Testing"
       icon={<GitCompare size={15} />}
+      infoContent={{
+        title: "Apa itu Perbandingan Training vs Testing?",
+        definition: "Tabel ini membandingkan kinerja model pada data yang digunakan untuk belajar (training) dengan data yang belum pernah dilihat (testing). Perbandingan ini penting untuk mendeteksi overfitting.",
+        howItWorks: [
+          "Jika nilai Training dan Testing hampir sama (selisih <5%), model belajar dengan baik dan mampu menggeneralisasi ke data baru.",
+          "Jika Training jauh lebih tinggi dari Testing (selisih >10%), model kemungkinan mengalami overfitting — artinya model menghafal data latih tapi gagal di data baru.",
+          "Status '✓ Bagus' berarti selisih di bawah 5%. '⚠ Watch' berarti selisih 5-10%. '✗ Overfit?' berarti selisih lebih dari 10%.",
+        ],
+      }}
     >
       {!hasTrain ? (
         <div
@@ -813,9 +898,6 @@ function TrainVsTest({ test, train }) {
             fontSize: "0.8rem",
           }}
         >
-          {/* ℹ️ Data metrik training belum disimpan di <code>metrics_json</code>{" "}
-          oleh backend. Pastikan backend menyimpan field{" "}
-          <code>train_metrics</code> untuk menampilkan perbandingan ini. */}
         </div>
       ) : (
         <div style={{ overflowX: "auto" }}>
@@ -894,10 +976,10 @@ function TrainVsTest({ test, train }) {
 }
 
 // ════════════════════════════════════════════════════
-// 🆕 SECTION 2: CLASS DISTRIBUTION
+// 🆕 SECTION 2: CLASS DISTRIBUTION (with info)
 // ════════════════════════════════════════════════════
 
-function ClassDistribution({ spam, ham, total }) {
+function ClassDistributionWithInfo({ spam, ham, total }) {
   const data = [
     { name: "Spam", value: spam || 0, color: "#ef4444" },
     { name: "Ham", value: ham || 0, color: "#10b981" },
@@ -905,7 +987,19 @@ function ClassDistribution({ spam, ham, total }) {
   const hasData = spam != null && ham != null;
 
   return (
-    <Panel title="Distribusi Kelas" icon={<PieIcon size={15} />}>
+    <Panel
+      title="Distribusi Kelas"
+      icon={<PieIcon size={15} />}
+      infoContent={{
+        title: "Apa itu Distribusi Kelas?",
+        definition: "Distribusi kelas menunjukkan perbandingan jumlah email spam dan ham (bukan spam) di dalam dataset pelatihan. Keseimbangan ini sangat memengaruhi kualitas model.",
+        howItWorks: [
+          "Dataset yang seimbang (jumlah spam ≈ ham) biasanya menghasilkan model yang lebih adil dan akurat.",
+          "Dataset yang tidak seimbang (misalnya spam jauh lebih banyak) bisa membuat model bias — cenderung memprediksi kelas mayoritas.",
+          "Jika dataset tidak seimbang, teknik seperti Class Weighting (yang digunakan pada aplikasi ini) diterapkan agar model tidak mengabaikan kelas minoritas.",
+        ],
+      }}
+    >
       {hasData ? (
         <>
           <div style={{ height: 160 }}>
@@ -989,125 +1083,7 @@ function ClassDistribution({ spam, ham, total }) {
   );
 }
 
-// ════════════════════════════════════════════════════
-// 🆕 SECTION 3: CLASSIFICATION REPORT
-// ════════════════════════════════════════════════════
-
-function ClassificationReport({ report }) {
-  if (!report || typeof report !== "object") {
-    return (
-      <Panel title="Classification Report" icon={<BarChart2 size={15} />}>
-        <div
-          style={{
-            padding: 20,
-            textAlign: "center",
-            color: "var(--app-text-muted)",
-            fontSize: "0.78rem",
-          }}
-        >
-          {/* ℹ️ Data <code>classification_report</code> belum ada di{" "}
-          <code>metrics_json</code>. Backend bisa menambahkan dari{" "}
-          <code>sklearn.metrics.classification_report</code>. */}
-        </div>
-      </Panel>
-    );
-  }
-
-  const classes = Object.entries(report).filter(
-    ([k]) => !["accuracy", "macro avg", "weighted avg"].includes(k),
-  );
-
-  return (
-    <Panel title="Classification Report" icon={<BarChart2 size={15} />}>
-      <div style={{ overflowX: "auto" }}>
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontSize: "0.78rem",
-          }}
-        >
-          <thead>
-            <tr style={{ background: "var(--lav-ghost)" }}>
-              <th style={thL}>Class</th>
-              <th style={thC}>Precision</th>
-              <th style={thC}>Recall</th>
-              <th style={thC}>F1-Score</th>
-              <th style={thC}>Support</th>
-            </tr>
-          </thead>
-          <tbody>
-            {classes.map(([cls, m], i) => (
-              <tr
-                key={cls}
-                style={{ borderTop: "1px solid var(--app-border)" }}
-              >
-                <td
-                  style={{
-                    ...tdL,
-                    fontWeight: 700,
-                    textTransform: "capitalize",
-                  }}
-                >
-                  {cls}
-                </td>
-                <td style={tdC}>
-                  {m.precision != null
-                    ? `${(m.precision * 100).toFixed(2)}%`
-                    : "—"}
-                </td>
-                <td style={tdC}>
-                  {m.recall != null ? `${(m.recall * 100).toFixed(2)}%` : "—"}
-                </td>
-                <td style={tdC}>
-                  {m["f1-score"] != null
-                    ? `${(m["f1-score"] * 100).toFixed(2)}%`
-                    : "—"}
-                </td>
-                <td style={tdC}>{m.support?.toLocaleString() || "—"}</td>
-              </tr>
-            ))}
-            {report["macro avg"] && (
-              <tr
-                style={{
-                  background: "var(--lav-ghost)",
-                  borderTop: "1px solid var(--app-border)",
-                }}
-              >
-                <td style={{ ...tdL, fontWeight: 700 }}>Macro Avg</td>
-                <td style={tdC}>
-                  {(report["macro avg"].precision * 100).toFixed(2)}%
-                </td>
-                <td style={tdC}>
-                  {(report["macro avg"].recall * 100).toFixed(2)}%
-                </td>
-                <td style={tdC}>
-                  {(report["macro avg"]["f1-score"] * 100).toFixed(2)}%
-                </td>
-                <td style={tdC}>—</td>
-              </tr>
-            )}
-            {report["weighted avg"] && (
-              <tr style={{ background: "var(--lav-ghost)" }}>
-                <td style={{ ...tdL, fontWeight: 700 }}>Weighted Avg</td>
-                <td style={tdC}>
-                  {(report["weighted avg"].precision * 100).toFixed(2)}%
-                </td>
-                <td style={tdC}>
-                  {(report["weighted avg"].recall * 100).toFixed(2)}%
-                </td>
-                <td style={tdC}>
-                  {(report["weighted avg"]["f1-score"] * 100).toFixed(2)}%
-                </td>
-                <td style={tdC}>—</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </Panel>
-  );
-}
+// ClassificationReport removed — redundant with MetricCards for TA purposes.
 
 // ════════════════════════════════════════════════════
 // HELPER COMPONENTS
@@ -1150,7 +1126,12 @@ function DataSplitInfo({ item }) {
   );
 }
 
-function MetricCard({ label, val, color, icon }) {
+function MetricCard({ label, val, color, icon, isRaw }) {
+  const displayVal = val != null
+    ? isRaw
+      ? (typeof val === 'number' ? val.toFixed(4) : val)
+      : `${(val * 100).toFixed(2)}%`
+    : "—";
   return (
     <div
       style={{
@@ -1175,7 +1156,7 @@ function MetricCard({ label, val, color, icon }) {
         {icon} {label}
       </div>
       <div style={{ fontSize: "1.3rem", fontWeight: 800, color }}>
-        {val != null ? `${(val * 100).toFixed(2)}%` : "—"}
+        {displayVal}
       </div>
     </div>
   );
@@ -1377,7 +1358,8 @@ function SectionHeader({ icon, title, subtitle, right }) {
   );
 }
 
-function Panel({ title, icon, children, bg }) {
+function Panel({ title, icon, children, bg, infoContent }) {
+  const [showInfo, setShowInfo] = useState(false);
   return (
     <div
       style={{
@@ -1385,23 +1367,143 @@ function Panel({ title, icon, children, bg }) {
         border: "1px solid var(--app-border)",
         borderRadius: 12,
         padding: 14,
+        position: "relative",
       }}
     >
-      <h4
+      <div
         style={{
-          margin: 0,
-          marginBottom: 12,
-          fontSize: "0.85rem",
-          fontWeight: 700,
           display: "flex",
           alignItems: "center",
-          gap: 6,
-          color: "var(--app-text)",
+          justifyContent: "space-between",
+          marginBottom: 12,
         }}
       >
-        {icon} {title}
-      </h4>
+        <h4
+          style={{
+            margin: 0,
+            fontSize: "0.85rem",
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            color: "var(--app-text)",
+          }}
+        >
+          {icon} {title}
+        </h4>
+        {infoContent && (
+          <button
+            onClick={() => setShowInfo(!showInfo)}
+            style={{
+              background: showInfo ? "#eff6ff" : "transparent",
+              border: showInfo ? "1px solid #bfdbfe" : "1px solid transparent",
+              borderRadius: 6,
+              padding: "3px 8px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: "0.7rem",
+              fontWeight: 600,
+              color: showInfo ? "#1e40af" : "var(--app-text-muted)",
+              transition: "all 0.2s ease",
+            }}
+            title="Lihat penjelasan"
+          >
+            <BookOpen size={13} />
+            {showInfo ? "Tutup" : "Penjelasan"}
+          </button>
+        )}
+      </div>
+
+      {showInfo && infoContent && (
+        <InfoDrawer info={infoContent} onClose={() => setShowInfo(false)} />
+      )}
+
       {children}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════
+// 🆕 INFO DRAWER COMPONENT
+// ════════════════════════════════════════════════════
+
+function InfoDrawer({ info }) {
+  return (
+    <div
+      style={{
+        background: "linear-gradient(135deg, #f0f7ff 0%, #e8f4f8 100%)",
+        border: "1px solid #bfdbfe",
+        borderRadius: 10,
+        padding: 16,
+        marginBottom: 14,
+        animation: "slideDown 0.25s ease-out",
+      }}
+    >
+      <style>{`
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-8px); max-height: 0; }
+          to { opacity: 1; transform: translateY(0); max-height: 500px; }
+        }
+      `}</style>
+
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: 8,
+          background: "#1e40af", display: "flex",
+          alignItems: "center", justifyContent: "center", flexShrink: 0,
+        }}>
+          <BookOpen size={14} color="white" />
+        </div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "#1e3a5f", marginBottom: 2 }}>
+            {info.title}
+          </div>
+          <div style={{ fontSize: "0.78rem", color: "#334155", lineHeight: 1.5 }}>
+            {info.definition}
+          </div>
+        </div>
+      </div>
+
+      {info.howItWorks && info.howItWorks.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <div style={{
+            fontWeight: 700, fontSize: "0.75rem", color: "#1e40af",
+            textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8,
+          }}>
+            📘 Cara Membaca / Cara Kerja
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {info.howItWorks.map((item, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "flex-start",
+                  fontSize: "0.76rem",
+                  color: "#334155",
+                  lineHeight: 1.5,
+                  background: "rgba(255,255,255,0.7)",
+                  borderRadius: 8,
+                  padding: "8px 10px",
+                }}
+              >
+                <span style={{
+                  width: 20, height: 20, borderRadius: "50%",
+                  background: "#1e40af", color: "white",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "0.65rem", fontWeight: 700, flexShrink: 0, marginTop: 1,
+                }}>
+                  {idx + 1}
+                </span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1678,7 +1780,20 @@ function ConfusionMatrixBlock({ tn, fp, fn, tp }) {
   ];
 
   return (
-    <Panel title="Confusion Matrix" icon={<Info size={15} />}>
+    <Panel
+      title="Confusion Matrix"
+      icon={<Info size={15} />}
+      infoContent={{
+        title: "Apa itu Confusion Matrix?",
+        definition: "Confusion Matrix (Matriks Kebingungan) adalah tabel 2×2 yang meringkas hasil prediksi model terhadap data uji. Tabel ini menunjukkan berapa banyak prediksi yang benar dan salah untuk setiap kelas (spam dan ham).",
+        howItWorks: [
+          "True Negative (TN) — Email bukan spam yang benar diprediksi bukan spam. Semakin besar, semakin baik.",
+          "False Positive (FP) — Email bukan spam yang salah diprediksi sebagai spam. Ini merugikan pengguna karena email penting bisa masuk ke folder spam.",
+          "False Negative (FN) — Email spam yang lolos dan diprediksi bukan spam. Ini berbahaya karena email spam sampai ke inbox pengguna.",
+          "True Positive (TP) — Email spam yang benar diprediksi sebagai spam. Semakin besar, semakin baik model menangkap spam.",
+        ],
+      }}
+    >
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", alignItems: "stretch", marginTop: 8 }}>
           {/* Left Axis Label: AKTUAL */}

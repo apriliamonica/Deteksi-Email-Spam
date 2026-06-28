@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, B
 from sqlalchemy.orm import Session
 import pandas as pd
 import io
-
+import zipfile
+from fastapi.responses import StreamingResponse
 from app.config.database import get_db
 from app.schemas.email import TrainingRequest, TrainingResponse, ModelStatusResponse, PreprocessRequest
 from app.schemas.dataset import DatasetResponse
@@ -726,8 +727,46 @@ async def get_active_model(db: Session = Depends(get_db)):
         "recall": history.recall,
         "f1_score": history.f1_score,
         "total_data": history.total_data,
-        "created_at": history.created_at
+        "created_at": history.created_at,
+        "metrics_json": history.metrics_json
     }
+
+@router.get("/history/{history_id}/download")
+async def download_model_history(history_id: int, db: Session = Depends(get_db)):
+    """Mengunduh file-file model GAT dalam format ZIP."""
+    from app.models.email import TrainingHistory
+    history = db.query(TrainingHistory).filter(TrainingHistory.id == history_id).first()
+    if not history:
+        raise HTTPException(status_code=404, detail="Riwayat tidak ditemukan")
+
+    # Tentukan folder history
+    history_dir = os.path.join(settings.MODEL_DIR, f"history_{history_id}")
+    if not os.path.exists(history_dir):
+        # Fallback ke active_model jika folder history tidak ada (untuk kompatibilitas)
+        history_dir = settings.MODEL_DIR
+
+    files_to_zip = ["spamgat_weights.pt", "config.json", "graph_data.pt", "emails.csv"]
+    
+    # Buat ZIP di memory (ram) agar tidak perlu menyimpan file zip secara fisik
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+        for file_name in files_to_zip:
+            file_path = os.path.join(history_dir, file_name)
+            if os.path.exists(file_path):
+                zip_file.write(file_path, arcname=file_name)
+    
+    if zip_buffer.tell() == 0:
+        raise HTTPException(status_code=404, detail="File-file model tidak ditemukan untuk diunduh")
+
+    zip_buffer.seek(0)
+    
+    model_name_safe = (history.model_name or f"Model_{history_id}").replace(" ", "_")
+    
+    return StreamingResponse(
+        iter([zip_buffer.getvalue()]),
+        media_type="application/x-zip-compressed",
+        headers={"Content-Disposition": f"attachment; filename=SpamGAT_{model_name_safe}.zip"}
+    )
 
 
 @router.get("/datasets/{dataset_id}/rows")

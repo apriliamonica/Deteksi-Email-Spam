@@ -139,6 +139,9 @@ export const modelAPI = {
   // ✅ Hapus Riwayat Model (untuk fitur hapus)
   deleteHistory: (id) => api.delete(`/model/history/${id}`),
 
+  // ✅ Unduh ZIP Model
+  downloadHistory: (id) => api.get(`/model/history/${id}/download`, { responseType: 'blob' }),
+
   activateModel: (id) => api.post(`/model/activate/${id}`),
   getActiveModel: () => api.get("/model/active"),
 };
