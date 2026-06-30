@@ -26,24 +26,19 @@ const STEPS = [
     desc: "Memuat data email mentah dari database.",
   },
   {
-    key: "html",
-    label: "Pembersihan HTML",
-    desc: "Menghapus tag HTML (<div>, <a>, dll) agar teks bersih.",
-  },
-  {
     key: "mask",
     label: "Masking URL/Email",
-    desc: "Mengubah link menjadi [URL] dan email menjadi [EMAIL].",
+    desc: "Mengubah link menjadi [URL] dan alamat email menjadi [EMAIL].",
+  },
+  {
+    key: "clean",
+    label: "Pembersihan Karakter",
+    desc: "Menghapus simbol dan karakter non-alfanumerik yang tidak relevan.",
   },
   {
     key: "norm",
-    label: "Normalisasi",
-    desc: "Menghapus simbol aneh dan merapikan spasi (Whitespace).",
-  },
-  {
-    key: "case",
-    label: "Case Folding",
-    desc: "Mengubah huruf menjadi kecil untuk konsistensi IndoBERT.",
+    label: "Normalisasi Whitespace",
+    desc: "Merapikan spasi berlebih dan memotong teks maksimal 512 karakter.",
   },
   {
     key: "result",

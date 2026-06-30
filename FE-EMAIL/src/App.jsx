@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import LoginPage from './pages/Login';
+import RegisterPage from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import DataCollection from './pages/DataCollection';
 import PreprocessingPage from './pages/Preprocessing';
@@ -50,6 +51,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/beranda" replace /> : <LoginPage onLogin={u => setUser(u)} />} />
+        <Route path="/register" element={user ? <Navigate to="/beranda" replace /> : <RegisterPage />} />
         <Route path="/beranda" element={<Guard user={user}><Dashboard user={user} /></Guard>} />
         <Route path="/data-collection" element={<Guard user={user} admin><DataCollection /></Guard>} />
         <Route path="/preprocessing" element={<Guard user={user} admin><PreprocessingPage /></Guard>} />

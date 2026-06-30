@@ -149,8 +149,7 @@ export const modelAPI = {
 // === Auth API ===
 export const authAPI = {
   login: (data) => api.post("/auth/login", data),
-  logout: () => api.post("/auth/logout"),
-  me: () => api.get("/auth/me"),
+  register: (data) => api.post("/auth/register", data),
 };
 
 // === Users API ===

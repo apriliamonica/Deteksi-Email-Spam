@@ -555,7 +555,6 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
         const match = contentDisposition.match(/filename="?([^"]+)"?/);
         if (match && match.length === 2) fileName = match[1];
       }
-      
       link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
