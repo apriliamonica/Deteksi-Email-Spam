@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authAPI } from '../services/api';
-import { Mail, Lock, ShieldCheck, ArrowRight, Activity, GitCommit } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, ArrowRight, Activity, GitCommit, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -16,15 +17,15 @@ export default function LoginPage({ onLogin }) {
   }, []);
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); 
-    setError(''); 
+    e.preventDefault();
+    setError('');
     setLoading(true);
     try {
       const res = await authAPI.login({ email, password });
       if (res.data.status === 'success') {
         const userData = res.data.user;
         localStorage.setItem('user', JSON.stringify(userData));
-        onLogin(userData); 
+        onLogin(userData);
         navigate('/beranda');
       }
     } catch (err) {
@@ -35,160 +36,99 @@ export default function LoginPage({ onLogin }) {
   };
 
   return (
-    <div className="page-login" style={{
-      minHeight: '100vh',
-      display: 'flex',
-      background: 'var(--page-bg-login)',
-      fontFamily: '"Inter", sans-serif',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* Background Decorations */}
-      <div style={{
-        position: 'absolute', top: '-10%', left: '-10%', width: '40vw', height: '40vw',
-        background: 'radial-gradient(circle, rgba(79, 95, 212, 0.15) 0%, transparent 70%)',
-        borderRadius: '50%', filter: 'blur(40px)', zIndex: 0
-      }} />
-      <div style={{
-        position: 'absolute', bottom: '-20%', right: '-10%', width: '50vw', height: '50vw',
-        background: 'radial-gradient(circle, rgba(236, 72, 153, 0.1) 0%, transparent 70%)',
-        borderRadius: '50%', filter: 'blur(60px)', zIndex: 0
-      }} />
+    <div className="page-login auth-page">
+      <div className="auth-page__blob auth-page__blob--tl" aria-hidden="true" />
+      <div className="auth-page__blob auth-page__blob--br" aria-hidden="true" />
 
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem',
-        zIndex: 1
-      }}>
-        <div style={{
-          background: 'var(--glass-bg)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid var(--glass-border)',
-          borderRadius: 'var(--radius-xl)',
-          padding: '40px',
-          width: '100%',
-          maxWidth: '440px',
-          boxShadow: '0 25px 50px -12px var(--glass-shadow)',
-          transform: mounted ? 'translateY(0)' : 'translateY(20px)',
-          opacity: mounted ? 1 : 0,
-          transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
-        }}>
-          
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <div style={{
-              width: '64px', height: '64px', margin: '0 auto 16px',
-              background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)',
-              borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 10px 25px -5px rgba(79, 95, 212, 0.4)'
-            }}>
+      <div className="auth-page__center">
+        <div className={`auth-card ${mounted ? 'auth-card--enter' : 'auth-card--hidden'}`}>
+          <div className="auth-card__header">
+            <div className="auth-card__logo">
               <ShieldCheck size={32} color="white" />
             </div>
-            <h1 style={{ 
-              fontSize: '1.8rem', fontWeight: 800, color: 'var(--app-text)', margin: '0 0 8px 0',
-              letterSpacing: '-0.02em'
-            }}>SpamGuard</h1>
-            <p style={{ 
-              color: 'var(--app-text-muted)', fontSize: '0.9rem', margin: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-            }}>
-              <Activity size={14} /> IndoBERT <GitCommit size={14} /> GAT
+            <h1 className="auth-card__title">SpamGuard</h1>
+            <p className="auth-card__subtitle">
+              <Activity size={14} />
+              IndoBERT
+              <GitCommit size={14} />
+              GAT
             </p>
           </div>
 
           {error && (
-            <div style={{
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-              color: '#ef4444', padding: '12px 16px', borderRadius: '12px',
-              fontSize: '0.85rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px'
-            }}>
-              ⚠️ {error}
+            <div className="auth-alert auth-alert--error" role="alert">
+              <span aria-hidden="true">⚠️</span>
+              <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div>
-              <label style={{ display: 'block', color: 'var(--app-text)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>Email Address</label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={18} color="var(--app-text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-                <input 
-                  type="email" 
+          <form onSubmit={handleSubmit} className="auth-form">
+            <div className="auth-field">
+              <label htmlFor="login-email" className="auth-label">
+                Email
+              </label>
+              <div className="auth-input-wrap">
+                <span className="auth-input-icon">
+                  <Mail size={18} strokeWidth={2} />
+                </span>
+                <input
+                  id="login-email"
+                  type="email"
+                  className="auth-input"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@spamguard.com"
+                  autoComplete="email"
                   required
-                  style={{
-                    width: '100%', background: 'rgba(255, 255, 255, 0.7)', border: '1px solid var(--app-border)',
-                    color: 'var(--app-text)', padding: '14px 14px 14px 42px', borderRadius: '12px', fontSize: '0.9rem',
-                    outline: 'none', transition: 'all 0.2s', boxSizing: 'border-box'
-                  }}
-                  onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.background = '#ffffff'; }}
-                  onBlur={(e) => { e.target.style.borderColor = 'var(--app-border)'; e.target.style.background = 'rgba(255, 255, 255, 0.7)'; }}
                 />
               </div>
             </div>
 
-            <div>
-              <label style={{ display: 'block', color: 'var(--app-text)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px' }}>Password</label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={18} color="var(--app-text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-                <input 
-                  type="password" 
+            <div className="auth-field">
+              <label htmlFor="login-password" className="auth-label">
+                Password
+              </label>
+              <div className="auth-input-wrap">
+                <span className="auth-input-icon">
+                  <Lock size={18} strokeWidth={2} />
+                </span>
+                <input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  className="auth-input auth-input--toggle"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Masukkan password"
+                  autoComplete="current-password"
                   required
-                  style={{
-                    width: '100%', background: 'rgba(255, 255, 255, 0.7)', border: '1px solid var(--app-border)',
-                    color: 'var(--app-text)', padding: '14px 14px 14px 42px', borderRadius: '12px', fontSize: '0.9rem',
-                    outline: 'none', transition: 'all 0.2s', boxSizing: 'border-box'
-                  }}
-                  onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.background = '#ffffff'; }}
-                  onBlur={(e) => { e.target.style.borderColor = 'var(--app-border)'; e.target.style.background = 'rgba(255, 255, 255, 0.7)'; }}
                 />
+                <button
+                  type="button"
+                  className="auth-toggle"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 
-            <button 
-              type="submit" 
-              disabled={loading}
-              style={{
-                width: '100%', background: 'var(--primary)',
-                color: 'white', border: 'none', padding: '14px', borderRadius: '12px',
-                fontSize: '0.95rem', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                marginTop: '8px', boxShadow: '0 4px 14px 0 rgba(79, 95, 212, 0.39)',
-                transition: 'transform 0.1s, box-shadow 0.1s',
-                opacity: loading ? 0.7 : 1
-              }}
-              onMouseDown={(e) => !loading && (e.currentTarget.style.transform = 'scale(0.98)')}
-              onMouseUp={(e) => !loading && (e.currentTarget.style.transform = 'scale(1)')}
-              onMouseLeave={(e) => !loading && (e.currentTarget.style.transform = 'scale(1)')}
-            >
+            <button type="submit" className="auth-submit" disabled={loading}>
               {loading ? (
-                <>Memproses...</>
+                'Memproses...'
               ) : (
-                <>Masuk ke Sistem <ArrowRight size={16} /></>
+                <>
+                  Masuk ke Sistem
+                  <ArrowRight size={16} />
+                </>
               )}
             </button>
           </form>
 
-          <div style={{ 
-            marginTop: '24px', textAlign: 'center',
-            paddingTop: '20px', borderTop: '1px solid var(--app-border)'
-          }}>
-            <span style={{ color: 'var(--app-text-muted)', fontSize: '0.85rem' }}>Belum punya akun? </span>
-            <Link to="/register" style={{
-              color: 'var(--primary)', fontWeight: 600, fontSize: '0.85rem', textDecoration: 'none'
-            }}>
-              Daftar sekarang
-            </Link>
+          <div className="auth-footer">
+            Belum punya akun?
+            <Link to="/register">Daftar sekarang</Link>
           </div>
-
         </div>
       </div>
     </div>

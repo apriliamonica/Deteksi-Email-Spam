@@ -224,6 +224,7 @@ export default function EvaluationPage() {
     ? results.filter((r) => r.dataset_id?.toString() === selDataset)
     : results;
 
+  // Menampilkan rasio sebagai Latih:Uji (gabungan Train+Val sebagai data latih)
   const getRatio = (item) => {
     if (item.req_val_split != null && item.req_test_split != null) {
       const tr = Math.round(
@@ -231,7 +232,8 @@ export default function EvaluationPage() {
       );
       const val = Math.round(item.req_val_split * 100);
       const te = Math.round(item.req_test_split * 100);
-      return `${tr}:${val}:${te}`;
+      const latih = tr + val; // Train + Validation = total data latih
+      return `${latih}:${te}`; // Format: Latih:Uji
     }
 
     // Fallback jika ambil dari size dan total_data
@@ -239,7 +241,6 @@ export default function EvaluationPage() {
       const te = Math.round((item.test_size / item.total_data) * 100);
       let val = 0;
 
-      // Ambil val_size dari metrics_json jika ada
       try {
         if (item.metrics_json) {
           const mj = JSON.parse(item.metrics_json);
@@ -250,11 +251,10 @@ export default function EvaluationPage() {
       } catch (e) {}
 
       const tr = Math.round((item.train_size / item.total_data) * 100);
-
-      // Jika val ada, tampilkan 3 bagian, jika tidak tampilkan 2 bagian
-      return val > 0 ? `${tr}:${val}:${te}` : `${tr}:${te}`;
+      const latih = tr + val;
+      return `${latih}:${te}`;
     }
-    return "80:10:10";
+    return "80:20";
   };
 
   const allRatios = [...new Set(filteredResults.map(getRatio))].sort();
@@ -536,68 +536,6 @@ function ComparisonView({ result }) {
 
   return (
     <div className="page-container page-evaluasi" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Metric Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 12,
-        }}
-      >
-        {chartData.map((m) => (
-          <div
-            key={m.key}
-            style={{
-              padding: 14,
-              borderRadius: 12,
-              textAlign: "center",
-              background: "var(--app-surface)",
-              border: `1.5px solid ${m.color}30`,
-            }}
-          >
-            <div
-              style={{
-                fontSize: "0.7rem",
-                fontWeight: 700,
-                color: "var(--app-text-muted)",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-                marginBottom: 6,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 2,
-              }}
-            >
-              {m.name} <InfoBtn metricKey={m.key} />
-            </div>
-            <div
-              style={{ fontSize: "1.4rem", fontWeight: 900, color: m.color }}
-            >
-              {m.value}%
-            </div>
-            <div
-              style={{
-                marginTop: 8,
-                height: 4,
-                background: "var(--lav-ghost)",
-                borderRadius: 999,
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  width: `${m.value}%`,
-                  height: "100%",
-                  background: m.color,
-                  transition: "width .6s",
-                }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Train vs Test Table */}
       <div style={{ overflowX: "auto" }}>
         <table style={tbl}>

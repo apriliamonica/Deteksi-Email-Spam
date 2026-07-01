@@ -90,9 +90,6 @@
   --sidebar-bg: var(--glass-bg);
 }
 
-
-
-
 /* ===== BASE ===== */
 *,
 *::before,
@@ -125,7 +122,9 @@ h3 {
 /* ===== SIDEBAR — FROSTED LAVENDER GLASS ===== */
 .sidebar {
   width: 260px;
-  background: var(--sidebar-bg); /* ← ubah --sidebar-bg di :root untuk ganti warna sidebar */
+  background: var(
+    --sidebar-bg
+  ); /* ← ubah --sidebar-bg di :root untuk ganti warna sidebar */
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   border-right: 0.5px solid var(--glass-border);
@@ -269,40 +268,66 @@ h3 {
    ════════════════════════════════════════════════════ */
 
 /* src/pages/Dashboard.jsx — halaman beranda admin */
-.page-dashboard    { background: var(--page-bg-dashboard); }
+.page-dashboard {
+  background: var(--page-bg-dashboard);
+}
 
 /* src/pages/UserChatDashboard.jsx — beranda user biasa (chat AI) */
-.page-user-dashboard { background: var(--page-bg-user-dashboard); }
+.page-user-dashboard {
+  background: var(--page-bg-user-dashboard);
+}
 
 /* src/pages/DataCollection.jsx — pengumpulan data / email scraping */
-.page-data-collection { background: var(--page-bg-data-collection); }
+.page-data-collection {
+  background: var(--page-bg-data-collection);
+}
 
 /* src/pages/Preprocessing.jsx — preprocessing teks email */
-.page-preprocessing { background: var(--page-bg-preprocessing); }
+.page-preprocessing {
+  background: var(--page-bg-preprocessing);
+}
 
 /* src/pages/Processing.jsx — training model IndoBERT + GAT */
-.page-processing   { background: var(--page-bg-processing); }
+.page-processing {
+  background: var(--page-bg-processing);
+}
 
 /* src/pages/RiwayatModel.jsx — riwayat & detail model terlatih */
-.page-riwayat-model { background: var(--page-bg-riwayat-model); }
+.page-riwayat-model {
+  background: var(--page-bg-riwayat-model);
+}
 
 /* src/pages/RiwayatPreprocessing.jsx — riwayat hasil preprocessing */
-.page-riwayat-preproc { background: var(--page-bg-riwayat-preproc); }
+.page-riwayat-preproc {
+  background: var(--page-bg-riwayat-preproc);
+}
 
 /* src/pages/Evaluasi.jsx — evaluasi perbandingan model */
-.page-evaluasi     { background: var(--page-bg-evaluasi); }
+.page-evaluasi {
+  background: var(--page-bg-evaluasi);
+}
 
 /* src/pages/Testing.jsx — deteksi email / testing model */
-.page-testing      { background: var(--page-bg-testing); }
+.page-testing {
+  background: var(--page-bg-testing);
+}
 
 /* src/pages/ManageAccounts.jsx — kelola akun pengguna */
-.page-manage-accounts { background: var(--page-bg-manage-accounts); }
+.page-manage-accounts {
+  background: var(--page-bg-manage-accounts);
+}
 
 /* src/pages/UserRiwayat.jsx — riwayat deteksi milik user biasa */
-.page-user-riwayat { background: var(--page-bg-user-riwayat); }
+.page-user-riwayat {
+  background: var(--page-bg-user-riwayat);
+}
 
-/* src/pages/Login.jsx — halaman login */
-.page-login        { background: var(--page-bg-login); min-height: 100vh; }
+/* src/pages/Login.jsx & Register.jsx — halaman auth */
+.page-login,
+.page-register {
+  background: var(--page-bg-login);
+  min-height: 100vh;
+}
 
 .page-header {
   display: flex;
@@ -522,6 +547,281 @@ textarea:disabled,
   color: var(--app-text-muted) !important;
   cursor: not-allowed;
   opacity: 0.8;
+}
+
+/* ===== AUTH (Login / Register) ===== */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  font-family: "Inter", sans-serif;
+}
+
+.auth-page__blob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.auth-page__blob--tl {
+  top: -10%;
+  left: -10%;
+  width: 40vw;
+  height: 40vw;
+  background: radial-gradient(circle, rgba(79, 95, 212, 0.15) 0%, transparent 70%);
+  filter: blur(40px);
+}
+
+.auth-page__blob--br {
+  bottom: -20%;
+  right: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.1) 0%, transparent 70%);
+  filter: blur(60px);
+}
+
+.auth-page__center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  z-index: 1;
+}
+
+.auth-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: 40px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 25px 50px -12px var(--glass-shadow);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.auth-card--enter {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.auth-card--hidden {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.auth-card__header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.auth-card__logo {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px -5px rgba(79, 95, 212, 0.4);
+}
+
+.auth-card__title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--app-text);
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.auth-card__subtitle {
+  color: var(--app-text-muted);
+  font-size: 0.875rem;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.auth-alert {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+.auth-alert--error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.auth-alert--success {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #16a34a;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--app-text);
+  line-height: 1.2;
+}
+
+.auth-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.auth-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--app-text-muted);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.auth-page input.auth-input {
+  width: 100% !important;
+  height: 48px !important;
+  padding: 0 14px 0 44px !important;
+  border-radius: 12px !important;
+  border: 1.5px solid var(--app-border) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  font-size: 0.9rem !important;
+  line-height: 1.4 !important;
+  color: var(--app-text) !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s !important;
+}
+
+.auth-page input.auth-input--toggle {
+  padding-right: 44px !important;
+}
+
+.auth-page input.auth-input:focus {
+  border-color: var(--primary) !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(79, 95, 212, 0.12) !important;
+}
+
+.auth-page input.auth-input::placeholder {
+  color: var(--app-text-muted);
+  opacity: 0.75;
+}
+
+.auth-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--app-text-muted);
+  cursor: pointer;
+  z-index: 2;
+  transition: color 0.15s, background 0.15s;
+}
+
+.auth-toggle:hover {
+  color: var(--primary);
+  background: rgba(79, 95, 212, 0.08);
+}
+
+.auth-submit {
+  width: 100%;
+  height: 48px;
+  margin-top: 4px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 12px;
+  background: var(--primary);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(79, 95, 212, 0.35);
+  transition: transform 0.1s, opacity 0.2s, box-shadow 0.2s;
+}
+
+.auth-submit:hover:not(:disabled) {
+  box-shadow: 0 6px 18px rgba(79, 95, 212, 0.45);
+}
+
+.auth-submit:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.auth-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.auth-footer {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--app-border);
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--app-text-muted);
+}
+
+.auth-footer a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.auth-footer a:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
 }
 
 /* ===== RESPONSIVE ===== */

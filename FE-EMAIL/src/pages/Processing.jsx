@@ -321,7 +321,10 @@ export default function ProcessingPage() {
   };
 
   return (
-    <div className="page-container page-processing" style={{ maxWidth: "100%", padding: "0 24px", paddingBottom: 60 }}>
+    <div
+      className="page-container page-processing"
+      style={{ maxWidth: "100%", padding: "0 24px", paddingBottom: 60 }}
+    >
       {toast.show && (
         <div
           className={`alert alert-${toast.type}`}
@@ -753,6 +756,56 @@ export default function ProcessingPage() {
                                       %
                                     </span>
                                   </div>
+
+                                  {/* Rasio Latih : Uji Realtime */}
+                                  {parseInt(trainRatio) +
+                                    parseInt(valRatio) +
+                                    parseInt(testRatio) ===
+                                    100 && (
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 8,
+                                        padding: "8px 12px",
+                                        background: "var(--lav-light)",
+                                        borderRadius: 8,
+                                        fontSize: "0.82rem",
+                                        marginBottom: 16,
+                                        border:
+                                          "1px solid var(--primary-light)",
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          color: "var(--app-text-muted)",
+                                        }}
+                                      >
+                                        {/* Setara dengan rasio global: */}
+                                      </span>
+                                      <span
+                                        style={{
+                                          fontWeight: 700,
+                                          color: "var(--primary)",
+                                          fontSize: "0.9rem",
+                                        }}
+                                      >
+                                        Latih{" "}
+                                        {parseInt(trainRatio) +
+                                          parseInt(valRatio)}
+                                        % : Uji {testRatio}%
+                                      </span>
+                                      <span
+                                        style={{
+                                          color: "var(--app-text-muted)",
+                                          fontSize: "0.75rem",
+                                        }}
+                                      >
+                                        (Train {trainRatio}% + Val {valRatio}%
+                                        digabung sebagai data latih)
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
 
@@ -1031,7 +1084,7 @@ export default function ProcessingPage() {
                                       <span>
                                         Epoch:{" "}
                                         <strong>
-                                          {liveEpoch} / {epoch}
+                                          {liveEpoch} / {gatEpochs}
                                         </strong>
                                       </span>
                                       <span>
@@ -1221,19 +1274,30 @@ export default function ProcessingPage() {
                                     width="100%"
                                     height="100%"
                                   >
-                                    <AreaChart data={trainResult.gatLoss}>
+                                    <AreaChart data={trainResult.gatLoss} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
                                       <CartesianGrid
                                         strokeDasharray="3 3"
                                         vertical={false}
                                       />
-                                      <XAxis dataKey="e" hide />
-                                      <YAxis hide />
+                                      <XAxis
+                                        dataKey="e"
+                                        tick={{ fontSize: 10 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        label={{ value: 'Epoch', position: 'insideBottom', offset: -10, style: { fontSize: 11, fill: 'var(--app-text-muted)', fontWeight: 600 } }}
+                                      />
+                                      <YAxis
+                                        tick={{ fontSize: 10 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        label={{ value: 'Loss', angle: -90, position: 'insideLeft', offset: 0, style: { fontSize: 11, fill: 'var(--app-text-muted)', fontWeight: 600 } }}
+                                      />
                                       <RechartsTooltip />
                                       <Area
                                         type="monotone"
                                         dataKey="l"
-                                        stroke="#171717"
-                                        fill="#f3f4f6"
+                                        stroke="#4f5fd4"
+                                        fill="#4f5fd420"
                                       />
                                     </AreaChart>
                                   </ResponsiveContainer>

@@ -211,8 +211,15 @@ class PredictionService:
             
             if self._stop_training: raise Exception("Training cancelled by user")
 
+            def embedding_progress(curr, total):
+                prog = 35 + int((curr / total) * 10)
+                self.training_status.update({
+                    "current_step": f"Extracting Embeddings (Batch {curr}/{total})...", 
+                    "progress": prog
+                })
+
             self.training_status.update({"current_step": "Extracting Embeddings...", "progress": 35})
-            embeddings = indobert_embedder.get_batch_embeddings(texts)
+            embeddings = indobert_embedder.get_batch_embeddings(texts, progress_callback=embedding_progress)
             labels_tensor = torch.tensor(labels, dtype=torch.long)
             
             df = pd.DataFrame({
@@ -271,6 +278,13 @@ class PredictionService:
 
             for epoch in range(gat_epochs):
                 if self._stop_training: raise Exception("Training cancelled by user")
+                
+                prog = 50 + int(((epoch + 1) / gat_epochs) * 40)
+                self.training_status.update({
+                    "current_step": f"Training GAT (Epoch {epoch+1}/{gat_epochs})...", 
+                    "progress": prog
+                })
+
                 self.gat_model.train()
                 optimizer.zero_grad()
                 out = self.gat_model(x, edge_index)
@@ -329,13 +343,13 @@ class PredictionService:
                 test_probs = F.softmax(test_out[test_mask], dim=1)
                 test_pred = test_probs.argmax(dim=1).cpu().numpy()
                 test_true = y[test_mask].cpu().numpy()
-                test_conf = test_probs.max(dim=1)[0].cpu().numpy()
+                test_conf = test_probs[:, 1].cpu().numpy()
                 
                 # Training Metrics
                 train_probs = F.softmax(test_out[train_mask], dim=1)
                 train_pred = train_probs.argmax(dim=1).cpu().numpy()
                 train_true = y[train_mask].cpu().numpy()
-                train_conf = train_probs.max(dim=1)[0].cpu().numpy()
+                train_conf = train_probs[:, 1].cpu().numpy()
 
             metrics = {
                 # Testing metrics sebagai utama

@@ -84,7 +84,11 @@ export default function Testing() {
       setBatchGroups(batches || []);
 
       // 2. Ambil manual items (no_batch=true)
-      const params = { skip: (page - 1) * perPage, limit: perPage, no_batch: true };
+      const params = {
+        skip: (page - 1) * perPage,
+        limit: perPage,
+        no_batch: true,
+      };
       if (search.trim()) params.search = search.trim();
       const { data } = await emailAPI.getClassifyHistory(params);
       const mapped = (data.items || []).map((e) => ({
@@ -116,7 +120,10 @@ export default function Testing() {
   const fetchBatchDetail = async (batchId) => {
     setBatchDetailLoading(true);
     try {
-      const { data } = await emailAPI.getClassifyHistory({ batch_id: batchId, limit: 200 });
+      const { data } = await emailAPI.getClassifyHistory({
+        batch_id: batchId,
+        limit: 200,
+      });
       setBatchDetailItems(data.items || []);
     } catch (err) {
       console.error("Gagal memuat detail batch:", err);
@@ -129,7 +136,6 @@ export default function Testing() {
     fetchGroupedHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search]);
-
 
   const refreshModel = async () => {
     const [a, h] = await Promise.all([
@@ -295,7 +301,10 @@ export default function Testing() {
     if (!window.confirm("Hapus seluruh hasil batch ini dari riwayat?")) return;
     try {
       await emailAPI.deleteBatchHistory(batchId);
-      if (expandedBatch === batchId) { setExpandedBatch(null); setBatchDetailItems([]); }
+      if (expandedBatch === batchId) {
+        setExpandedBatch(null);
+        setBatchDetailItems([]);
+      }
       if (activeResult?.batchId === batchId) setActiveResult(null);
       await fetchGroupedHistory();
     } catch {
@@ -304,7 +313,12 @@ export default function Testing() {
   };
 
   const handleDeleteAll = async () => {
-    if (!window.confirm(`Hapus semua riwayat klasifikasi? Tindakan ini tidak dapat dibatalkan.`)) return;
+    if (
+      !window.confirm(
+        `Hapus semua riwayat klasifikasi? Tindakan ini tidak dapat dibatalkan.`,
+      )
+    )
+      return;
     try {
       await emailAPI.deleteAllClassifyHistory();
       setActiveResult(null);
@@ -333,7 +347,10 @@ export default function Testing() {
   }, [search]);
 
   return (
-    <div className="page-container page-testing" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <div
+      className="page-container page-testing"
+      style={{ display: "flex", flexDirection: "column", gap: 18 }}
+    >
       {/* ── HEADER ── */}
       <div>
         <h1
@@ -715,11 +732,25 @@ export default function Testing() {
             bodyPadding={0}
           >
             {historyLoading ? (
-              <div style={{ padding: 30, textAlign: "center", color: "var(--app-text-muted)", fontSize: "0.82rem" }}>
+              <div
+                style={{
+                  padding: 30,
+                  textAlign: "center",
+                  color: "var(--app-text-muted)",
+                  fontSize: "0.82rem",
+                }}
+              >
                 Memuat...
               </div>
-            ) : (batchGroups.length === 0 && testHistory.length === 0) ? (
-              <div style={{ padding: 30, textAlign: "center", color: "var(--app-text-muted)", fontSize: "0.82rem" }}>
+            ) : batchGroups.length === 0 && testHistory.length === 0 ? (
+              <div
+                style={{
+                  padding: 30,
+                  textAlign: "center",
+                  color: "var(--app-text-muted)",
+                  fontSize: "0.82rem",
+                }}
+              >
                 Belum ada data pengujian.
               </div>
             ) : (
@@ -727,13 +758,29 @@ export default function Testing() {
                 {/* ── BATCH GROUPS ── */}
                 {batchGroups.length > 0 && (
                   <div>
-                    <div style={{ padding: "8px 14px", background: "var(--lav-ghost)", borderBottom: "1px solid var(--app-border)", fontSize: "0.7rem", fontWeight: 700, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    <div
+                      style={{
+                        padding: "8px 14px",
+                        background: "var(--lav-ghost)",
+                        borderBottom: "1px solid var(--app-border)",
+                        fontSize: "0.7rem",
+                        fontWeight: 700,
+                        color: "var(--app-text-muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                      }}
+                    >
                       Hasil Batch File ({batchGroups.length})
                     </div>
                     {batchGroups.map((bg) => {
                       const isOpen = expandedBatch === bg.batch_id;
                       return (
-                        <div key={bg.batch_id} style={{ borderBottom: "1px solid var(--app-border)" }}>
+                        <div
+                          key={bg.batch_id}
+                          style={{
+                            borderBottom: "1px solid var(--app-border)",
+                          }}
+                        >
                           {/* Group Header */}
                           <div
                             onClick={() => {
@@ -744,7 +791,15 @@ export default function Testing() {
                               } else {
                                 setExpandedBatch(bg.batch_id);
                                 fetchBatchDetail(bg.batch_id);
-                                setActiveResult({ type: "batchSummary", batchId: bg.batch_id, filename: bg.batch_name, total: bg.total, spam: bg.spam_count, ham: bg.ham_count, date: bg.created_at });
+                                setActiveResult({
+                                  type: "batchSummary",
+                                  batchId: bg.batch_id,
+                                  filename: bg.batch_name,
+                                  total: bg.total,
+                                  spam: bg.spam_count,
+                                  ham: bg.ham_count,
+                                  date: bg.created_at,
+                                });
                               }
                             }}
                             style={{
@@ -757,21 +812,72 @@ export default function Testing() {
                               transition: "background 0.15s",
                             }}
                           >
-                            <span style={{ fontSize: "0.72rem", color: isOpen ? "#4f5fd4" : "var(--app-text-muted)", transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>▶</span>
+                            <span
+                              style={{
+                                fontSize: "0.72rem",
+                                color: isOpen
+                                  ? "#4f5fd4"
+                                  : "var(--app-text-muted)",
+                                transform: isOpen ? "rotate(90deg)" : "none",
+                                transition: "transform 0.2s",
+                                display: "inline-block",
+                              }}
+                            >
+                              ▶
+                            </span>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--app-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              <div
+                                style={{
+                                  fontWeight: 700,
+                                  fontSize: "0.82rem",
+                                  color: "var(--app-text)",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
                                 📂 {bg.batch_name}
                               </div>
-                              <div style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", marginTop: 2 }}>
+                              <div
+                                style={{
+                                  fontSize: "0.7rem",
+                                  color: "var(--app-text-muted)",
+                                  marginTop: 2,
+                                }}
+                              >
                                 {bg.total} email &nbsp;·&nbsp;
-                                <span style={{ color: "#ef4444" }}>{bg.spam_count} spam</span> &nbsp;·&nbsp;
-                                <span style={{ color: "#10b981" }}>{bg.ham_count} ham</span> &nbsp;·&nbsp;
-                                {bg.created_at ? new Date(bg.created_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : ""}
+                                <span style={{ color: "#ef4444" }}>
+                                  {bg.spam_count} spam
+                                </span>{" "}
+                                &nbsp;·&nbsp;
+                                <span style={{ color: "#10b981" }}>
+                                  {bg.ham_count} ham
+                                </span>{" "}
+                                &nbsp;·&nbsp;
+                                {bg.created_at
+                                  ? new Date(bg.created_at).toLocaleDateString(
+                                      "id-ID",
+                                      {
+                                        day: "2-digit",
+                                        month: "short",
+                                        year: "numeric",
+                                      },
+                                    )
+                                  : ""}
                               </div>
                             </div>
                             <button
                               onClick={(e) => handleDeleteBatch(e, bg.batch_id)}
-                              style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #fecaca", background: "#fef2f2", color: "#dc2626", fontSize: "0.7rem", cursor: "pointer", fontWeight: 600 }}
+                              style={{
+                                padding: "4px 8px",
+                                borderRadius: 6,
+                                border: "1px solid #fecaca",
+                                background: "#fef2f2",
+                                color: "#dc2626",
+                                fontSize: "0.7rem",
+                                cursor: "pointer",
+                                fontWeight: 600,
+                              }}
                             >
                               <Trash2 size={11} />
                             </button>
@@ -779,48 +885,102 @@ export default function Testing() {
 
                           {/* Expanded Items */}
                           {isOpen && (
-                            <div style={{ background: "var(--app-bg)", borderTop: "1px solid var(--app-border)" }}>
+                            <div
+                              style={{
+                                background: "var(--app-bg)",
+                                borderTop: "1px solid var(--app-border)",
+                              }}
+                            >
                               {batchDetailLoading ? (
-                                <div style={{ padding: 16, textAlign: "center", fontSize: "0.78rem", color: "var(--app-text-muted)" }}>
-                                  <Activity size={14} style={{ animation: "spin 1s linear infinite" }} /> Memuat detail...
-                                </div>
-                              ) : batchDetailItems.map((item, idx) => (
                                 <div
-                                  key={item.id}
-                                  onClick={() => setActiveResult({
-                                    id: item.id,
-                                    type: "manual",
-                                    text: item.body || "-",
-                                    subject: item.subject,
-                                    sender: item.sender,
-                                    label: item.label,
-                                    conf: item.confidence,
-                                    date: item.created_at ? new Date(item.created_at).toLocaleDateString("id-ID") : "-",
-                                  })}
                                   style={{
-                                    padding: "8px 14px 8px 36px",
-                                    borderBottom: "1px solid var(--app-border)",
-                                    cursor: "pointer",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 10,
-                                    background: activeResult?.id === item.id ? "var(--lav-light)" : "transparent",
+                                    padding: 16,
+                                    textAlign: "center",
+                                    fontSize: "0.78rem",
+                                    color: "var(--app-text-muted)",
                                   }}
                                 >
-                                  <span style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", minWidth: 20 }}>{idx + 1}.</span>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: "0.78rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--app-text)" }}>
-                                      {item.subject || item.body || "-"}
-                                    </div>
-                                  </div>
-                                  <Pill
-                                    bg={item.label === "spam" ? "#fef2f2" : "#ecfdf5"}
-                                    color={item.label === "spam" ? "#991b1b" : "#065f46"}
-                                  >
-                                    {item.label}
-                                  </Pill>
+                                  <Activity
+                                    size={14}
+                                    style={{
+                                      animation: "spin 1s linear infinite",
+                                    }}
+                                  />{" "}
+                                  Memuat detail...
                                 </div>
-                              ))}
+                              ) : (
+                                batchDetailItems.map((item, idx) => (
+                                  <div
+                                    key={item.id}
+                                    onClick={() =>
+                                      setActiveResult({
+                                        id: item.id,
+                                        type: "manual",
+                                        text: item.body || "-",
+                                        subject: item.subject,
+                                        sender: item.sender,
+                                        label: item.label,
+                                        conf: item.confidence,
+                                        date: item.created_at
+                                          ? new Date(
+                                              item.created_at,
+                                            ).toLocaleDateString("id-ID")
+                                          : "-",
+                                      })
+                                    }
+                                    style={{
+                                      padding: "8px 14px 8px 36px",
+                                      borderBottom:
+                                        "1px solid var(--app-border)",
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 10,
+                                      background:
+                                        activeResult?.id === item.id
+                                          ? "var(--lav-light)"
+                                          : "transparent",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        fontSize: "0.7rem",
+                                        color: "var(--app-text-muted)",
+                                        minWidth: 20,
+                                      }}
+                                    >
+                                      {idx + 1}.
+                                    </span>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div
+                                        style={{
+                                          fontSize: "0.78rem",
+                                          overflow: "hidden",
+                                          textOverflow: "ellipsis",
+                                          whiteSpace: "nowrap",
+                                          color: "var(--app-text)",
+                                        }}
+                                      >
+                                        {item.subject || item.body || "-"}
+                                      </div>
+                                    </div>
+                                    <Pill
+                                      bg={
+                                        item.label === "spam"
+                                          ? "#fef2f2"
+                                          : "#ecfdf5"
+                                      }
+                                      color={
+                                        item.label === "spam"
+                                          ? "#991b1b"
+                                          : "#065f46"
+                                      }
+                                    >
+                                      {item.label}
+                                    </Pill>
+                                  </div>
+                                ))
+                              )}
                             </div>
                           )}
                         </div>
@@ -832,7 +992,22 @@ export default function Testing() {
                 {/* ── MANUAL ITEMS ── */}
                 {testHistory.length > 0 && (
                   <div>
-                    <div style={{ padding: "8px 14px", background: "var(--lav-ghost)", borderBottom: "1px solid var(--app-border)", borderTop: batchGroups.length > 0 ? "2px solid var(--app-border)" : "none", fontSize: "0.7rem", fontWeight: 700, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    <div
+                      style={{
+                        padding: "8px 14px",
+                        background: "var(--lav-ghost)",
+                        borderBottom: "1px solid var(--app-border)",
+                        borderTop:
+                          batchGroups.length > 0
+                            ? "2px solid var(--app-border)"
+                            : "none",
+                        fontSize: "0.7rem",
+                        fontWeight: 700,
+                        color: "var(--app-text-muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                      }}
+                    >
                       Uji Manual
                     </div>
                     {testHistory.map((it, i) => (
@@ -846,15 +1021,41 @@ export default function Testing() {
                           display: "flex",
                           alignItems: "center",
                           gap: 10,
-                          background: activeResult?.id === it.id ? "var(--lav-light)" : "transparent",
+                          background:
+                            activeResult?.id === it.id
+                              ? "var(--lav-light)"
+                              : "transparent",
                         }}
                       >
-                        <span style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", minWidth: 20 }}>{(page - 1) * perPage + i + 1}.</span>
+                        <span
+                          style={{
+                            fontSize: "0.7rem",
+                            color: "var(--app-text-muted)",
+                            minWidth: 20,
+                          }}
+                        >
+                          {(page - 1) * perPage + i + 1}.
+                        </span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: "0.78rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <div
+                            style={{
+                              fontSize: "0.78rem",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
                             {it.subject || it.text}
                           </div>
-                          <div style={{ fontSize: "0.68rem", color: "var(--app-text-muted)", marginTop: 2 }}>{it.date}</div>
+                          <div
+                            style={{
+                              fontSize: "0.68rem",
+                              color: "var(--app-text-muted)",
+                              marginTop: 2,
+                            }}
+                          >
+                            {it.date}
+                          </div>
                         </div>
                         <Pill
                           bg={it.label === "spam" ? "#fef2f2" : "#ecfdf5"}
@@ -864,15 +1065,34 @@ export default function Testing() {
                         </Pill>
                         <button
                           onClick={(e) => handleDeleteItem(e, it.id)}
-                          style={{ padding: "3px 6px", borderRadius: 5, border: "1px solid #fecaca", background: "#fef2f2", color: "#dc2626", fontSize: "0.68rem", cursor: "pointer" }}
+                          style={{
+                            padding: "3px 6px",
+                            borderRadius: 5,
+                            border: "1px solid #fecaca",
+                            background: "#fef2f2",
+                            color: "#dc2626",
+                            fontSize: "0.68rem",
+                            cursor: "pointer",
+                          }}
                         >
                           <Trash2 size={10} />
                         </button>
                       </div>
                     ))}
                     {totalPages > 1 && (
-                      <div style={{ padding: 12, borderTop: "1px solid var(--app-border)", display: "flex", justifyContent: "center" }}>
-                        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+                      <div
+                        style={{
+                          padding: 12,
+                          borderTop: "1px solid var(--app-border)",
+                          display: "flex",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Pagination
+                          currentPage={page}
+                          totalPages={totalPages}
+                          onPageChange={setPage}
+                        />
                       </div>
                     )}
                   </div>
@@ -898,22 +1118,69 @@ export default function Testing() {
 
       {/* ── CANCEL BATCH CONFIRM MODAL ── */}
       {cancelBatchConfirm && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ background: "white", borderRadius: 16, padding: 28, maxWidth: 380, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-            <div style={{ fontSize: "1.2rem", marginBottom: 8 }}>⚠️ Batalkan Proses?</div>
-            <p style={{ fontSize: "0.85rem", color: "var(--app-text-muted)", marginBottom: 20 }}>
-              Email yang <strong>sudah terklasifikasi</strong> akan tetap tersimpan di riwayat. Proses baru akan dihentikan.
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: 16,
+              padding: 28,
+              maxWidth: 380,
+              width: "90%",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+            }}
+          >
+            <div style={{ fontSize: "1.2rem", marginBottom: 8 }}>
+              ⚠️ Batalkan Proses?
+            </div>
+            <p
+              style={{
+                fontSize: "0.85rem",
+                color: "var(--app-text-muted)",
+                marginBottom: 20,
+              }}
+            >
+              Email yang <strong>sudah terklasifikasi</strong> akan tetap
+              tersimpan di riwayat. Proses baru akan dihentikan.
             </p>
             <div style={{ display: "flex", gap: 10 }}>
               <button
                 onClick={() => setCancelBatchConfirm(false)}
-                style={{ flex: 1, padding: "10px", borderRadius: 8, border: "1px solid var(--app-border)", background: "white", fontWeight: 600, cursor: "pointer", fontSize: "0.85rem" }}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  borderRadius: 8,
+                  border: "1px solid var(--app-border)",
+                  background: "white",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontSize: "0.85rem",
+                }}
               >
                 Lanjutkan Proses
               </button>
               <button
                 onClick={confirmKeepProgress}
-                style={{ flex: 2, padding: "10px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, #dc2626, #ef4444)", color: "white", fontWeight: 600, cursor: "pointer", fontSize: "0.85rem" }}
+                style={{
+                  flex: 2,
+                  padding: "10px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "linear-gradient(135deg, #dc2626, #ef4444)",
+                  color: "white",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontSize: "0.85rem",
+                }}
               >
                 Hentikan & Simpan Yg Sudah Ada
               </button>
@@ -934,41 +1201,125 @@ export default function Testing() {
 // ════════════════════════════════════════════════════
 
 function BatchSummaryDetail({ result }) {
-  const spamPct = result.total > 0 ? Math.round((result.spam / result.total) * 100) : 0;
-  const hamPct = result.total > 0 ? Math.round((result.ham / result.total) * 100) : 0;
+  const spamPct =
+    result.total > 0 ? Math.round((result.spam / result.total) * 100) : 0;
+  const hamPct =
+    result.total > 0 ? Math.round((result.ham / result.total) * 100) : 0;
   return (
     <DetailCard>
-      <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid var(--app-border)" }}>
-        <div style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>
+      <div
+        style={{
+          marginBottom: 14,
+          paddingBottom: 14,
+          borderBottom: "1px solid var(--app-border)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "0.7rem",
+            color: "var(--app-text-muted)",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            marginBottom: 4,
+          }}
+        >
           📂 Hasil Batch
         </div>
-        <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "var(--app-text)", wordBreak: "break-all" }}>
+        <div
+          style={{
+            fontSize: "0.88rem",
+            fontWeight: 700,
+            color: "var(--app-text)",
+            wordBreak: "break-all",
+          }}
+        >
           {result.filename}
         </div>
         {result.date && (
-          <div style={{ fontSize: "0.72rem", color: "var(--app-text-muted)", marginTop: 4 }}>
-            {new Date(result.date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
+          <div
+            style={{
+              fontSize: "0.72rem",
+              color: "var(--app-text-muted)",
+              marginTop: 4,
+            }}
+          >
+            {new Date(result.date).toLocaleDateString("id-ID", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
           </div>
         )}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          marginBottom: 14,
+        }}
+      >
         <SummaryRow label="Total Diuji" value={result.total} color="#4f5fd4" />
         <SummaryRow label="Spam" value={result.spam} color="#ef4444" />
         <SummaryRow label="Ham (Aman)" value={result.ham} color="#10b981" />
       </div>
       {/* Mini bar chart */}
-      <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--app-text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
+      <div
+        style={{
+          fontSize: "0.72rem",
+          fontWeight: 700,
+          color: "var(--app-text-muted)",
+          textTransform: "uppercase",
+          marginBottom: 6,
+        }}
+      >
         Distribusi
       </div>
-      <div style={{ borderRadius: 8, overflow: "hidden", height: 12, display: "flex", marginBottom: 4 }}>
-        <div style={{ width: `${spamPct}%`, background: "#ef4444", transition: "width 0.5s" }} />
-        <div style={{ width: `${hamPct}%`, background: "#10b981", transition: "width 0.5s" }} />
+      <div
+        style={{
+          borderRadius: 8,
+          overflow: "hidden",
+          height: 12,
+          display: "flex",
+          marginBottom: 4,
+        }}
+      >
+        <div
+          style={{
+            width: `${spamPct}%`,
+            background: "#ef4444",
+            transition: "width 0.5s",
+          }}
+        />
+        <div
+          style={{
+            width: `${hamPct}%`,
+            background: "#10b981",
+            transition: "width 0.5s",
+          }}
+        />
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", color: "var(--app-text-muted)" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          fontSize: "0.68rem",
+          color: "var(--app-text-muted)",
+        }}
+      >
         <span>🔴 Spam {spamPct}%</span>
         <span>🟢 Ham {hamPct}%</span>
       </div>
-      <div style={{ marginTop: 12, padding: "8px 10px", background: "var(--lav-ghost)", borderRadius: 8, fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
+      <div
+        style={{
+          marginTop: 12,
+          padding: "8px 10px",
+          background: "var(--lav-ghost)",
+          borderRadius: 8,
+          fontSize: "0.75rem",
+          color: "var(--app-text-muted)",
+        }}
+      >
         Klik salah satu email di dalam grup untuk melihat detail prediksinya.
       </div>
     </DetailCard>

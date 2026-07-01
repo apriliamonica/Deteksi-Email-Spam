@@ -31,8 +31,6 @@ export default function Sidebar({ user, onLogout }) {
           .slice(0, 2)
       : "U";
 
-
-
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">

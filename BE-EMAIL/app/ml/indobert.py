@@ -226,7 +226,7 @@ class IndoBERTEmbedder:
         return embedding.squeeze(0).cpu()
 
     def get_batch_embeddings(
-        self, texts: list[str], batch_size: int = 16
+        self, texts: list[str], batch_size: int = 16, progress_callback: callable = None
     ) -> torch.Tensor:
         """
         Mendapatkan embedding dari batch teks.
@@ -234,6 +234,7 @@ class IndoBERTEmbedder:
         Args:
             texts: Daftar teks email
             batch_size: Ukuran batch
+            progress_callback: Callback(current_batch, total_batches)
 
         Returns:
             Tensor embedding berdimensi (n_texts, 768)
@@ -245,6 +246,7 @@ class IndoBERTEmbedder:
 
         self.model.eval()
         all_embeddings = []
+        total_batches = (len(texts) + batch_size - 1) // batch_size
 
         for i in range(0, len(texts), batch_size):
             if self._stop_training:
@@ -257,9 +259,13 @@ class IndoBERTEmbedder:
                 embeddings = self.model.get_embedding(**inputs)
 
             all_embeddings.append(embeddings.cpu())
+            
+            current_batch = i // batch_size + 1
+            if progress_callback:
+                progress_callback(current_batch, total_batches)
 
-            if (i // batch_size + 1) % 5 == 0 or i + batch_size >= len(texts):
-                print(f"  [IndoBERT] Embedding Generation - Batch {i // batch_size + 1}/{(len(texts) + batch_size - 1) // batch_size}")
+            if current_batch % 5 == 0 or current_batch == total_batches:
+                print(f"  [IndoBERT] Embedding Generation - Batch {current_batch}/{total_batches}")
 
         return torch.cat(all_embeddings, dim=0)
 
