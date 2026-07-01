@@ -374,48 +374,61 @@ export default function Testing() {
         </p>
       </div>
 
-      {/* ── MODEL SELECTOR ── */}
+      {/* ── ACTIVE MODEL BANNER ── */}
       <div
         style={{
-          padding: 14,
+          padding: "10px 16px",
           borderRadius: 12,
           background: "var(--app-surface)",
           border: "1px solid var(--app-border)",
           display: "flex",
           alignItems: "center",
-          gap: 10,
+          gap: 12,
           flexWrap: "wrap",
         }}
       >
-        <span
-          style={{
-            fontSize: "0.78rem",
-            fontWeight: 700,
-            color: "var(--app-text-muted)",
-          }}
-        >
-          Pilih Model:
+        <ShieldCheck size={16} color="#10b981" />
+        <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--app-text-muted)" }}>
+          Model Aktif:
         </span>
-        <select
-          value={activeModel?.id || ""}
-          onChange={handleModelChange}
-          disabled={isActivating || modelLoading}
-          style={selectStyle}
-        >
-          {modelList.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.model_name} (Acc: {(m.accuracy * 100).toFixed(1)}%)
-            </option>
-          ))}
-        </select>
-        {isActivating && (
-          <Activity
-            size={14}
-            color="#4f5fd4"
-            style={{ animation: "spin 1s linear infinite" }}
-          />
+        {modelLoading ? (
+          <span style={{ fontSize: "0.8rem", color: "var(--app-text-muted)" }}>Memuat...</span>
+        ) : activeModel ? (
+          <>
+            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--app-text)" }}>
+              {activeModel.model_name || `Model #${activeModel.id}`}
+            </span>
+            {activeModel.accuracy != null && (
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  color: "#059669",
+                  background: "#d1fae5",
+                  borderRadius: 999,
+                  padding: "2px 10px",
+                }}
+              >
+                Akurasi {(activeModel.accuracy * 100).toFixed(2)}%
+              </span>
+            )}
+            <span
+              style={{
+                fontSize: "0.72rem",
+                color: "var(--app-text-muted)",
+                marginLeft: "auto",
+              }}
+            >
+              🤖 Otomatis digunakan untuk semua prediksi
+            </span>
+          </>
+        ) : (
+          <span style={{ fontSize: "0.8rem", color: "#dc2626" }}>
+            ⚠️ Belum ada model aktif. Silakan latih model terlebih dahulu.
+          </span>
         )}
       </div>
+
 
       {/* ── ACTIVE MODEL BANNER ── */}
       {/* {modelLoading ? (
