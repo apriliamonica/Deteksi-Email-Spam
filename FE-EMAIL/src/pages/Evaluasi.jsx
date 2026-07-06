@@ -535,7 +535,72 @@ function ComparisonView({ result }) {
   );
 
   return (
-    <div className="page-container page-evaluasi" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div
+      className="page-container page-evaluasi"
+      style={{ display: "flex", flexDirection: "column", gap: 20 }}
+    >
+      {/* Metric Cards */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 12,
+        }}
+      >
+        {chartData.map((m) => (
+          <div
+            key={m.key}
+            style={{
+              padding: 14,
+              borderRadius: 12,
+              textAlign: "center",
+              background: "var(--app-surface)",
+              border: `1.5px solid ${m.color}30`,
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                color: "var(--app-text-muted)",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+                marginBottom: 6,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 2,
+              }}
+            >
+              {m.name} <InfoBtn metricKey={m.key} />
+            </div>
+            <div
+              style={{ fontSize: "1.4rem", fontWeight: 900, color: m.color }}
+            >
+              {m.value}%
+            </div>
+            <div
+              style={{
+                marginTop: 8,
+                height: 4,
+                background: "var(--lav-ghost)",
+                borderRadius: 999,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${m.value}%`,
+                  height: "100%",
+                  background: m.color,
+                  transition: "width .6s",
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Train vs Test Table */}
       <div style={{ overflowX: "auto" }}>
         <table style={tbl}>

@@ -388,14 +388,28 @@ export default function Testing() {
         }}
       >
         <ShieldCheck size={16} color="#10b981" />
-        <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--app-text-muted)" }}>
-          Model Aktif:
+        <span
+          style={{
+            fontSize: "0.78rem",
+            fontWeight: 700,
+            color: "var(--app-text-muted)",
+          }}
+        >
+          Testing dengan Model Terbaik:
         </span>
         {modelLoading ? (
-          <span style={{ fontSize: "0.8rem", color: "var(--app-text-muted)" }}>Memuat...</span>
+          <span style={{ fontSize: "0.8rem", color: "var(--app-text-muted)" }}>
+            Memuat...
+          </span>
         ) : activeModel ? (
           <>
-            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--app-text)" }}>
+            <span
+              style={{
+                fontSize: "0.85rem",
+                fontWeight: 700,
+                color: "var(--app-text)",
+              }}
+            >
               {activeModel.model_name || `Model #${activeModel.id}`}
             </span>
             {activeModel.accuracy != null && (
@@ -419,7 +433,7 @@ export default function Testing() {
                 marginLeft: "auto",
               }}
             >
-              🤖 Otomatis digunakan untuk semua prediksi
+              Model Terbaik
             </span>
           </>
         ) : (
@@ -428,7 +442,6 @@ export default function Testing() {
           </span>
         )}
       </div>
-
 
       {/* ── ACTIVE MODEL BANNER ── */}
       {/* {modelLoading ? (
