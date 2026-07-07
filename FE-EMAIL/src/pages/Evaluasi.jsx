@@ -264,7 +264,7 @@ export default function EvaluationPage() {
   allRatios.forEach((r) => {
     const top = filteredResults
       .filter((it) => getRatio(it) === r)
-      .sort((a, b) => (b.accuracy ?? 0) - (a.accuracy ?? 0))
+      .sort((a, b) => a.id - b.id)
       .slice(0, 5);
     groupedRatio[r] = top;
     if (top.length > maxIters) maxIters = top.length;
@@ -276,7 +276,7 @@ export default function EvaluationPage() {
       label: r.model_name || `Model #${r.id}`,
       accuracy: r.accuracy ?? 0,
     }))
-    .sort((a, b) => b.accuracy - a.accuracy);
+    .sort((a, b) => b.id - a.id);
 
   const activeModelId =
     selModel && modelOptions.some((m) => m.id.toString() === selModel)
@@ -371,7 +371,7 @@ export default function EvaluationPage() {
       {/* ── TABLE 1: Split Ratio ── */}
       <Card
         title="Data Split Ratio"
-        subtitle="Top 5 akurasi per iterasi training"
+        subtitle="Akurasi per iterasi training (5 iterasi pertama)"
         right={
           allRatios.length > 0 && (
             <span
@@ -539,7 +539,7 @@ function ComparisonView({ result }) {
       className="page-container page-evaluasi"
       style={{ display: "flex", flexDirection: "column", gap: 20 }}
     >
-      {/* Metric Cards */}
+      {/* Metric Cards
       <div
         style={{
           display: "grid",
@@ -599,7 +599,7 @@ function ComparisonView({ result }) {
             </div>
           </div>
         ))}
-      </div>
+      </div> */}
 
       {/* Train vs Test Table */}
       <div style={{ overflowX: "auto" }}>
