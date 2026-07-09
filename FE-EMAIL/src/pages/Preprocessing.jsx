@@ -22,28 +22,28 @@ import Pagination from "../components/Pagination";
 const STEPS = [
   {
     key: "raw",
-    label: "Dataset Baru",
-    desc: "Memuat data email mentah dari database.",
+    label: "New Dataset",
+    desc: "Load raw email data from database.",
   },
   {
     key: "mask",
-    label: "Masking URL/Email",
-    desc: "Mengubah link menjadi [URL] dan alamat email menjadi [EMAIL].",
+    label: "URL/Email Masking",
+    desc: "Replace links with [URL] and email addresses with [EMAIL].",
   },
   {
     key: "clean",
-    label: "Pembersihan Karakter",
-    desc: "Menghapus simbol dan karakter non-alfanumerik yang tidak relevan.",
+    label: "Character Cleaning",
+    desc: "Remove irrelevant symbols and non-alphanumeric characters.",
   },
   {
     key: "norm",
-    label: "Normalisasi Whitespace",
-    desc: "Merapikan spasi berlebih dan memotong teks maksimal 512 karakter.",
+    label: "Whitespace Normalization",
+    desc: "Trim excess spaces and truncate text to max 512 characters.",
   },
   {
     key: "result",
-    label: "Hasil Akhir",
-    desc: "Data bersih dan siap untuk Tokenisasi & Graf GAT.",
+    label: "Final Result",
+    desc: "Cleaned data ready for Tokenization & GAT Graph.",
   },
 ];
 
@@ -93,7 +93,7 @@ export default function PreprocessingPage() {
       const res = await modelAPI.listDatasets();
       setDatasets(res.data);
     } catch (err) {
-      console.error("Gagal mengambil daftar dataset:", err);
+      console.error("Failed to fetch dataset list:", err);
     }
   };
 
@@ -103,20 +103,20 @@ export default function PreprocessingPage() {
       const res = await modelAPI.listDatasets();
       setRiwayat(res.data || []);
     } catch (err) {
-      console.error("Gagal mengambil riwayat:", err);
+      console.error("Failed to fetch history:", err);
     } finally {
       setRiwayatLoading(false);
     }
   };
 
   const handleDeleteRiwayat = async (id) => {
-    if (window.confirm("Hapus dataset ini dari database?")) {
+    if (window.confirm("Delete this dataset from database?")) {
       try {
         await modelAPI.deleteDataset(id);
         setRiwayat(riwayat.filter((h) => h.id !== id));
       } catch (err) {
         alert(
-          "Gagal menghapus dataset: " +
+          "Failed to delete dataset: " +
             (err.response?.data?.detail || err.message),
         );
       }
@@ -137,8 +137,8 @@ export default function PreprocessingPage() {
           ?.scrollIntoView({ behavior: "smooth" });
       }, 100);
     } catch (err) {
-      console.error("Gagal ambil detail dataset:", err);
-      alert("Gagal mengambil detail dataset.");
+      console.error("Failed to fetch dataset details:", err);
+      alert("Failed to fetch dataset details.");
     } finally {
       setDetailLoading(false);
     }
@@ -246,7 +246,7 @@ export default function PreprocessingPage() {
       setComparisonRows(res.data.rows);
       setComparisonTotal(res.data.total);
     } catch (err) {
-      console.error("Gagal mengambil data perbandingan:", err);
+      console.error("Failed to fetch comparison data:", err);
     } finally {
       setComparisonLoading(false);
     }
@@ -288,7 +288,7 @@ export default function PreprocessingPage() {
       localStorage.setItem("preproc_running", "true");
       localStorage.setItem("global_process_active", "preprocessing");
     } catch (err) {
-      alert(err.response?.data?.detail || "Gagal memulai pre-processing");
+      alert(err.response?.data?.detail || "Failed to start pre-processing");
       console.error(err);
     }
   };
@@ -349,7 +349,7 @@ export default function PreprocessingPage() {
   const handleReset = async () => {
     if (
       window.confirm(
-        "Apakah Anda yakin ingin membatalkan proses pre-processing?",
+        "Are you sure you want to cancel the pre-processing?",
       )
     ) {
       try {
@@ -360,8 +360,8 @@ export default function PreprocessingPage() {
         localStorage.removeItem("global_process_active");
         window.location.reload();
       } catch (err) {
-        console.error("Gagal membatalkan proses:", err);
-        // Tetap reset UI jika server gagal merespon
+        console.error("Failed to cancel process:", err);
+        // Still reset UI if server fails to respond
         localStorage.removeItem("preproc_running");
         window.location.reload();
       }
@@ -393,8 +393,8 @@ export default function PreprocessingPage() {
           Pre-Processing Engine
         </h1>
         <p style={{ color: "var(--gray-500)" }}>
-          Pilih dataset yang telah diunggah untuk memulai proses pembersihan dan
-          transformasi data.
+          Select an uploaded dataset to start data cleaning and
+          transformation process.
         </p>
       </div>
 
@@ -425,7 +425,7 @@ export default function PreprocessingPage() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "#fecaca")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "#fee2e2")}
           >
-            <Settings size={14} className="spinner" /> Batalkan & Reset Proses
+            <Settings size={14} className="spinner" /> Cancel & Reset Process
           </button>
         </div>
       )}
@@ -454,7 +454,7 @@ export default function PreprocessingPage() {
         </div>
         <div style={{ flex: 1 }}>
           <h3 style={{ fontSize: "1.1rem", marginBottom: 8 }}>
-            Pengaturan Dataset
+            Dataset Settings
           </h3>
           <div
             style={{
@@ -482,7 +482,7 @@ export default function PreprocessingPage() {
               }}
             >
               <option value="" disabled>
-                -- Pilih Dataset Aktif --
+                -- Select Active Dataset --
               </option>
               {datasets.map((ds) => (
                 <option key={ds.id} value={ds.id}>
@@ -513,7 +513,7 @@ export default function PreprocessingPage() {
                   onChange={(e) => setIsForce(e.target.checked)}
                   style={{ width: 16, height: 16 }}
                 />
-                Proses ulang data yang sudah ada (Force)
+                Reprocess existing data (Force)
               </label>
             )}
           </div>
@@ -535,13 +535,11 @@ export default function PreprocessingPage() {
                 (ds) => ds.id.toString() === selectedDataset.toString(),
               )?.status === "Trained" ? (
                 <>
-                  <CheckCircle size={16} style={{ color: "#10b981" }} /> Dataset
-                  ini sudah melewati tahap preprocessing.
+                  <CheckCircle size={16} style={{ color: "#10b981" }} /> This dataset has passed the preprocessing stage.
                 </>
               ) : (
                 <>
-                  <Activity size={16} style={{ color: "#3b82f6" }} /> Dataset
-                  siap diproses ke dalam model.
+                  <Activity size={16} style={{ color: "#3b82f6" }} /> Dataset is ready to be processed into the model.
                 </>
               )}
             </div>
@@ -561,8 +559,8 @@ export default function PreprocessingPage() {
                 gap: 6,
               }}
             >
-              <ShieldAlert size={14} /> Harap tunggu, proses {globalLock} sedang
-              berjalan.
+              <ShieldAlert size={14} /> Please wait, {globalLock} process is
+              currently running.
             </div>
           )}
           {selectedDataset &&
@@ -587,7 +585,7 @@ export default function PreprocessingPage() {
                 gap: 8,
               }}
             >
-              <CheckCircle size={18} /> Sudah Diproses
+              <CheckCircle size={18} /> Already Processed
             </div>
           ) : (
             <button
@@ -598,11 +596,11 @@ export default function PreprocessingPage() {
             >
               {isProcessing ? (
                 <>
-                  <Activity size={18} className="spinner" /> Memproses...
+                  <Activity size={18} className="spinner" /> Processing...
                 </>
               ) : (
                 <>
-                  <Play size={18} /> Mulai Pre-Processing
+                  <Play size={18} /> Start Pre-Processing
                 </>
               )}
             </button>
@@ -736,7 +734,7 @@ export default function PreprocessingPage() {
                             animation: "pulse 1.5s infinite",
                           }}
                         >
-                          Memproses...
+                          Processing...
                         </div>
                       )}
                     </div>
@@ -815,7 +813,7 @@ export default function PreprocessingPage() {
                       marginBottom: 8,
                     }}
                   >
-                    Total Email
+                    Total Emails
                   </div>
                   <div
                     style={{
@@ -847,7 +845,7 @@ export default function PreprocessingPage() {
                       marginBottom: 8,
                     }}
                   >
-                    Sudah Diproses
+                    Already Processed
                   </div>
                   <div
                     style={{
@@ -920,7 +918,7 @@ export default function PreprocessingPage() {
                       }}
                     >
                       <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>
-                        {preprocStatus?.message || "Sedang memproses..."}
+                        {preprocStatus?.message || "Processing..."}
                       </span>
                       <span style={{ fontWeight: 700 }}>
                         {preprocStatus?.progress || 0}%
@@ -957,11 +955,11 @@ export default function PreprocessingPage() {
                       <span style={{ color: "var(--black)" }}>
                         {preprocStatus?.current_item?.toLocaleString() || "0"}
                       </span>
-                      {" dari "}
+                      {" of "}
                       <span style={{ color: "var(--black)" }}>
                         {preprocStatus?.total_items?.toLocaleString() || "0"}
                       </span>{" "}
-                      email selesai diproses.
+                      emails processed.
                     </p>
                     <p
                       style={{
@@ -1007,7 +1005,7 @@ export default function PreprocessingPage() {
                       fontSize: "1.2rem",
                     }}
                   >
-                    Data Siap Ditraining
+                    Data Ready for Training
                   </h4>
                   <p
                     style={{
@@ -1016,8 +1014,8 @@ export default function PreprocessingPage() {
                       margin: "0",
                     }}
                   >
-                    Dataset telah berhasil melewati seluruh tahap preprocessing
-                    dan siap dimasukkan ke dalam model IndoBERT.
+                    Dataset has successfully passed all preprocessing stages
+                    and is ready to be fed into the IndoBERT model.
                   </p>
                 </div>
 
@@ -1040,7 +1038,7 @@ export default function PreprocessingPage() {
                     >
                       <FileText size={18} />
                       <span style={{ fontWeight: 600 }}>
-                        Tabel Perbandingan Teks Sebelum & Sesudah Preprocessing
+                        Text Comparison Table Before & After Preprocessing
                       </span>
 
                       <div
@@ -1080,7 +1078,7 @@ export default function PreprocessingPage() {
                               paddingBottom: 6,
                             }}
                           >
-                            Aturan Preprocessing
+                            Preprocessing Rules
                           </h4>
                           <ul
                             style={{
@@ -1093,23 +1091,23 @@ export default function PreprocessingPage() {
                             }}
                           >
                             <li>
-                              <strong>Masking:</strong> Link 🌐 diubah menjadi{" "}
-                              <code>[URL]</code> dan email ✉️ menjadi{" "}
+                              <strong>Masking:</strong> Link 🌐 changed to{" "}
+                              <code>[URL]</code> and email ✉️ to{" "}
                               <code>[EMAIL]</code>.
                             </li>
                             <li>
-                              <strong>Pembersihan Simbol:</strong> Karakter
-                              khusus (#, @, &, dll) dihapus, hanya menyisakan
-                              huruf, angka, dan tanda baca dasar (?, !, .).
+                              <strong>Symbol Cleaning:</strong> Special
+                              characters (#, @, &, etc) removed, only leaving
+                              letters, numbers, and basic punctuation (?, !, .).
                             </li>
                             <li>
-                              <strong>Normalisasi Spasi:</strong> Spasi berlebih
-                              dirapikan menjadi satu spasi.
+                              <strong>Space Normalization:</strong> Excess spaces
+                              are trimmed to a single space.
                             </li>
                             <li>
-                              <strong>Batas Teks:</strong> Teks dipotong
-                              maksimal <strong>512 karakter</strong> agar sesuai
-                              dengan kapasitas memori token <em>IndoBERT</em>.
+                              <strong>Text Limit:</strong> Text truncated to
+                              max <strong>512 characters</strong> to fit
+                              within <em>IndoBERT</em> token memory capacity.
                             </li>
                           </ul>
                           <div
@@ -1133,7 +1131,7 @@ export default function PreprocessingPage() {
                           color: "var(--gray-500)",
                         }}
                       >
-                        Menampilkan {comparisonRows.length} dari{" "}
+                        Showing {comparisonRows.length} of{" "}
                         {comparisonTotal.toLocaleString()} data
                       </span>
                     </div>
@@ -1149,7 +1147,7 @@ export default function PreprocessingPage() {
                             color: "var(--gray-500)",
                           }}
                         >
-                          Memuat data...
+                          Loading data...
                         </div>
                       ) : (
                         <table
@@ -1178,7 +1176,7 @@ export default function PreprocessingPage() {
                                   padding: "12px 16px",
                                 }}
                               >
-                                Sebelum (Original)
+                                Before (Original)
                               </th>
                               <th
                                 style={{
@@ -1187,7 +1185,7 @@ export default function PreprocessingPage() {
                                   padding: "12px 16px",
                                 }}
                               >
-                                Sesudah (Preprocessed)
+                                After (Preprocessed)
                               </th>
                               <th
                                 style={{
@@ -1247,7 +1245,7 @@ export default function PreprocessingPage() {
                                         letterSpacing: 0.5,
                                       }}
                                     >
-                                      Subjek:
+                                      Subject:
                                     </span>
                                     {row.subject ? (
                                       row.subject
@@ -1274,7 +1272,7 @@ export default function PreprocessingPage() {
                                         letterSpacing: 0.5,
                                       }}
                                     >
-                                      Isi Pesan:
+                                      Message Body:
                                     </span>
                                     {row.original_text || row.body || (
                                       <span
@@ -1319,7 +1317,7 @@ export default function PreprocessingPage() {
                                           letterSpacing: 0.5,
                                         }}
                                       >
-                                        Subjek (Bersih):
+                                        Subject (Cleaned):
                                       </span>
                                       {row.subject ? (
                                         renderWithBadges(row.subject)
@@ -1330,7 +1328,7 @@ export default function PreprocessingPage() {
                                             fontStyle: "italic",
                                           }}
                                         >
-                                          Tidak ada subjek
+                                          No subject
                                         </span>
                                       )}
                                     </div>
@@ -1346,7 +1344,7 @@ export default function PreprocessingPage() {
                                           letterSpacing: 0.5,
                                         }}
                                       >
-                                        Isi Pesan (Gabungan Bersih):
+                                        Message Body (Cleaned Combined):
                                       </span>
                                       <span style={{ color: "#334155" }}>
                                         {renderWithBadges(
@@ -1406,7 +1404,7 @@ export default function PreprocessingPage() {
                             fetchComparisonRows(parseInt(selectedDataset), p);
                           }}
                         >
-                          ← Sebelumnya
+                          ← Previous
                         </button>
                         <span
                           style={{
@@ -1414,7 +1412,7 @@ export default function PreprocessingPage() {
                             color: "var(--gray-500)",
                           }}
                         >
-                          Halaman {comparisonPage + 1} dari{" "}
+                          Page {comparisonPage + 1} of{" "}
                           {Math.ceil(comparisonTotal / COMPARISON_LIMIT)}
                         </span>
                         <button
@@ -1429,7 +1427,7 @@ export default function PreprocessingPage() {
                             fetchComparisonRows(parseInt(selectedDataset), p);
                           }}
                         >
-                          Selanjutnya →
+                          Next →
                         </button>
                       </div>
                     )}
@@ -1470,7 +1468,7 @@ export default function PreprocessingPage() {
                       navigate("/data-collection");
                     }}
                   >
-                    Selesai & Tutup
+                    Done & Close
                   </button>
                   <button
                     className="btn btn-primary"
@@ -1491,7 +1489,7 @@ export default function PreprocessingPage() {
                       })
                     }
                   >
-                    Lanjut ke Proses Training <ChevronRight size={20} />
+                    Continue to Training Process <ChevronRight size={20} />
                   </button>
                 </div>
               </div>
@@ -1517,8 +1515,8 @@ export default function PreprocessingPage() {
               margin: "4px 0 0",
             }}
           >
-            Daftar seluruh dataset yang telah dibersihkan dan siap digunakan
-            untuk pelatihan model.
+            List of all datasets that have been cleaned and ready to be used
+            for model training.
           </p>
         </div>
 
@@ -1534,12 +1532,12 @@ export default function PreprocessingPage() {
                     />
                     Tanggal
                   </th>
-                  <th>Nama Dataset</th>
+                  <th>Dataset Name</th>
                   <th>Total Data</th>
                   <th style={{ color: "#ef4444" }}>Spam</th>
                   <th style={{ color: "#10b981" }}>Ham</th>
                   <th>Status</th>
-                  <th style={{ textAlign: "center" }}>Aksi</th>
+                  <th style={{ textAlign: "center" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1560,7 +1558,7 @@ export default function PreprocessingPage() {
                       <p
                         style={{ color: "var(--gray-500)", fontSize: "0.9rem" }}
                       >
-                        Memuat riwayat...
+                        Loading history...
                       </p>
                     </td>
                   </tr>
@@ -1575,7 +1573,7 @@ export default function PreprocessingPage() {
                         fontSize: "0.9rem",
                       }}
                     >
-                      Belum ada riwayat dataset.
+                      No dataset history yet.
                     </td>
                   </tr>
                 ) : (
@@ -1593,7 +1591,7 @@ export default function PreprocessingPage() {
                           }}
                         >
                           {new Date(item.created_at).toLocaleDateString(
-                            "id-ID",
+                            "en-US",
                           )}
                         </td>
                         <td
@@ -1628,7 +1626,7 @@ export default function PreprocessingPage() {
                               gap: 4,
                             }}
                           >
-                            <CheckCircle size={12} /> {item.status || "Selesai"}
+                            <CheckCircle size={12} /> {item.status || "Completed"}
                           </span>
                         </td>
                         <td>
@@ -1639,11 +1637,11 @@ export default function PreprocessingPage() {
                               justifyContent: "center",
                             }}
                           >
-                            {item.status === "Selesai" && (
+                            {item.status === "Completed" && (
                               <button
                                 className="btn btn-outline btn-sm"
                                 onClick={() => handleShowDetailRiwayat(item)}
-                                title="Lihat Detail Preprocessing"
+                                title="View Preprocessing Details"
                               >
                                 <FileText size={14} />
                               </button>
@@ -1655,7 +1653,7 @@ export default function PreprocessingPage() {
                                 color: "#ef4444",
                                 borderColor: "#ef4444",
                               }}
-                              title="Hapus"
+                              title="Delete"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -1719,7 +1717,7 @@ export default function PreprocessingPage() {
                   gap: 8,
                 }}
               >
-                <FileText size={20} /> Detail Preprocessing –{" "}
+                <FileText size={20} /> Preprocessing Details –{" "}
                 {selectedDatasetDetail.name}
               </h3>
               <button
@@ -1739,7 +1737,7 @@ export default function PreprocessingPage() {
                     color: "var(--gray-500)",
                   }}
                 >
-                  Memuat detail...
+                  Loading details...
                 </div>
               ) : (
                 <>
@@ -1763,7 +1761,7 @@ export default function PreprocessingPage() {
                             padding: "12px 16px",
                           }}
                         >
-                          Pengirim
+                          Sender
                         </th>
                         <th
                           style={{
@@ -1772,7 +1770,7 @@ export default function PreprocessingPage() {
                             padding: "12px 16px",
                           }}
                         >
-                          Sebelum (Original)
+                          Before (Original)
                         </th>
                         <th
                           style={{
@@ -1781,7 +1779,7 @@ export default function PreprocessingPage() {
                             padding: "12px 16px",
                           }}
                         >
-                          Sesudah (Preprocessed)
+                          After (Preprocessed)
                         </th>
                         <th
                           style={{
@@ -1832,7 +1830,7 @@ export default function PreprocessingPage() {
                                     fontStyle: "italic",
                                   }}
                                 >
-                                  Tidak diketahui
+                                  Unknown
                                 </span>
                               )}
                             </td>
@@ -1864,7 +1862,7 @@ export default function PreprocessingPage() {
                                     textTransform: "uppercase",
                                   }}
                                 >
-                                  Subjek:
+                                  Subject:
                                 </span>
                                 {row.subject || (
                                   <span
@@ -1873,7 +1871,7 @@ export default function PreprocessingPage() {
                                       fontStyle: "italic",
                                     }}
                                   >
-                                    Tidak ada subjek
+                                    No subject
                                   </span>
                                 )}
                               </div>
@@ -1887,7 +1885,7 @@ export default function PreprocessingPage() {
                                     textTransform: "uppercase",
                                   }}
                                 >
-                                  Isi Pesan:
+                                  Message Body:
                                 </span>
                                 {row.original_text || row.text || row.body || (
                                   <span
@@ -1931,7 +1929,7 @@ export default function PreprocessingPage() {
                                         textTransform: "uppercase",
                                       }}
                                     >
-                                      Subjek (Bersih):
+                                      Subject (Cleaned):
                                     </span>
                                     {row.subject ? (
                                       renderWithBadges(row.subject)
@@ -1942,7 +1940,7 @@ export default function PreprocessingPage() {
                                           fontStyle: "italic",
                                         }}
                                       >
-                                        Tidak ada subjek
+                                        No subject
                                       </span>
                                     )}
                                   </div>
@@ -1956,7 +1954,7 @@ export default function PreprocessingPage() {
                                         textTransform: "uppercase",
                                       }}
                                     >
-                                      Isi Pesan Bersih:
+                                      Cleaned Message Body:
                                     </span>
                                     <span style={{ color: "#334155" }}>
                                       {renderWithBadges(
@@ -1973,7 +1971,7 @@ export default function PreprocessingPage() {
                                     fontStyle: "italic",
                                   }}
                                 >
-                                  Belum diproses
+                                  Not processed yet
                                 </span>
                               )}
                             </td>

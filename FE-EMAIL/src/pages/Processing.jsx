@@ -32,18 +32,18 @@ import {
 const STEPS = [
   {
     key: "setup",
-    label: "1. Pengaturan",
-    desc: "Konfigurasi dataset, pembagian data (train/test), dan hyperparameter model.",
+    label: "1. Settings",
+    desc: "Configure dataset, data split (train/test), and model hyperparameters.",
   },
   {
     key: "training",
-    label: "2. Pelatihan",
-    desc: "Proses training model hibrida IndoBERT + GAT pada dataset terpilih.",
+    label: "2. Training",
+    desc: "Hybrid IndoBERT + GAT model training process on selected dataset.",
   },
   {
     key: "validation",
-    label: "3. Validasi",
-    desc: "Analisis hasil akurasi, grafik loss, dan simpan model ke riwayat.",
+    label: "3. Validation",
+    desc: "Analyze accuracy results, loss graphs, and save model to history.",
   },
 ];
 
@@ -202,17 +202,17 @@ export default function ProcessingPage() {
           }
         } else if (status.status === "error") {
           setTraining(false);
-          setError(status.current_step || "Terjadi kesalahan pada server.");
+          setError(status.current_step || "An error occurred on the server.");
           localStorage.removeItem("processing_running");
           localStorage.removeItem("global_process_active");
         } else if (status.status === "cancelled") {
           setTraining(false);
-          setTrainStepDesc("Pelatihan dibatalkan.");
+          setTrainStepDesc("Training cancelled.");
           localStorage.removeItem("processing_running");
           localStorage.removeItem("global_process_active");
           setToast({
             show: true,
-            msg: "Pelatihan dibatalkan.",
+            msg: "Training cancelled.",
             type: "warning",
           });
         }
@@ -231,13 +231,13 @@ export default function ProcessingPage() {
       await modelAPI.cancelTrain();
       setToast({
         show: true,
-        msg: "Permintaan pembatalan dikirim...",
+        msg: "Cancellation request sent...",
         type: "info",
       });
     } catch (err) {
       setToast({
         show: true,
-        msg: "Gagal membatalkan pelatihan.",
+        msg: "Failed to cancel training.",
         type: "danger",
       });
     }
@@ -245,10 +245,10 @@ export default function ProcessingPage() {
 
   const handleTrain = async (e) => {
     e.preventDefault();
-    if (globalLock) return alert(`Harap tunggu proses ${globalLock} selesai.`);
-    if (!modelName.trim()) return alert("Nama model tidak boleh kosong!");
+    if (globalLock) return alert(`Please wait for ${globalLock} process to finish.`);
+    if (!modelName.trim()) return alert("Model name cannot be empty!");
     if (parseInt(trainRatio) + parseInt(valRatio) + parseInt(testRatio) !== 100)
-      return alert("Total Train, Validation, dan Test harus 100!");
+      return alert("Total Train, Validation, and Test must be 100!");
 
     setTrainResult(null);
     setError(null);
@@ -260,7 +260,7 @@ export default function ProcessingPage() {
     localStorage.setItem("processing_startTime", Date.now().toString());
 
     try {
-      setTrainStepDesc("Menghubungkan ke server...");
+      setTrainStepDesc("Connecting to server...");
       await modelAPI.train({
         dataset_id: activeDatasetId ? parseInt(activeDatasetId) : null,
         model_name: modelName,
@@ -277,7 +277,7 @@ export default function ProcessingPage() {
     } catch (err) {
       console.error("Training error:", err);
       setError(
-        err.response?.data?.detail || "Gagal melakukan pelatihan model.",
+        err.response?.data?.detail || "Failed to train model.",
       );
       setTraining(false);
       localStorage.removeItem("processing_running");
@@ -288,7 +288,7 @@ export default function ProcessingPage() {
   const handleReset = () => {
     if (
       window.confirm(
-        "Apakah Anda yakin ingin membatalkan proses pelatihan ini? Semua progres akan hilang.",
+        "Are you sure you want to cancel this training process? All progress will be lost.",
       )
     ) {
       setTraining(false);
@@ -353,8 +353,8 @@ export default function ProcessingPage() {
         <p
           style={{ color: "var(--gray-500)", maxWidth: 800, margin: "0 auto" }}
         >
-          Latih model hibrida IndoBERT + GAT Anda menggunakan dataset yang telah
-          dibersihkan pada tahap pre-processing.
+          Train your hybrid IndoBERT + GAT model using the dataset that has been
+          cleaned in the pre-processing stage.
         </p>
       </div>
 
@@ -372,7 +372,7 @@ export default function ProcessingPage() {
               className="btn btn-outline-danger btn-sm d-flex align-items-center gap-2"
               style={{ fontWeight: 600 }}
             >
-              <Settings size={14} /> Batalkan & Reset Proses
+              <Settings size={14} /> Cancel & Reset Process
             </button>
           </div>
         )}
@@ -508,7 +508,7 @@ export default function ProcessingPage() {
                                         fontWeight: 600,
                                       }}
                                     >
-                                      Nama Model
+                                      Model Name
                                     </label>
                                     <input
                                       className="form-input"
@@ -518,7 +518,7 @@ export default function ProcessingPage() {
                                       }
                                       required
                                       disabled={training}
-                                      placeholder="Contoh: Model_Spam_01"
+                                      placeholder="Example: Model_Spam_01"
                                       style={{ height: 42, borderRadius: 8 }}
                                     />
                                   </div>
@@ -531,7 +531,7 @@ export default function ProcessingPage() {
                                         fontWeight: 600,
                                       }}
                                     >
-                                      Pilih Dataset
+                                      Select Dataset
                                     </label>
                                     <select
                                       className="form-select"
@@ -553,12 +553,12 @@ export default function ProcessingPage() {
                                     >
                                       {datasets.length === 0 ? (
                                         <option value="">
-                                          -- Belum ada dataset --
+                                          -- No dataset yet --
                                         </option>
                                       ) : (
                                         <>
                                           <option value="" disabled>
-                                            -- Pilih Dataset --
+                                            -- Select Dataset --
                                           </option>
                                           {datasets.map((ds) => (
                                             <option key={ds.id} value={ds.id}>
@@ -790,10 +790,10 @@ export default function ProcessingPage() {
                                           fontSize: "0.9rem",
                                         }}
                                       >
-                                        Latih{" "}
+                                        Train{" "}
                                         {parseInt(trainRatio) +
                                           parseInt(valRatio)}
-                                        % : Uji {testRatio}%
+                                        % : Test {testRatio}%
                                       </span>
                                       <span
                                         style={{
@@ -802,7 +802,7 @@ export default function ProcessingPage() {
                                         }}
                                       >
                                         (Train {trainRatio}% + Val {valRatio}%
-                                        digabung sebagai data latih)
+                                        combined as training data)
                                       </span>
                                     </div>
                                   )}
@@ -857,18 +857,18 @@ export default function ProcessingPage() {
                                           color: "var(--gray-800)",
                                         }}
                                       >
-                                        Informasi Arsitektur Model:
+                                        Model Architecture Information:
                                       </strong>
-                                      Menggunakan pre-trained model{" "}
+                                      Using pre-trained model{" "}
                                       <strong>
                                         indobenchmark/indobert-base-p1
                                       </strong>{" "}
-                                      sebagai feature extractor statis (tidak
-                                      dilatih ulang). Parameter IndoBERT dikunci
-                                      karena merupakan arsitektur asli bawaan
-                                      model. Mengubah dimensi ini akan merusak
-                                      kompatibilitas bobot (<i>weights</i>) asli
-                                      dan lapisan GAT.
+                                      as static feature extractor (not
+                                      retrained). IndoBERT parameters are locked
+                                      as they are the native original architecture
+                                      of the model. Changing this dimension will break
+                                      the compatibility of the original weights
+                                      and the GAT layer.
                                     </div>
                                   </div>
 
@@ -890,7 +890,7 @@ export default function ProcessingPage() {
                                         color: "#f59e0b",
                                       }}
                                     >
-                                      Parameter Training
+                                      Training Parameters
                                     </p>
                                     <div className="row g-3">
                                       <ParamField
@@ -1015,7 +1015,7 @@ export default function ProcessingPage() {
                                   color: "var(--gray-700)",
                                 }}
                               >
-                                Batal / Kembali
+                                Cancel / Back
                               </button>
 
                               <button
@@ -1052,11 +1052,11 @@ export default function ProcessingPage() {
                                         borderLeftColor: "white",
                                       }}
                                     ></div>
-                                    Melatih...
+                                    Training...
                                   </>
                                 ) : (
                                   <>
-                                    <Play size={18} /> Mulai Training
+                                    <Play size={18} /> Start Training
                                   </>
                                 )}
                               </button>
@@ -1121,7 +1121,7 @@ export default function ProcessingPage() {
                                   className="spinner text-muted mb-2"
                                 />
                                 <p className="small text-muted mb-1">
-                                  Memantau metrik pelatihan secara real-time...
+                                  Monitoring training metrics in real-time...
                                 </p>
                                 <p
                                   style={{
@@ -1129,21 +1129,21 @@ export default function ProcessingPage() {
                                     color: "#ef4444",
                                   }}
                                 >
-                                  * (bisa 5-15 menit tergantung spesifikasi
-                                  hardware).
+                                  * (may take 5-15 mins depending on hardware
+                                  specifications).
                                 </p>
                                 <button
                                   onClick={handleCancelTrain}
                                   className="btn btn-link text-danger btn-sm mt-1 text-decoration-none fw-bold"
                                 >
-                                  Hentikan Proses
+                                  Stop Process
                                 </button>
                               </div>
                             </div>
                           ) : error ? (
                             <div className="py-4 text-center text-danger">
                               <ShieldAlert size={48} className="mb-3" />
-                              <h4 className="mb-1">Terjadi Kesalahan</h4>
+                              <h4 className="mb-1">An Error Occurred</h4>
                               <p className="small mb-0">{error}</p>
                               <button
                                 className="btn btn-outline-danger btn-sm mt-3"
@@ -1152,7 +1152,7 @@ export default function ProcessingPage() {
                                   setCurrentStep(0);
                                 }}
                               >
-                                Coba Lagi
+                                Try Again
                               </button>
                             </div>
                           ) : trainResult ? (
@@ -1161,14 +1161,14 @@ export default function ProcessingPage() {
                                 size={48}
                                 className="text-success mb-3"
                               />
-                              <h4 className="mb-1">Pelatihan Selesai!</h4>
+                              <h4 className="mb-1">Training Completed!</h4>
                               <p className="text-muted">
-                                Model "{modelName}" siap divalidasi.
+                                Model "{modelName}" is ready for validation.
                               </p>
                             </div>
                           ) : (
                             <div className="py-4 text-center text-muted">
-                              Menunggu instruksi pelatihan...
+                              Waiting for training instructions...
                             </div>
                           )}
                         </div>
@@ -1180,17 +1180,17 @@ export default function ProcessingPage() {
                             <div>
                               <div className="card p-0 overflow-hidden mb-4 border">
                                 <div className="p-3 bg-light border-bottom fw-bold small">
-                                  TABEL HASIL VALIDASI MODEL
+                                  MODEL VALIDATION RESULTS TABLE
                                 </div>
                                 <div className="table-responsive">
                                   <table className="table table-sm mb-0">
                                     <thead>
                                       <tr className="bg-light">
                                         <th className="px-3 py-2 border-0">
-                                          Metrik
+                                          Metric
                                         </th>
                                         <th className="px-3 py-2 border-0 text-end">
-                                          Nilai
+                                          Value
                                         </th>
                                         <th
                                           className="px-3 py-2 border-0"
@@ -1267,7 +1267,7 @@ export default function ProcessingPage() {
 
                               <div className="p-3 border rounded mb-4">
                                 <h4 className="small fw-bold text-muted mb-3 d-flex align-items-center gap-2">
-                                  <TrendingUp size={16} /> Grafik Loss Training
+                                  <TrendingUp size={16} /> Training Loss Graph
                                 </h4>
                                 <div style={{ height: 200 }}>
                                   <ResponsiveContainer
@@ -1309,7 +1309,7 @@ export default function ProcessingPage() {
                                   className="btn btn-outline-dark btn-lg w-100 py-3"
                                   onClick={clearPersistence}
                                 >
-                                  Latih Model Baru
+                                  Train New Model
                                 </button>
                                 <button
                                   className="btn btn-dark btn-lg w-100 py-3"
@@ -1317,13 +1317,13 @@ export default function ProcessingPage() {
                                     (window.location.href = "/testing")
                                   }
                                 >
-                                  <Save size={18} /> Lanjut ke Testing
+                                  <Save size={18} /> Continue to Testing
                                 </button>
                               </div>
                             </div>
                           ) : (
                             <div className="py-4 text-center text-muted">
-                              Menunggu hasil komputasi...
+                              Waiting for computation results...
                             </div>
                           )}
                         </div>
@@ -1353,149 +1353,149 @@ export default function ProcessingPage() {
 const PARAM_CONFIG = {
   indoLR: {
     label: "Learning Rate",
-    desc: "Mengontrol seberapa besar model memperbarui bobotnya setiap iterasi pelatihan. Nilai terlalu besar = model tidak stabil; terlalu kecil = pelatihan sangat lambat.",
-    ideal: "2e-5 hingga 5e-5 untuk fine-tuning IndoBERT",
+    desc: "Controls how much the model updates its weights at each training iteration. Too high = unstable model; too low = very slow training.",
+    ideal: "2e-5 to 5e-5 for IndoBERT fine-tuning",
     evaluate: (v) => {
       if (v > 1e-3)
         return {
           type: "danger",
-          msg: "⛔ Terlalu tinggi! Loss akan melonjak-lonjak dan model gagal belajar. Turunkan ke rentang 2e-5–5e-5.",
+          msg: "⛔ Too high! Loss will spike and the model will fail to learn. Decrease to the 2e-5–5e-5 range.",
         };
       if (v > 1e-4)
         return {
           type: "warn",
-          msg: "⚠️ Cukup tinggi. Bisa menyebabkan instabilitas pelatihan. Disarankan turunkan ke ≤ 5e-5.",
+          msg: "⚠️ Quite high. Can cause training instability. Recommended to decrease to ≤ 5e-5.",
         };
       if (v > 0 && v < 1e-6)
         return {
           type: "warn",
-          msg: "⚠️ Terlalu rendah. Pelatihan akan sangat lambat dan bisa terjebak di local minima. Naikkan ke minimal 1e-6.",
+          msg: "⚠️ Too low. Training will be very slow and might get stuck in local minima. Increase to at least 1e-6.",
         };
       return {
         type: "ok",
-        msg: "✅ Nilai ideal untuk fine-tuning BERT. Model dapat belajar dengan stabil.",
+        msg: "✅ Ideal value for BERT fine-tuning. The model can learn stably.",
       };
     },
   },
   batchSize: {
     label: "Batch Size",
-    desc: "Jumlah sampel email yang diproses sekaligus sebelum model memperbarui bobotnya. Nilai kecil = lebih sering update tapi tidak stabil; nilai besar = lebih stabil tapi butuh memori GPU lebih besar.",
+    desc: "Number of email samples processed at once before the model updates its weights. Small value = more frequent updates but unstable; large value = more stable but requires more GPU memory.",
     ideal: "16 atau 32",
     evaluate: (v) => {
       if (v > 128)
         return {
           type: "danger",
-          msg: "⛔ Sangat besar! Kemungkinan besar akan menyebabkan Out of Memory (OOM) pada GPU.",
+          msg: "⛔ Very large! Highly likely to cause Out of Memory (OOM) on GPU.",
         };
       if (v > 64)
         return {
           type: "warn",
-          msg: "⚠️ Cukup besar. Bisa memakan banyak memori GPU. Monitor penggunaan VRAM Anda.",
+          msg: "⚠️ Quite large. May consume a lot of GPU memory. Monitor your VRAM usage.",
         };
       if (v < 4)
         return {
           type: "warn",
-          msg: "⚠️ Terlalu kecil. Estimasi gradien menjadi sangat bising (noisy) dan training tidak stabil.",
+          msg: "⚠️ Too small. Gradient estimation becomes very noisy and training is unstable.",
         };
       return {
         type: "ok",
-        msg: "✅ Ukuran batch ideal. Keseimbangan baik antara kecepatan dan stabilitas pelatihan.",
+        msg: "✅ Ideal batch size. Good balance between training speed and stability.",
       };
     },
   },
   indoEpochs: {
     label: "Epochs",
-    desc: "Berapa kali model melihat seluruh dataset pelatihan dari awal hingga akhir. Lebih banyak tidak selalu lebih baik karena model bisa 'menghafal' data (overfitting).",
-    ideal: "3–5 untuk fine-tuning BERT",
+    desc: "How many times the model sees the entire training dataset from start to finish. More is not always better as the model might 'memorize' the data (overfitting).",
+    ideal: "3-5 for BERT fine-tuning",
     evaluate: (v) => {
       if (v > 15)
         return {
           type: "danger",
-          msg: "⛔ Terlalu banyak! Model hampir pasti akan overfitting dan performanya buruk pada data baru.",
+          msg: "⛔ Too many! The model is almost certainly going to overfit and perform poorly on new data.",
         };
       if (v > 8)
         return {
           type: "warn",
-          msg: "⚠️ Cukup tinggi. Pantau validation loss—jika naik, hentikan lebih awal (gunakan early stopping).",
+          msg: "⚠️ Quite high. Monitor validation loss—if it increases, stop early (use early stopping).",
         };
       if (v < 2)
         return {
           type: "warn",
-          msg: "⚠️ Terlalu sedikit. Model mungkin belum sempat belajar pola yang cukup (underfitting).",
+          msg: "⚠️ Too few. The model might not have learned enough patterns (underfitting).",
         };
       return {
         type: "ok",
-        msg: "✅ Jumlah epoch ideal untuk fine-tuning model berbasis BERT.",
+        msg: "✅ Ideal epoch count for BERT-based model fine-tuning.",
       };
     },
   },
   weightDecay: {
     label: "Weight Decay",
-    desc: "Regularisasi L2 yang secara bertahap 'menyusutkan' bobot model agar tidak terlalu besar. Membantu mencegah overfitting, terutama pada dataset kecil.",
+    desc: "L2 regularization that gradually 'shrinks' the model weights so they aren't too large. Helps prevent overfitting, especially on small datasets.",
     ideal: "1e-2 (0.01)",
     evaluate: (v) => {
       if (v > 0.5)
         return {
           type: "danger",
-          msg: "⛔ Terlalu tinggi! Regularisasi terlalu kuat—model tidak dapat belajar dengan baik (underfitting).",
+          msg: "⛔ Too high! Regularization is too strong—model cannot learn well (underfitting).",
         };
       if (v > 0.1)
         return {
           type: "warn",
-          msg: "⚠️ Agak tinggi. Bisa membatasi kapasitas belajar model. Coba turunkan ke 0.01.",
+          msg: "⚠️ A bit high. Might limit model learning capacity. Try decreasing to 0.01.",
         };
       if (v === 0)
         return {
           type: "warn",
-          msg: "⚠️ Nilai 0 = tidak ada regularisasi. Model rentan overfitting, terutama dengan dataset kecil.",
+          msg: "⚠️ Value 0 = no regularization. Model is prone to overfitting, especially with small datasets.",
         };
       return {
         type: "ok",
-        msg: "✅ Nilai weight decay yang sesuai untuk mencegah overfitting.",
+        msg: "✅ Appropriate weight decay value to prevent overfitting.",
       };
     },
   },
   gatLR: {
     label: "Learning Rate (GAT)",
-    desc: "Learning rate khusus untuk lapisan Graph Attention Network (GAT). Mengontrol seberapa cepat GAT memperbarui cara memperhatikan (attend) node-node dalam graf email.",
+    desc: "Specific learning rate for the Graph Attention Network (GAT) layer. Controls how fast GAT updates its attention mechanism for nodes in the email graph.",
     ideal: "1e-3 hingga 5e-3",
     evaluate: (v) => {
       if (v > 0.1)
         return {
           type: "danger",
-          msg: "⛔ Terlalu tinggi! GAT tidak akan konvergen dan akan menghasilkan output acak.",
+          msg: "⛔ Too high! GAT will not converge and will produce random output.",
         };
       if (v > 0.01)
         return {
           type: "warn",
-          msg: "⚠️ Agak tinggi untuk GAT. Coba turunkan ke rentang 1e-3–5e-3 untuk hasil yang lebih stabil.",
+          msg: "⚠️ A bit high for GAT. Try decreasing to the 1e-3–5e-3 range for more stable results.",
         };
       if (v < 1e-5)
         return {
           type: "warn",
-          msg: "⚠️ Terlalu rendah. GAT akan belajar sangat lambat dan butuh epoch sangat banyak untuk konvergen.",
+          msg: "⚠️ Too low. GAT will learn very slowly and needs many epochs to converge.",
         };
-      return { type: "ok", msg: "✅ Learning rate GAT dalam rentang ideal." };
+      return { type: "ok", msg: "✅ GAT learning rate is in the ideal range." };
     },
   },
   gatWeightDecay: {
     label: "Weight Decay (GAT)",
-    desc: "Regularisasi L2 khusus untuk lapisan GAT. Mencegah bobot attention menjadi terlalu ekstrem yang bisa membuat model hanya fokus pada satu node saja.",
+    desc: "Specific L2 regularization for the GAT layer. Prevents attention weights from becoming too extreme, which could make the model focus solely on one node.",
     ideal: "1e-4 hingga 1e-3",
     evaluate: (v) => {
       if (v > 0.1)
         return {
           type: "danger",
-          msg: "⛔ Terlalu tinggi! GAT tidak dapat mempelajari pola keterhubungan antar node secara efektif.",
+          msg: "⛔ Too high! GAT cannot effectively learn the connection patterns between nodes.",
         };
       if (v > 0.01)
         return {
           type: "warn",
-          msg: "⚠️ Agak tinggi. Bisa melemahkan kemampuan GAT memodelkan hubungan antar kata/entitas.",
+          msg: "⚠️ A bit high. Could weaken GAT's ability to model relationships between words/entities.",
         };
       return {
         type: "ok",
-        msg: "✅ Weight decay GAT dalam rentang ideal untuk regularisasi yang seimbang.",
+        msg: "✅ GAT weight decay is in the ideal range for balanced regularization.",
       };
     },
   },
@@ -1606,7 +1606,7 @@ function ParamField({
       <input
         className="form-input"
         type={isScientific ? "text" : "number"}
-        placeholder={isScientific ? `cth: ${value}` : undefined}
+        placeholder={isScientific ? `ex: ${value}` : undefined}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}

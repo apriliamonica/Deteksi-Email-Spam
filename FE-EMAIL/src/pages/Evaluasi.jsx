@@ -21,33 +21,33 @@ import { modelAPI } from "../services/api";
 const METRIC_DEFS = {
   accuracy: {
     title: "Accuracy",
-    def: "Persentase prediksi benar dari seluruh sampel.",
+    def: "Percentage of correct predictions from all samples.",
     formula: "(TP + TN) / (TP + TN + FP + FN)",
-    critical: "Bermakna saat kelas seimbang.",
+    critical: "Meaningful when classes are balanced.",
   },
   precision: {
     title: "Precision",
-    def: "Prediksi Spam yang benar-benar Spam.",
+    def: "Spam predictions that are actually Spam.",
     formula: "TP / (TP + FP)",
-    critical: "Krusial saat False Positive merugikan.",
+    critical: "Crucial when False Positives are costly.",
   },
   recall: {
     title: "Recall",
-    def: "Spam aktual yang berhasil dideteksi.",
+    def: "Actual Spam that is successfully detected.",
     formula: "TP / (TP + FN)",
-    critical: "Krusial saat False Negatif merugikan.",
+    critical: "Crucial when False Negatives are costly.",
   },
   f1_score: {
     title: "F1-Score",
-    def: "Rata-rata harmonik Precision & Recall.",
+    def: "Harmonic mean of Precision & Recall.",
     formula: "2 × (P × R) / (P + R)",
-    critical: "Metrik utama untuk dataset tidak seimbang.",
+    critical: "Primary metric for imbalanced datasets.",
   },
   mcc: {
     title: "MCC",
-    def: "Korelasi prediksi dengan label aktual.",
+    def: "Correlation of prediction with actual labels.",
     formula: "(TP×TN − FP×FN) / √((TP+FP)(TP+FN)(TN+FP)(TN+FN))",
-    critical: "Paling dapat diandalkan untuk data imbalanced.",
+    critical: "Most reliable for imbalanced data.",
   },
 };
 
@@ -197,6 +197,7 @@ export default function EvaluationPage() {
   const [loading, setLoading] = useState(true);
   const [selDataset, setSelDataset] = useState("");
   const [selModel, setSelModel] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // ── Fetch ──
   useEffect(() => {
@@ -224,7 +225,7 @@ export default function EvaluationPage() {
     ? results.filter((r) => r.dataset_id?.toString() === selDataset)
     : results;
 
-  // Menampilkan rasio sebagai Latih:Uji (gabungan Train+Val sebagai data latih)
+  // Display ratio as Train:Test (combined Train+Val as training data)
   const getRatio = (item) => {
     if (item.req_val_split != null && item.req_test_split != null) {
       const tr = Math.round(
@@ -232,11 +233,11 @@ export default function EvaluationPage() {
       );
       const val = Math.round(item.req_val_split * 100);
       const te = Math.round(item.req_test_split * 100);
-      const latih = tr + val; // Train + Validation = total data latih
-      return `${latih}:${te}`; // Format: Latih:Uji
+      const latih = tr + val; // Train + Validation = total train data
+      return `${latih}:${te}`; // Format: Train:Test
     }
 
-    // Fallback jika ambil dari size dan total_data
+    // Fallback if taking from size and total_data
     if (item.train_size && item.total_data) {
       const te = Math.round((item.test_size / item.total_data) * 100);
       let val = 0;
@@ -264,11 +265,16 @@ export default function EvaluationPage() {
   allRatios.forEach((r) => {
     const top = filteredResults
       .filter((it) => getRatio(it) === r)
-      .sort((a, b) => a.id - b.id)
-      .slice(0, 5);
+      .sort((a, b) => a.id - b.id);
     groupedRatio[r] = top;
     if (top.length > maxIters) maxIters = top.length;
   });
+
+  const itemsPerPage = 5; // ⚙️ PAGINATION: Ubah angka ini untuk mengatur jumlah iterasi/model per halaman di tabel evaluasi
+  const totalPages = Math.max(1, Math.ceil(maxIters / itemsPerPage));
+  const effectivePage = Math.min(currentPage, totalPages);
+  const startIndex = (effectivePage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
 
   const modelOptions = filteredResults
     .map((r) => ({
@@ -295,7 +301,7 @@ export default function EvaluationPage() {
           style={{ animation: "spin 1s linear infinite" }}
         />
         <p style={{ color: "var(--app-text-muted)", fontSize: "0.85rem" }}>
-          Memuat data evaluasi...
+          Loading evaluation data...
         </p>
       </Center>
     );
@@ -349,7 +355,7 @@ export default function EvaluationPage() {
                 marginTop: 2,
               }}
             >
-              Performa model IndoBERT + GAT
+              IndoBERT + GAT model performance
             </p>
           </div>
         </div>
@@ -371,7 +377,7 @@ export default function EvaluationPage() {
       {/* ── TABLE 1: Split Ratio ── */}
       <Card
         title="Data Split Ratio"
-        subtitle="Akurasi per iterasi training (5 iterasi pertama)"
+        subtitle="Accuracy per training iteration"
         right={
           allRatios.length > 0 && (
             <span
@@ -384,20 +390,20 @@ export default function EvaluationPage() {
                 fontWeight: 600,
               }}
             >
-              {allRatios.length} rasio ditemukan
+              {allRatios.length} ratios found
             </span>
           )
         }
       >
         {allRatios.length === 0 ? (
-          <Empty msg="Belum ada data training untuk dataset ini." />
+          <Empty msg="No training data for this dataset yet." />
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={tbl}>
               <thead>
                 <tr>
                   <th style={{ ...th, textAlign: "left", width: 100 }}>
-                    Iterasi
+                    Iteration
                   </th>
                   {allRatios.map((r) => (
                     <th key={r} style={th}>
@@ -407,7 +413,10 @@ export default function EvaluationPage() {
                 </tr>
               </thead>
               <tbody>
-                {Array.from({ length: Math.max(maxIters, 1) }).map((_, i) => (
+                {Array.from({ length: Math.max(maxIters, 1) })
+                  .map((_, i) => i)
+                  .slice(startIndex, endIndex)
+                  .map((i) => (
                   <tr key={i}>
                     <td style={{ ...td, fontWeight: 700, color: "#4f5fd4" }}>
                       #{i + 1}
@@ -432,7 +441,7 @@ export default function EvaluationPage() {
                 {/* Average row */}
                 <tr style={{ background: "var(--lav-ghost)" }}>
                   <td style={{ ...td, fontWeight: 700, color: "#4f5fd4" }}>
-                    Rata-rata
+                    Average
                   </td>
                   {allRatios.map((r) => {
                     const valid = groupedRatio[r].filter(
@@ -464,12 +473,49 @@ export default function EvaluationPage() {
             </table>
           </div>
         )}
+
+        {/* Pagination Controls */}
+        {allRatios.length > 0 && totalPages > 1 && (
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 15, marginTop: 20 }}>
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={effectivePage === 1}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: "1px solid var(--app-border)",
+                background: effectivePage === 1 ? "var(--lav-ghost)" : "white",
+                cursor: effectivePage === 1 ? "not-allowed" : "pointer",
+                color: effectivePage === 1 ? "var(--app-text-muted)" : "var(--app-text)",
+              }}
+            >
+              Prev
+            </button>
+            <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--app-text)" }}>
+              Page {effectivePage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={effectivePage === totalPages}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: "1px solid var(--app-border)",
+                background: effectivePage === totalPages ? "var(--lav-ghost)" : "white",
+                cursor: effectivePage === totalPages ? "not-allowed" : "pointer",
+                color: effectivePage === totalPages ? "var(--app-text-muted)" : "var(--app-text)",
+              }}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </Card>
 
       {/* ── TABLE 2: Train vs Test + Chart ── */}
       <Card
-        title="Perbandingan Training & Testing"
-        subtitle="Pilih model untuk melihat detail metrik"
+        title="Training & Testing Comparison"
+        subtitle="Select a model to view metric details"
         right={
           <Select
             label="Model:"
@@ -483,7 +529,7 @@ export default function EvaluationPage() {
         }
       >
         {!compResult ? (
-          <Empty msg="Belum ada model untuk dataset ini." />
+          <Empty msg="No model for this dataset yet." />
         ) : (
           <ComparisonView result={compResult} />
         )}
@@ -606,10 +652,10 @@ function ComparisonView({ result }) {
         <table style={tbl}>
           <thead>
             <tr>
-              <th style={{ ...th, textAlign: "left", width: 200 }}>Metrik</th>
+              <th style={{ ...th, textAlign: "left", width: 200 }}>Metric</th>
               <th style={th}>Training</th>
               <th style={th}>Testing</th>
-              <th style={th}>Selisih</th>
+              <th style={th}>Difference</th>
             </tr>
           </thead>
           <tbody>
@@ -806,7 +852,7 @@ function Select({ label, value, onChange, options }) {
           padding: 0,
         }}
       >
-        {options.length === 0 && <option value="">Belum ada</option>}
+        {options.length === 0 && <option value="">None yet</option>}
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}

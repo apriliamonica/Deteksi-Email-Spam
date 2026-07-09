@@ -25,7 +25,7 @@ export default function DataCollection() {
   const [datasets, setDatasets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const perPage = 8;
+  const perPage = 8; // ⚙️ PAGINATION: Ubah angka ini untuk mengatur jumlah dataset per halaman di halaman Data Collection
 
   const [file, setFile] = useState(null);
   const [datasetName, setDatasetName] = useState("");
@@ -68,7 +68,7 @@ export default function DataCollection() {
       const r = await modelAPI.previewDataset(f);
       setPreview(r.data);
     } catch (e) {
-      setError(e.response?.data?.detail || "Gagal membaca file");
+      setError(e.response?.data?.detail || "Failed to read file");
     } finally {
       setPreviewing(false);
     }
@@ -97,14 +97,14 @@ export default function DataCollection() {
       setShowConfirm(newDs);
       setTimeout(() => setSuccess(false), 4000);
     } catch (e) {
-      setError(e.response?.data?.detail || "Gagal upload");
+      setError(e.response?.data?.detail || "Upload failed");
     } finally {
       setUpload(null);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Hapus dataset ini?")) return;
+    if (!confirm("Delete this dataset?")) return;
     await modelAPI.deleteDataset(id);
     setDatasets((p) => p.filter((d) => d.id !== id));
   };
@@ -115,7 +115,7 @@ export default function DataCollection() {
 
   const isBalanced = (s, h) => s && h && Math.abs(s - h) / (s + h) <= 0.2;
   const fmtDate = (d) =>
-    new Date(d).toLocaleDateString("id-ID", {
+    new Date(d).toLocaleDateString("en-US", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -135,7 +135,7 @@ export default function DataCollection() {
             margin: 0,
           }}
         >
-          Upload dan kelola dataset sebelum preprocessing
+          Upload and manage datasets before preprocessing
         </p>
       </div>
 
@@ -258,10 +258,10 @@ export default function DataCollection() {
           >
             <FileSpreadsheet size={24} color="#4f5fd4" />
             <span style={{ color: "var(--app-text)", fontWeight: 600 }}>
-              Klik untuk pilih file
+              Click to select file
             </span>
             <span style={{ fontSize: "0.72rem" }}>
-              CSV/Excel · wajib ada kolom <code>label</code> & <code>text</code>
+              CSV/Excel · must have <code>label</code> & <code>text</code> columns
             </span>
           </button>
         )}
@@ -279,7 +279,7 @@ export default function DataCollection() {
               size={18}
               style={{ animation: "spin 1s linear infinite" }}
             />
-            <div> membaca...</div>
+            <div> reading...</div>
           </div>
         )}
 
@@ -328,7 +328,7 @@ export default function DataCollection() {
             <input
               value={datasetName}
               onChange={(e) => setDatasetName(e.target.value)}
-              placeholder="Nama dataset"
+              placeholder="Dataset name"
               style={{
                 width: "100%",
                 padding: "8px 12px",
@@ -471,7 +471,7 @@ export default function DataCollection() {
                   cursor: "pointer",
                 }}
               >
-                Batal
+                Cancel
               </button>
               <button
                 onClick={handleUpload}
@@ -487,7 +487,7 @@ export default function DataCollection() {
                   cursor: "pointer",
                 }}
               >
-                Simpan Dataset
+                Save Dataset
               </button>
             </div>
           </div>
@@ -503,7 +503,7 @@ export default function DataCollection() {
                 fontSize: "0.78rem",
               }}
             >
-              <span>Mengunggah...</span>
+              <span>Uploading...</span>
               <span>{upload.progress}%</span>
             </div>
             <div
@@ -552,7 +552,7 @@ export default function DataCollection() {
               gap: 6,
             }}
           >
-            <CheckCircle size={13} /> Berhasil ditambahkan!
+            <CheckCircle size={13} /> Added successfully!
           </div>
         )}
 
@@ -600,10 +600,10 @@ export default function DataCollection() {
               gap: 6,
             }}
           >
-            <Database size={15} color="#4f5fd4" /> Daftar Dataset
+            <Database size={15} color="#4f5fd4" /> Dataset List
           </h3>
           <span style={{ fontSize: "0.72rem", color: "var(--app-text-muted)" }}>
-            {total.ds} dataset
+            {total.ds} datasets
           </span>
         </div>
 
@@ -615,7 +615,7 @@ export default function DataCollection() {
               color: "var(--app-text-muted)",
             }}
           >
-            Memuat...
+            Loading...
           </div>
         ) : datasets.length === 0 ? (
           <div
@@ -625,14 +625,14 @@ export default function DataCollection() {
               color: "var(--app-text-muted)",
             }}
           >
-            Belum ada dataset
+            No datasets yet
           </div>
         ) : (
           <>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "var(--lav-ghost)" }}>
-                  <th style={th}>Nama</th>
+                  <th style={th}>Name</th>
                   <th style={{ ...th, textAlign: "center", width: 70 }}>
                     Spam
                   </th>
@@ -644,7 +644,7 @@ export default function DataCollection() {
                     Status
                   </th>
                   <th style={{ ...th, textAlign: "right", width: 110 }}>
-                    Aksi
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -715,7 +715,7 @@ export default function DataCollection() {
                           <Layers size={12} />
                         </IconBtn>
                         <IconBtn
-                          title="Hapus"
+                          title="Delete"
                           danger
                           onClick={() => handleDelete(d.id)}
                         >
@@ -790,7 +790,7 @@ export default function DataCollection() {
               <Layers size={22} color="#4f5fd4" />
             </div>
             <h3 style={{ margin: 0, marginBottom: 6, fontSize: "0.95rem" }}>
-              Lanjut Preprocessing?
+              Proceed to Preprocessing?
             </h3>
             <p
               style={{
@@ -799,7 +799,7 @@ export default function DataCollection() {
                 marginBottom: 16,
               }}
             >
-              Dataset <strong>"{showConfirm.name}"</strong> siap diproses.
+              Dataset <strong>"{showConfirm.name}"</strong> is ready for preprocessing.
             </p>
             <div style={{ display: "flex", gap: 8 }}>
               <button
@@ -815,7 +815,7 @@ export default function DataCollection() {
                   cursor: "pointer",
                 }}
               >
-                Nanti
+                Later
               </button>
               <button
                 onClick={() =>
@@ -838,7 +838,7 @@ export default function DataCollection() {
                   cursor: "pointer",
                 }}
               >
-                Ya, Lanjut
+                Yes, Proceed
               </button>
             </div>
           </div>

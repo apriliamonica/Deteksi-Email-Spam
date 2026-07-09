@@ -19,7 +19,7 @@ export default function ManageAccounts() {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 10; // ⚙️ PAGINATION: Ubah angka ini untuk mengatur jumlah akun user per halaman
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("add"); // 'add' or 'edit'
@@ -87,13 +87,13 @@ export default function ManageAccounts() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus akun ini?")) return;
+    if (!window.confirm("Are you sure you want to delete this account?")) return;
     try {
       await usersAPI.delete(id);
       setUsers(users.filter((u) => u.id !== id));
     } catch (err) {
       alert(
-        "Gagal menghapus user: " + (err.response?.data?.detail || err.message),
+        "Failed to delete user: " + (err.response?.data?.detail || err.message),
       );
     }
   };
@@ -105,7 +105,7 @@ export default function ManageAccounts() {
     try {
       if (modalMode === "add") {
         if (!formData.password) {
-          setError("Password wajib diisi untuk akun baru");
+          setError("Password is required for new accounts");
           setSaving(false);
           return;
         }
@@ -119,7 +119,7 @@ export default function ManageAccounts() {
       fetchUsers();
     } catch (err) {
       setError(
-        err.response?.data?.detail || "Terjadi kesalahan saat menyimpan",
+        err.response?.data?.detail || "An error occurred while saving",
       );
     } finally {
       setSaving(false);
@@ -140,10 +140,10 @@ export default function ManageAccounts() {
         {/* Sisi Kiri: Judul dan Sub-judul */}
         <div>
           <h1 className="page-title" style={{ margin: 0 }}>
-            Kelola Akun
+            Manage Accounts
           </h1>
           <p className="page-subtitle" style={{ margin: "4px 0 0 0" }}>
-            Manajemen pengguna sistem dan hak akses (Admin/Pengguna).
+            System user management and access rights (Admin/User).
           </p>
         </div>
 
@@ -177,7 +177,7 @@ export default function ManageAccounts() {
             />
             <input
               className="form-input"
-              placeholder="Cari nama atau email..."
+              placeholder="Search name or email..."
               style={{ paddingLeft: 40 }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -200,17 +200,17 @@ export default function ManageAccounts() {
               size={24}
               style={{ margin: "0 auto 12px" }}
             />
-            <p>Memuat data pengguna...</p>
+            <p>Loading user data...</p>
           </div>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>Pengguna</th>
+                <th>User</th>
                 <th>Email</th>
                 <th>Role</th>
-                <th>Login Terakhir</th>
-                <th style={{ textAlign: "right" }}>Aksi</th>
+                <th>Last Login</th>
+                <th style={{ textAlign: "right" }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -293,7 +293,7 @@ export default function ManageAccounts() {
                           color: "#ef4444",
                           borderColor: "#fee2e2",
                         }}
-                        title="Hapus"
+                        title="Delete"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -333,7 +333,7 @@ export default function ManageAccounts() {
             color: "var(--gray-400)",
           }}
         >
-          Tidak ada akun yang ditemukan.
+          No accounts found.
         </div>
       )}
 
@@ -364,7 +364,7 @@ export default function ManageAccounts() {
               }}
             >
               <h3 style={{ margin: 0 }}>
-                {modalMode === "add" ? "Tambah Akun Baru" : "Edit Akun"}
+                {modalMode === "add" ? "Add New Account" : "Edit Account"}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -387,7 +387,7 @@ export default function ManageAccounts() {
               )}
 
               <div className="form-group">
-                <label className="form-label">Nama Lengkap</label>
+                <label className="form-label">Full Name</label>
                 <input
                   required
                   className="form-input"
@@ -416,7 +416,7 @@ export default function ManageAccounts() {
                   Password{" "}
                   {modalMode === "edit" && (
                     <span style={{ fontWeight: 400, color: "var(--gray-400)" }}>
-                      (Kosongkan jika tidak ingin diubah)
+                      (Leave blank if you don't want to change it)
                     </span>
                   )}
                 </label>
@@ -424,8 +424,8 @@ export default function ManageAccounts() {
                   type="password"
                   placeholder={
                     modalMode === "edit"
-                      ? "Biarkan kosong..."
-                      : "Masukkan password baru"
+                      ? "Leave blank..."
+                      : "Enter new password"
                   }
                   className="form-input"
                   value={formData.password}
@@ -444,7 +444,7 @@ export default function ManageAccounts() {
                     setFormData({ ...formData, role: e.target.value })
                   }
                 >
-                  <option value="user">User Biasa</option>
+                  <option value="user">Regular User</option>
                   <option value="admin">Administrator</option>
                 </select>
               </div>
@@ -456,7 +456,7 @@ export default function ManageAccounts() {
                   style={{ flex: 1 }}
                   onClick={() => setIsModalOpen(false)}
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -464,7 +464,7 @@ export default function ManageAccounts() {
                   style={{ flex: 1 }}
                   disabled={saving}
                 >
-                  {saving ? "Menyimpan..." : "Simpan"}
+                  {saving ? "Saving..." : "Save"}
                 </button>
               </div>
             </form>

@@ -27,9 +27,9 @@ export default function RegisterPage() {
     setError('');
     setSuccess('');
 
-    if (!form.name.trim()) return setError('Nama lengkap tidak boleh kosong.');
-    if (form.password.length < 6) return setError('Password minimal 6 karakter.');
-    if (form.password !== form.confirmPassword) return setError('Password dan konfirmasi password tidak cocok.');
+    if (!form.name.trim()) return setError('Full name is required.');
+    if (form.password.length < 6) return setError('Password must be at least 6 characters.');
+    if (form.password !== form.confirmPassword) return setError('Passwords do not match.');
 
     setLoading(true);
     try {
@@ -40,11 +40,11 @@ export default function RegisterPage() {
         role: 'user',
       });
       if (res.data.status === 'success') {
-        setSuccess('Akun berhasil dibuat! Mengarahkan ke halaman login...');
+        setSuccess('Account created successfully! Redirecting to login...');
         setTimeout(() => navigate('/login'), 2000);
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Gagal mendaftar. Coba lagi.');
+      setError(err.response?.data?.detail || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -61,7 +61,7 @@ export default function RegisterPage() {
             <div className="auth-card__logo">
               <ShieldCheck size={32} color="white" />
             </div>
-            <h1 className="auth-card__title">Buat Akun Baru</h1>
+            <h1 className="auth-card__title">Create New Account</h1>
             <p className="auth-card__subtitle">
               <Activity size={14} />
               SpamGuard
@@ -87,7 +87,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="auth-field">
               <label htmlFor="register-name" className="auth-label">
-                Nama Lengkap
+                Full Name
               </label>
               <div className="auth-input-wrap">
                 <span className="auth-input-icon">
@@ -100,7 +100,7 @@ export default function RegisterPage() {
                   className="auth-input"
                   value={form.name}
                   onChange={handleChange}
-                  placeholder="Nama lengkap Anda"
+                  placeholder="Your full name"
                   autoComplete="name"
                   required
                 />
@@ -122,7 +122,7 @@ export default function RegisterPage() {
                   className="auth-input"
                   value={form.email}
                   onChange={handleChange}
-                  placeholder="email@contoh.com"
+                  placeholder="email@example.com"
                   autoComplete="email"
                   required
                 />
@@ -144,7 +144,7 @@ export default function RegisterPage() {
                   className="auth-input auth-input--toggle"
                   value={form.password}
                   onChange={handleChange}
-                  placeholder="Min. 6 karakter"
+                  placeholder="Min. 6 characters"
                   autoComplete="new-password"
                   required
                 />
@@ -152,7 +152,7 @@ export default function RegisterPage() {
                   type="button"
                   className="auth-toggle"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -161,7 +161,7 @@ export default function RegisterPage() {
 
             <div className="auth-field">
               <label htmlFor="register-confirm" className="auth-label">
-                Konfirmasi Password
+                Confirm Password
               </label>
               <div className="auth-input-wrap">
                 <span className="auth-input-icon">
@@ -174,7 +174,7 @@ export default function RegisterPage() {
                   className="auth-input auth-input--toggle"
                   value={form.confirmPassword}
                   onChange={handleChange}
-                  placeholder="Ulangi password"
+                  placeholder="Repeat your password"
                   autoComplete="new-password"
                   required
                 />
@@ -182,7 +182,7 @@ export default function RegisterPage() {
                   type="button"
                   className="auth-toggle"
                   onClick={() => setShowConfirm((v) => !v)}
-                  aria-label={showConfirm ? 'Sembunyikan konfirmasi password' : 'Tampilkan konfirmasi password'}
+                  aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
                 >
                   {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -191,10 +191,10 @@ export default function RegisterPage() {
 
             <button type="submit" className="auth-submit" disabled={loading}>
               {loading ? (
-                'Memproses...'
+                'Processing...'
               ) : (
                 <>
-                  Buat Akun
+                  Create Account
                   <ArrowRight size={16} />
                 </>
               )}
@@ -202,8 +202,8 @@ export default function RegisterPage() {
           </form>
 
           <div className="auth-footer">
-            Sudah punya akun?
-            <Link to="/login">Masuk di sini</Link>
+            Already have an account?
+            <Link to="/login">Sign in here</Link>
           </div>
         </div>
       </div>

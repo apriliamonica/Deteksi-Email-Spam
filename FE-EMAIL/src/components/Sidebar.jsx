@@ -46,7 +46,7 @@ export default function Sidebar({ user, onLogout }) {
           className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
         >
           <LayoutDashboard />{" "}
-          {user?.role === "admin" ? "Beranda" : "Deteksi Email"}
+          {user?.role === "admin" ? "Dashboard" : "Email Detection"}
         </NavLink>
 
         {/* Menu khusus user biasa */}
@@ -55,14 +55,14 @@ export default function Sidebar({ user, onLogout }) {
             to="/riwayat-saya"
             className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
           >
-            <History size={18} /> Riwayat Saya
+            <History size={18} /> My History
           </NavLink>
         )}
 
         {/* Menu khusus admin */}
         {user?.role === "admin" && (
           <>
-            <div className="sidebar-section">Kelola</div>
+            <div className="sidebar-section">Manage</div>
             <NavLink
               to="/data-collection"
               className={({ isActive }) =>
@@ -106,7 +106,7 @@ export default function Sidebar({ user, onLogout }) {
               <BarChart3 /> Evaluation
             </NavLink>
 
-            <div className="sidebar-section">Uji</div>
+            <div className="sidebar-section">Testing</div>
             <NavLink
               to="/testing"
               className={({ isActive }) =>
@@ -116,14 +116,14 @@ export default function Sidebar({ user, onLogout }) {
               <FlaskConical /> Testing
             </NavLink>
 
-            <div className="sidebar-section">Pengguna</div>
+            <div className="sidebar-section">Users</div>
             <NavLink
               to="/manage-accounts"
               className={({ isActive }) =>
                 `nav-link ${isActive ? "active" : ""}`
               }
             >
-              <Users size={18} /> Kelola Akun
+              <Users size={18} /> Manage Accounts
             </NavLink>
           </>
         )}
@@ -137,7 +137,7 @@ export default function Sidebar({ user, onLogout }) {
                 {user?.name || "User"}
               </div>
               <div className="role text-xs text-slate-500">
-                {user?.role === "admin" ? "Admin" : "Pengguna"}
+                {user?.role === "admin" ? "Admin" : "User"}
               </div>
             </div>
           </div>

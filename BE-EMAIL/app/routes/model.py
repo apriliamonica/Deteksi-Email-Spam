@@ -204,10 +204,30 @@ def background_train(request: TrainingRequest, texts: list[str], labels: list[in
             "metrics_json": json.dumps(metrics)
         })
         
-        # Salin file model hasil training ke folder backup history_{id} dan jadikan model aktif
+        # Salin file model hasil training ke folder backup history_{id}
+        # Jadikan model aktif HANYA jika akurasinya lebih tinggi dari model aktif saat ini
         if history and history.id:
             backup_model_artifacts(history.id)
-            set_active_model(history.id)
+            new_accuracy = metrics.get("accuracy", 0.0)
+            should_activate = False
+
+            current_active_id = get_active_model_id()
+            if current_active_id is None:
+                # Belum ada model aktif → langsung aktifkan
+                should_activate = True
+                print(f"[Active Model] Belum ada model aktif. Model baru (ID #{history.id}, acc={new_accuracy:.4f}) dijadikan aktif.")
+            else:
+                from app.models.email import TrainingHistory as TH
+                current_active = db.query(TH).filter(TH.id == current_active_id).first()
+                current_accuracy = current_active.accuracy if current_active else 0.0
+                if new_accuracy > current_accuracy:
+                    should_activate = True
+                    print(f"[Active Model] Model baru (ID #{history.id}, acc={new_accuracy:.4f}) > model aktif (ID #{current_active_id}, acc={current_accuracy:.4f}). Diaktifkan.")
+                else:
+                    print(f"[Active Model] Model baru (ID #{history.id}, acc={new_accuracy:.4f}) <= model aktif (ID #{current_active_id}, acc={current_accuracy:.4f}). Model aktif tidak berubah.")
+
+            if should_activate:
+                set_active_model(history.id)
             
     except Exception as e:
         print(f"[Background Train] Error: {str(e)}")
@@ -696,12 +716,13 @@ async def get_active_model(db: Session = Depends(get_db)):
     
     active_id = get_active_model_id()
     
-    # Jika belum ada yang aktif di active_model.json, ambil model terakhir sebagai fallback default
+    # Jika belum ada yang aktif di active_model.json, ambil model dengan akurasi TERTINGGI sebagai fallback
     if active_id is None:
-        latest = EmailService.get_latest_training(db)
-        if latest:
-            active_id = latest.id
+        best = EmailService.get_best_training(db)
+        if best:
+            active_id = best.id
             set_active_model(active_id)
+            print(f"[Active Model] Fallback: mengaktifkan model dengan akurasi tertinggi (ID #{active_id}, acc={best.accuracy:.4f})")
             
     if active_id is None:
         raise HTTPException(status_code=404, detail="Tidak ada model yang aktif.")

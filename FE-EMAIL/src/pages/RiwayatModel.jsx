@@ -47,7 +47,7 @@ export default function RiwayatModelPage() {
   const [activeId, setActiveId] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 9;
+  const itemsPerPage = 9; // ⚙️ PAGINATION: Ubah angka ini untuk mengatur jumlah card model per halaman
 
   // ─── Fetchers ─────────────────────────────
   const fetchActiveModel = async () => {
@@ -82,12 +82,12 @@ export default function RiwayatModelPage() {
 
   // ─── Handlers ─────────────────────────────
   const handleDelete = async (id) => {
-    if (!window.confirm("Yakin ingin menghapus riwayat model ini?")) return;
+    if (!window.confirm("Are you sure you want to delete this model history?")) return;
     try {
       await modelAPI.deleteHistory(id);
       setHistory((prev) => prev.filter((h) => h.id !== id));
     } catch (err) {
-      alert("Gagal menghapus: " + (err.response?.data?.detail || err.message));
+      alert("Failed to delete: " + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -106,7 +106,7 @@ export default function RiwayatModelPage() {
 
   // ─── Helpers ──────────────────────────────
   const formatDateShort = (d) =>
-    new Date(d).toLocaleDateString("id-ID", {
+    new Date(d).toLocaleDateString("en-US", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -183,14 +183,14 @@ export default function RiwayatModelPage() {
             margin: 0,
           }}
         >
-          Daftar hasil pengujian model IndoBERT + GAT
+          List of IndoBERT + GAT model test results
         </p>
       </div>
 
       {loading ? (
-        <Center>Memuat data...</Center>
+        <Center>Loading data...</Center>
       ) : history.length === 0 ? (
-        <Center>Belum ada riwayat pelatihan</Center>
+        <Center>No training history yet</Center>
       ) : (
         <>
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -250,7 +250,7 @@ function DatasetSection({
       <SectionHeader
         icon={<Layers size={16} color="#0C447C" />}
         title={dsName}
-        subtitle={`${totalModels} model · Best akurasi ${(bestAccuracy * 100).toFixed(2)}%`}
+        subtitle={`${totalModels} model · Best accuracy ${(bestAccuracy * 100).toFixed(2)}%`}
         right={
           ds && (
             <div style={{ display: "flex", gap: 6 }}>
@@ -383,7 +383,7 @@ function ModelCard({
               textAlign: "right",
             }}
           >
-            {(acc * 100).toFixed(0)}%
+            {(acc * 100).toFixed(2)}%
           </span>
         </div>
 
@@ -441,7 +441,7 @@ function ModelCard({
           <button
             onClick={() => onDelete(item.id)}
             style={btnDelete}
-            title="Hapus Model"
+            title="Delete Model"
           >
             <Trash2 size={14} />
           </button>
@@ -538,7 +538,7 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
       await modelAPI.activateModel(item.id);
       await fetchActiveModel();
     } catch {
-      alert("Gagal mengaktifkan model.");
+      alert("Failed to activate model.");
     }
   };
 
@@ -560,7 +560,7 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
       link.click();
       link.remove();
     } catch (e) {
-      alert("Gagal mengunduh model. File model mungkin sudah terhapus.");
+      alert("Failed to download model. Model file might have been deleted.");
     }
   };
 
@@ -586,7 +586,7 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
         }}
       >
         <ChevronRight size={16} style={{ transform: "rotate(180deg)" }} />{" "}
-        Kembali ke daftar model
+        Back to model list
       </button>
 
       {/* ── Header Block ── */}
@@ -634,11 +634,11 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
                   size={10}
                   style={{ marginRight: 3, verticalAlign: "-1px" }}
                 />{" "}
-                Model aktif
+                Active model
               </Pill>
             )}
             <Pill bg="#eff6ff" color="#1e40af" border="#bfdbfe">
-              Training selesai
+              Training completed
             </Pill>
           </div>
 
@@ -681,14 +681,14 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
               border: "1px solid var(--app-border)",
             }}
           >
-            Unduh model (.zip)
+            Download model (.zip)
           </button>
           {!isActive && (
             <button
               onClick={handleActivate}
               style={{ ...btnPrimary(true), background: "#10b981" }}
             >
-              Jadikan aktif
+              Set as active
             </button>
           )}
         </div>
@@ -696,17 +696,17 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
 
       {/* ── 4 STAT CARDS ── */}
       <Panel
-        title="Metrik Evaluasi"
+        title="Evaluation Metrics"
         icon={<BarChart2 size={15} />}
         infoContent={{
-          title: "Apa itu Metrik Evaluasi?",
+          title: "What are Evaluation Metrics?",
           definition:
-            "Metrik evaluasi adalah ukuran kuantitatif yang digunakan untuk menilai seberapa baik kinerja model dalam mengklasifikasi email sebagai spam atau bukan spam (ham).",
+            "Evaluation metrics are quantitative measures used to assess how well the model performs in classifying emails as spam or not spam (ham).",
           howItWorks: [
-            "Akurasi — Persentase prediksi yang benar dari seluruh data uji. Semakin tinggi semakin baik, tetapi bisa menyesatkan jika data tidak seimbang.",
-            "F1-Score — Rata-rata harmonis dari Precision dan Recall. Metrik ini lebih adil untuk dataset yang tidak seimbang karena memperhitungkan keduanya.",
-            "Precision — Dari semua email yang diprediksi sebagai spam, berapa persen yang memang benar-benar spam. Precision tinggi berarti sedikit email normal yang salah ditandai.",
-            "Recall — Dari semua email spam yang sebenarnya, berapa persen yang berhasil terdeteksi. Recall tinggi berarti sedikit spam yang lolos ke inbox.",
+            "Accuracy — The percentage of correct predictions out of all test data. Higher is better, but can be misleading if the data is imbalanced.",
+            "F1-Score — The harmonic mean of Precision and Recall. This metric is fairer for imbalanced datasets because it accounts for both.",
+            "Precision — Of all the emails predicted as spam, what percentage is actually spam. High precision means few normal emails are wrongly flagged.",
+            "Recall — Of all the actual spam emails, what percentage is successfully detected. High recall means few spam emails slip into the inbox.",
           ],
         }}
       >
@@ -719,7 +719,7 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
         >
           {[
             {
-              label: "Akurasi",
+              label: "Accuracy",
               val: item.accuracy,
               color: "#10b981",
               icon: <CheckCircle size={13} />,
@@ -757,14 +757,14 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
           title="GAT Loss History"
           icon={<Activity size={15} />}
           infoContent={{
-            title: "Apa itu Grafik Loss?",
+            title: "What is a Loss Graph?",
             definition:
-              "Loss (kerugian) adalah nilai numerik yang mengukur seberapa jauh prediksi model dari jawaban yang benar. Semakin kecil nilainya, semakin baik model belajar.",
+              "Loss is a numerical value measuring how far the model's predictions are from the correct answers. The smaller the value, the better the model learns.",
             howItWorks: [
-              "Sumbu X (horizontal) menunjukkan jumlah Epoch, yaitu berapa kali model telah melihat seluruh dataset selama pelatihan.",
-              "Sumbu Y (vertikal) menunjukkan nilai Loss. Grafik yang menurun menandakan model semakin pandai membedakan spam dan ham.",
-              "Jika grafik terus menurun lalu mendatar, itu artinya model sudah konvergen (mencapai titik optimal).",
-              "Jika grafik naik-turun tidak stabil, kemungkinan learning rate terlalu tinggi atau data terlalu sedikit.",
+              "X-axis (horizontal) shows the number of Epochs, which is how many times the model has seen the entire dataset during training.",
+              "Y-axis (vertical) shows the Loss value. A downward trending graph indicates the model is getting better at distinguishing spam and ham.",
+              "If the graph continues to decrease and then flattens out, it means the model has converged (reached its optimal point).",
+              "If the graph fluctuates unsteadily, the learning rate might be too high or there's too little data.",
             ],
           }}
         >
@@ -837,15 +837,15 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
 
         {/* ── ADDITIONAL METRICS ── */}
         <Panel
-          title="Metrik Tambahan"
+          title="Additional Metrics"
           icon={<Activity size={15} />}
           infoContent={{
-            title: "Apa itu MCC & ROC-AUC?",
+            title: "What are MCC & ROC-AUC?",
             definition:
-              "Dua metrik tambahan yang sering diminta dalam penelitian untuk memberikan gambaran lebih lengkap tentang kinerja model.",
+              "Two additional metrics often requested in research to provide a more complete picture of model performance.",
             howItWorks: [
-              "MCC (Matthews Correlation Coefficient) — Nilainya dari -1 hingga +1. Nilai +1 berarti prediksi sempurna, 0 berarti model sebaik menebak acak, -1 berarti prediksi selalu salah. MCC dianggap metrik paling seimbang untuk klasifikasi biner.",
-              "ROC-AUC (Receiver Operating Characteristic - Area Under Curve) — Nilainya dari 0 hingga 1. Semakin mendekati 1, model semakin mampu membedakan antara kelas spam dan ham. Nilai 0.5 berarti model tidak lebih baik dari tebakan acak.",
+              "MCC (Matthews Correlation Coefficient) — Values range from -1 to +1. A value of +1 means perfect prediction, 0 means the model is as good as random guessing, -1 means predictions are always wrong. MCC is considered the most balanced metric for binary classification.",
+              "ROC-AUC (Receiver Operating Characteristic - Area Under Curve) — Values range from 0 to 1. Closer to 1, the model is more capable of distinguishing between spam and ham classes. A value of 0.5 means the model is no better than random guessing.",
             ],
           }}
         >
@@ -872,18 +872,18 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
 
       {/* ── HYPERPARAMETERS ── */}
       <Panel
-        title="Hyperparameters & Konfigurasi"
+        title="Hyperparameters & Configuration"
         icon={<Settings2 size={15} />}
         bg="var(--lav-ghost)"
         infoContent={{
-          title: "Apa itu Hyperparameters?",
+          title: "What are Hyperparameters?",
           definition:
-            "Hyperparameters adalah pengaturan yang ditentukan sebelum proses pelatihan dimulai. Mereka mengontrol bagaimana model belajar, bukan apa yang model pelajari.",
+            "Hyperparameters are settings determined before the training process begins. They control how the model learns, not what it learns.",
           howItWorks: [
-            "Learning Rate — Seberapa besar langkah yang diambil model saat memperbarui bobotnya. Terlalu besar = model melompat-lompat. Terlalu kecil = model belajar sangat lambat.",
-            "Epochs — Jumlah siklus penuh model melihat seluruh dataset. Terlalu banyak bisa menyebabkan overfitting (model menghafal data).",
-            "Weight Decay — Teknik untuk mencegah overfitting dengan membatasi ukuran bobot model.",
-            "Data Split — Pembagian dataset menjadi data Training (untuk belajar), Validation (untuk tuning), dan Testing (untuk evaluasi akhir).",
+            "Learning Rate — How large a step the model takes when updating its weights. Too large = the model jumps around. Too small = the model learns very slowly.",
+            "Epochs — The number of full cycles the model sees the entire dataset. Too many can cause overfitting (the model memorizes the data).",
+            "Weight Decay — A technique to prevent overfitting by limiting the size of the model's weights.",
+            "Data Split — The division of the dataset into Training data (for learning), Validation (for tuning), and Testing (for final evaluation).",
           ],
         }}
       >
@@ -914,7 +914,7 @@ function DetailView({ item, datasets, onClose, activeId, fetchActiveModel }) {
 function TrainVsTestWithInfo({ test, train }) {
   const hasTrain = Object.keys(train).length > 0;
   const rows = [
-    { label: "Akurasi", test: test.accuracy, train: train.accuracy },
+    { label: "Accuracy", test: test.accuracy, train: train.accuracy },
     { label: "Precision", test: test.precision, train: train.precision },
     { label: "Recall", test: test.recall, train: train.recall },
     { label: "F1-Score", test: test.f1_score, train: train.f1_score },
@@ -922,16 +922,16 @@ function TrainVsTestWithInfo({ test, train }) {
 
   return (
     <Panel
-      title="Perbandingan Training vs Testing"
+      title="Training vs Testing Comparison"
       icon={<GitCompare size={15} />}
       infoContent={{
-        title: "Apa itu Perbandingan Training vs Testing?",
+        title: "What is the Training vs Testing Comparison?",
         definition:
-          "Tabel ini membandingkan kinerja model pada data yang digunakan untuk belajar (training) dengan data yang belum pernah dilihat (testing). Perbandingan ini penting untuk mendeteksi overfitting.",
+          "This table compares the model's performance on the data used for learning (training) against data it has never seen (testing). This comparison is important for detecting overfitting.",
         howItWorks: [
-          "Jika nilai Training dan Testing hampir sama (selisih <5%), model belajar dengan baik dan mampu menggeneralisasi ke data baru.",
-          "Jika Training jauh lebih tinggi dari Testing (selisih >10%), model kemungkinan mengalami overfitting — artinya model menghafal data latih tapi gagal di data baru.",
-          "Status '✓ Bagus' berarti selisih di bawah 5%. '⚠ Watch' berarti selisih 5-10%. '✗ Overfit?' berarti selisih lebih dari 10%.",
+          "If Training and Testing values are almost the same (difference <5%), the model learned well and can generalize to new data.",
+          "If Training is much higher than Testing (difference >10%), the model is likely experiencing overfitting — meaning it memorized the training data but fails on new data.",
+          "Status '✓ Good' means a difference below 5%. '⚠ Watch' means a 5-10% difference. '✗ Overfit?' means a difference of more than 10%.",
         ],
       }}
     >
@@ -955,10 +955,10 @@ function TrainVsTestWithInfo({ test, train }) {
           >
             <thead>
               <tr style={{ background: "var(--lav-ghost)" }}>
-                <th style={thL}>Metrik</th>
+                <th style={thL}>Metric</th>
                 <th style={thC}>Training</th>
                 <th style={thC}>Testing</th>
-                <th style={thC}>Selisih</th>
+                <th style={thC}>Difference</th>
                 <th style={thC}>Status</th>
               </tr>
             </thead>
@@ -969,7 +969,7 @@ function TrainVsTestWithInfo({ test, train }) {
                 const status = !diff
                   ? "—"
                   : diff < 0.05
-                    ? "✓ Bagus"
+                    ? "✓ Good"
                     : diff < 0.1
                       ? "⚠ Watch"
                       : "✗ Overfit?";
@@ -1011,8 +1011,8 @@ function TrainVsTestWithInfo({ test, train }) {
               marginBottom: 0,
             }}
           >
-            💡 Selisih kecil (&lt;5%) = model generalisasi baik. Selisih besar
-            (&gt;10%) = indikasi <b>overfitting</b>.
+            💡 Small diff (&lt;5%) = good model generalization. Large diff
+            (&gt;10%) = <b>overfitting</b> indication.
           </p>
         </div>
       )}
@@ -1033,16 +1033,16 @@ function ClassDistributionWithInfo({ spam, ham, total }) {
 
   return (
     <Panel
-      title="Distribusi Kelas"
+      title="Class Distribution"
       icon={<PieIcon size={15} />}
       infoContent={{
-        title: "Apa itu Distribusi Kelas?",
+        title: "What is Class Distribution?",
         definition:
-          "Distribusi kelas menunjukkan perbandingan jumlah email spam dan ham (bukan spam) di dalam dataset pelatihan. Keseimbangan ini sangat memengaruhi kualitas model.",
+          "Class distribution shows the comparison between the number of spam and ham (not spam) emails in the training dataset. This balance greatly affects model quality.",
         howItWorks: [
-          "Dataset yang seimbang (jumlah spam ≈ ham) biasanya menghasilkan model yang lebih adil dan akurat.",
-          "Dataset yang tidak seimbang (misalnya spam jauh lebih banyak) bisa membuat model bias — cenderung memprediksi kelas mayoritas.",
-          "Jika dataset tidak seimbang, teknik seperti Class Weighting (yang digunakan pada aplikasi ini) diterapkan agar model tidak mengabaikan kelas minoritas.",
+          "A balanced dataset (spam ≈ ham) usually produces a fairer and more accurate model.",
+          "An imbalanced dataset (e.g. much more spam) can make the model biased — tending to predict the majority class.",
+          "If the dataset is imbalanced, techniques like Class Weighting (used in this application) are applied so the model doesn't ignore the minority class.",
         ],
       }}
     >
@@ -1109,7 +1109,7 @@ function ClassDistributionWithInfo({ spam, ham, total }) {
                 marginBottom: 0,
               }}
             >
-              Total: <b>{total.toLocaleString()}</b> email
+              Total: <b>{total.toLocaleString()}</b> emails
             </p>
           )}
         </>
@@ -1122,7 +1122,7 @@ function ClassDistributionWithInfo({ spam, ham, total }) {
             fontSize: "0.78rem",
           }}
         >
-          Data distribusi belum tersedia
+          Distribution data not available yet
         </div>
       )}
     </Panel>
@@ -1151,8 +1151,8 @@ function DataSplitInfo({ item }) {
     );
     const va = parseFloat((item.metrics.req_val_split * 100).toFixed(0));
     const te = parseFloat((item.metrics.req_test_split * 100).toFixed(0));
-    const latih = tr + va; // Train + Validation = total data latih
-    splitTextPrimary = `${latih} : ${te}`;
+    const trainData = tr + va; // Train + Validation = total train data
+    splitTextPrimary = `${trainData} : ${te}`;
     splitTextDetail = `(Train ${tr}% + Val ${va}% : Test ${te}%)`;
   } else if (item.train_size && item.total_data) {
     const tr = parseFloat(
@@ -1164,8 +1164,8 @@ function DataSplitInfo({ item }) {
     const va = item.metrics.val_size
       ? parseFloat(((item.metrics.val_size / item.total_data) * 100).toFixed(0))
       : 0;
-    const latih = tr + va;
-    splitTextPrimary = `${latih} : ${te}`;
+    const trainData = tr + va;
+    splitTextPrimary = `${trainData} : ${te}`;
     splitTextDetail =
       va > 0
         ? `(Train ${tr}% + Val ${va}% : Test ${te}%)`
@@ -1183,7 +1183,7 @@ function DataSplitInfo({ item }) {
         border: "1px solid var(--app-border)",
       }}
     >
-      <b>Rasio Data Latih : Data Uji:</b>{" "}
+      <b>Train : Test Data Ratio:</b>{" "}
       <span style={{ fontWeight: 700, color: "var(--primary)" }}>
         {splitTextPrimary}
       </span>
@@ -1256,72 +1256,72 @@ function ParamBox({ label, value }) {
   switch (label) {
     case "Learning Rate":
       info =
-        "Menentukan seberapa besar model memperbarui bobotnya pada tiap iterasi. Ideal: 1e-5 hingga 5e-5 untuk IndoBERT.";
+        "Determines how much the model updates its weights at each iteration. Ideal: 1e-5 to 5e-5 for IndoBERT.";
       if (value > 1e-4) {
         warning =
-          "Terlalu tinggi. Model mungkin gagal konvergen (loss melompat-lompat). Sebaiknya turunkan nilainya.";
+          "Too high. The model might fail to converge (loss jumps around). Better to lower the value.";
         isDanger = true;
       } else if (value > 0 && value < 1e-6) {
         warning =
-          "Terlalu rendah. Pelatihan akan sangat lambat atau terjebak di local minima.";
+          "Too low. Training will be very slow or stuck in local minima.";
         isDanger = true;
       }
       break;
     case "Epochs":
       info =
-        "Berapa kali model melihat seluruh dataset selama pelatihan. Ideal: 3 hingga 5 untuk fine-tuning BERT.";
+        "How many times the model sees the entire dataset during training. Ideal: 3 to 5 for BERT fine-tuning.";
       if (value > 10) {
         warning =
-          "Terlalu tinggi. Risiko besar terjadi overfitting (model menghafal data train tapi buruk di data baru).";
+          "Too high. High risk of overfitting (model memorizes train data but performs poorly on new data).";
         isDanger = true;
       } else if (value > 0 && value < 2) {
         warning =
-          "Terlalu rendah. Model mungkin belum cukup belajar pola (underfitting).";
+          "Too low. Model might not have learned enough patterns (underfitting).";
         isDanger = true;
       }
       break;
     case "Weight Decay":
       info =
-        "Teknik regularisasi L2 untuk mencegah bobot model menjadi terlalu besar, membantu mengurangi overfitting. Ideal: 0.01 (1e-2).";
+        "L2 regularization technique to prevent model weights from becoming too large, helping reduce overfitting. Ideal: 0.01 (1e-2).";
       if (value > 0.1) {
         warning =
-          "Terlalu tinggi. Membatasi kapasitas model sehingga bisa menyebabkan underfitting.";
+          "Too high. Limits model capacity which can cause underfitting.";
         isDanger = true;
       } else if (value === 0) {
         warning =
-          "Nilai 0 berarti tidak ada regularisasi, yang membuat model sangat rentan terhadap overfitting.";
+          "A value of 0 means no regularization, making the model very prone to overfitting.";
       }
       break;
     case "GAT Weight Decay":
       info =
-        "Sama seperti weight decay, tetapi khusus untuk layer Graph Attention Network (GAT).";
+        "Same as weight decay, but specific to the Graph Attention Network (GAT) layer.";
       if (value > 0.1) {
         warning =
-          "Terlalu tinggi. Dapat melemahkan kemampuan GAT menangkap keterhubungan fitur graf email.";
+          "Too high. Can weaken GAT's ability to capture the interconnectedness of email graph features.";
         isDanger = true;
       }
       break;
     case "Batch Size":
       info =
-        "Jumlah sampel email yang diproses sebelum model memperbarui bobot. Ideal: 16 atau 32.";
+        "Number of email samples processed before the model updates its weights. Ideal: 16 or 32.";
       if (value > 64) {
-        warning = "Mungkin memakan terlalu banyak memori GPU (Out of Memory).";
+        warning = "Might consume too much GPU memory (Out of Memory).";
         isDanger = true;
       } else if (value > 0 && value < 8) {
         warning =
-          "Terlalu rendah. Estimasi gradien akan sangat bising (noisy) dan proses training menjadi tidak stabil.";
+          "Too low. Gradient estimation will be very noisy and the training process will become unstable.";
       }
       break;
     case "Max Seq Length":
       info =
-        "Panjang maksimal token/kata dalam satu email yang diproses oleh model. Ideal: 128 hingga 512.";
+        "Maximum length of tokens/words in a single email processed by the model. Ideal: 128 to 512.";
       if (value > 512) {
         warning =
-          "Melampaui kapasitas maksimal standar arsitektur BERT (512 token), berpotensi error saat pelatihan.";
+          "Exceeds the standard maximum capacity of the BERT architecture (512 tokens), potentially causing errors during training.";
         isDanger = true;
       } else if (value > 0 && value < 64) {
         warning =
-          "Terlalu pendek. Sangat banyak informasi dan konteks email yang akan terpotong.";
+          "Too short. Too much information and context of the email will be cut off.";
         isDanger = true;
       }
       break;
@@ -1329,7 +1329,7 @@ function ParamBox({ label, value }) {
       break;
   }
 
-  const tooltipText = warning ? `${info}\n\n⚠️ PERHATIAN: ${warning}` : info;
+  const tooltipText = warning ? `${info}\n\n⚠️ WARNING: ${warning}` : info;
 
   return (
     <div
@@ -1481,10 +1481,10 @@ function Panel({ title, icon, children, bg, infoContent }) {
               color: showInfo ? "#1e40af" : "var(--app-text-muted)",
               transition: "all 0.2s ease",
             }}
-            title="Lihat penjelasan"
+            title="View explanation"
           >
             <BookOpen size={13} />
-            {showInfo ? "Tutup" : "Penjelasan"}
+            {showInfo ? "Close" : "Explanation"}
           </button>
         )}
       </div>
@@ -1574,7 +1574,7 @@ function InfoDrawer({ info }) {
               marginBottom: 8,
             }}
           >
-            📘 Cara Membaca / Cara Kerja
+            📘 How to Read / How it Works
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {info.howItWorks.map((item, idx) => (
@@ -1745,11 +1745,11 @@ function Center({ children }) {
 // ════════════════════════════════════════════════════
 
 function getStatusConfig(acc, isActive, createdAt, formatDateShort) {
-  if (isActive) return { text: "Aktif", color: "#10b981" };
+  if (isActive) return { text: "Active", color: "#10b981" };
   if (acc >= 0.95) return { text: "Excellent", color: "#10b981" };
-  if (acc >= 0.85) return { text: "Baik", color: "#3b82f6" };
-  if (acc >= 0.7) return { text: "Cukup", color: "#f59e0b" };
-  if (acc > 0) return { text: "Rendah", color: "#ef4444" };
+  if (acc >= 0.85) return { text: "Good", color: "#3b82f6" };
+  if (acc >= 0.7) return { text: "Fair", color: "#f59e0b" };
+  if (acc > 0) return { text: "Low", color: "#ef4444" };
   return { text: formatDateShort(createdAt), color: "#94a3b8" };
 }
 
@@ -1835,11 +1835,11 @@ function ConfusionMatrixBlock({ tn, fp, fn, tp }) {
   const cards = [
     {
       icon: <CheckCircle2 size={16} />,
-      title: "Email ham → diprediksi ham",
+      title: "Ham email → predicted ham",
       subtitle: "True Negative (TN)",
       value: tn,
       pct: tnPct,
-      desc: `${tnPct.toFixed(1)}% dari total ham — model benar mengenali email normal`,
+      desc: `${tnPct.toFixed(1)}% of total ham — model correctly identified normal emails`,
       bg: "#f2f9f2",
       border: "#cce8cc",
       titleColor: "#2e7d32",
@@ -1849,11 +1849,11 @@ function ConfusionMatrixBlock({ tn, fp, fn, tp }) {
     },
     {
       icon: <AlertTriangle size={16} />,
-      title: "Email ham → diprediksi spam",
+      title: "Ham email → predicted spam",
       subtitle: "False Positive (FP)",
       value: fp,
       pct: fpPct,
-      desc: `${fpPct.toFixed(1)}% email normal salah masuk folder spam`,
+      desc: `${fpPct.toFixed(1)}% of normal emails wrongly put in spam folder`,
       bg: "#fdf2f2",
       border: "#fad4d4",
       titleColor: "#c62828",
@@ -1863,11 +1863,11 @@ function ConfusionMatrixBlock({ tn, fp, fn, tp }) {
     },
     {
       icon: <AlertCircle size={16} />,
-      title: "Email spam → diprediksi ham",
+      title: "Spam email → predicted ham",
       subtitle: "False Negative (FN)",
       value: fn,
       pct: fnPct,
-      desc: `${fnPct.toFixed(1)}% spam lolos masuk ke inbox — perlu diperhatikan`,
+      desc: `${fnPct.toFixed(1)}% of spam slipped into inbox — needs attention`,
       bg: "#fff8e1",
       border: "#ffecb3",
       titleColor: "#f57f17",
@@ -1877,11 +1877,11 @@ function ConfusionMatrixBlock({ tn, fp, fn, tp }) {
     },
     {
       icon: <ShieldCheck size={16} />,
-      title: "Email spam → diprediksi spam",
+      title: "Spam email → predicted spam",
       subtitle: "True Positive (TP)",
       value: tp,
       pct: tpPct,
-      desc: `${tpPct.toFixed(1)}% spam berhasil terdeteksi dan diblokir`,
+      desc: `${tpPct.toFixed(1)}% of spam successfully detected and blocked`,
       bg: "#f0f4ff",
       border: "#d6e4ff",
       titleColor: "#1565c0",
@@ -1896,14 +1896,14 @@ function ConfusionMatrixBlock({ tn, fp, fn, tp }) {
       title="Confusion Matrix"
       icon={<Info size={15} />}
       infoContent={{
-        title: "Apa itu Confusion Matrix?",
+        title: "What is a Confusion Matrix?",
         definition:
-          "Confusion Matrix (Matriks Kebingungan) adalah tabel 2×2 yang meringkas hasil prediksi model terhadap data uji. Tabel ini menunjukkan berapa banyak prediksi yang benar dan salah untuk setiap kelas (spam dan ham).",
+          "Confusion Matrix is a 2x2 table that summarizes the model's prediction results on test data. This table shows how many correct and incorrect predictions there are for each class (spam and ham).",
         howItWorks: [
-          "True Negative (TN) — Email bukan spam yang benar diprediksi bukan spam.",
-          "False Positive (FP) — Email bukan spam yang salah diprediksi sebagai spam.",
-          "False Negative (FN) — Email spam yang lolos dan diprediksi bukan spam.",
-          "True Positive (TP) — Email spam yang benar diprediksi sebagai spam.",
+          "True Negative (TN) — Not spam email correctly predicted as not spam.",
+          "False Positive (FP) — Not spam email incorrectly predicted as spam.",
+          "False Negative (FN) — Spam email that slipped through and was predicted as not spam.",
+          "True Positive (TP) — Spam email correctly predicted as spam.",
         ],
       }}
     >
@@ -1925,7 +1925,7 @@ function ConfusionMatrixBlock({ tn, fp, fn, tp }) {
               marginRight: 8,
             }}
           >
-            AKTUAL
+            ACTUAL
           </div>
 
           <div
@@ -1946,7 +1946,7 @@ function ConfusionMatrixBlock({ tn, fp, fn, tp }) {
                 fontSize: "0.75rem",
               }}
             >
-              PREDIKSI
+              PREDICTION
             </div>
 
             <div
@@ -2071,11 +2071,11 @@ function ConfusionMatrixBlock({ tn, fp, fn, tp }) {
         >
           <Info size={16} />
           <span>
-            Ringkasan: Dari total <b>{totalEmail.toLocaleString()}</b> email
-            yang diuji, model berhasil mendeteksi <b>{tpPct.toFixed(0)}%</b>{" "}
-            serangan spam. Terdapat <b>{fp.toLocaleString()}</b> email normal
-            yang keliru ditandai sebagai spam (<i>False Positive</i>), dan{" "}
-            <b>{fn.toLocaleString()}</b> email spam yang lolos ke inbox (
+            Summary: Out of a total of <b>{totalEmail.toLocaleString()}</b> emails
+            tested, the model successfully detected <b>{tpPct.toFixed(0)}%</b>{" "}
+            of spam attacks. There are <b>{fp.toLocaleString()}</b> normal emails
+            mistakenly marked as spam (<i>False Positive</i>), and{" "}
+            <b>{fn.toLocaleString()}</b> spam emails that slipped into the inbox (
             <i>False Negative</i>).
           </span>
         </div>

@@ -47,6 +47,16 @@ def create_app() -> FastAPI:
         db = SessionLocal()
         try:
             seed_users(db)
+
+            # Pastikan model aktif adalah yang akurasi TERTINGGI
+            from app.services.email_service import EmailService
+            from app.routes.model import set_active_model
+            best = EmailService.get_best_training(db)
+            if best:
+                set_active_model(best.id)
+                print(f"[Startup] Model aktif otomatis ditetapkan: ID #{best.id} (akurasi={best.accuracy:.4f})")
+            else:
+                print("[Startup] Belum ada model training di database.")
         finally:
             db.close()
 

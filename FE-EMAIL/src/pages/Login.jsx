@@ -29,7 +29,7 @@ export default function LoginPage({ onLogin }) {
         navigate('/beranda');
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Gagal login. Periksa email atau password.');
+      setError(err.response?.data?.detail || 'Login failed. Please check your email or password.');
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,7 @@ export default function LoginPage({ onLogin }) {
                   className="auth-input auth-input--toggle"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Masukkan password"
+                  placeholder="Enter your password"
                   autoComplete="current-password"
                   required
                 />
@@ -106,7 +106,7 @@ export default function LoginPage({ onLogin }) {
                   type="button"
                   className="auth-toggle"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -115,10 +115,10 @@ export default function LoginPage({ onLogin }) {
 
             <button type="submit" className="auth-submit" disabled={loading}>
               {loading ? (
-                'Memproses...'
+                'Processing...'
               ) : (
                 <>
-                  Masuk ke Sistem
+                  Sign In
                   <ArrowRight size={16} />
                 </>
               )}
@@ -126,8 +126,8 @@ export default function LoginPage({ onLogin }) {
           </form>
 
           <div className="auth-footer">
-            Belum punya akun?
-            <Link to="/register">Daftar sekarang</Link>
+            Don't have an account?
+            <Link to="/register">Register here</Link>
           </div>
         </div>
       </div>

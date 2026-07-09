@@ -55,7 +55,7 @@ export default function Dashboard({ user }) {
 
   const fmt = (n) => (loading ? "—" : (n || 0).toLocaleString());
   const fmtDate = (d) =>
-    new Date(d).toLocaleDateString("id-ID", {
+    new Date(d).toLocaleDateString("en-US", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -91,7 +91,7 @@ export default function Dashboard({ user }) {
               marginBottom: 4,
             }}
           >
-            Halo, {user?.name?.split(" ")[0] || "Admin"}
+            Hello, {user?.name?.split(" ")[0] || "Admin"}
           </h1>
           <p
             style={{
@@ -100,7 +100,7 @@ export default function Dashboard({ user }) {
               margin: 0,
             }}
           >
-            SpamGuard · IndoBERT + GAT — Sistem deteksi spam aktif
+            SpamGuard · IndoBERT + GAT — Spam detection system active
           </p>
         </div>
         <button
@@ -116,7 +116,7 @@ export default function Dashboard({ user }) {
             cursor: "pointer",
           }}
         >
-          Kelola Dataset →
+          Manage Dataset →
         </button>
       </div>
 
@@ -140,7 +140,7 @@ export default function Dashboard({ user }) {
             icon: <Layers size={18} />,
           },
           {
-            label: "Total Akun",
+            label: "Total Accounts",
             value: dbStats.totalAkun,
             icon: <Users size={18} />,
           },
@@ -199,7 +199,7 @@ export default function Dashboard({ user }) {
       {/* ═══ MODEL TERBARU ═══ */}
       <div>
         <Header
-          title="Model Terbaru"
+          title="Latest Models"
           onSeeAll={() => navigate("/model-history")}
         />
         {loading ? (
@@ -223,7 +223,7 @@ export default function Dashboard({ user }) {
             ))}
           </div>
         ) : models.length === 0 ? (
-          <Empty msg="Belum ada model" />
+          <Empty msg="No models yet" />
         ) : (
           <div
             style={{
@@ -275,7 +275,7 @@ export default function Dashboard({ user }) {
                           color: "#065f46",
                         }}
                       >
-                        Aktif
+                        Active
                       </span>
                     )}
                   </div>
@@ -315,7 +315,7 @@ export default function Dashboard({ user }) {
                     }}
                   >
                     <span style={{ color: "var(--app-text-muted)" }}>
-                      Akurasi
+                      Accuracy
                     </span>
                     <span
                       style={{
@@ -347,7 +347,7 @@ export default function Dashboard({ user }) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "var(--lav-ghost)" }}>
-                <th style={th}>Nama Dataset</th>
+                <th style={th}>Dataset Name</th>
                 <th style={{ ...th, textAlign: "center", width: 100 }}>Spam</th>
                 <th style={{ ...th, textAlign: "center", width: 100 }}>Ham</th>
                 <th style={{ ...th, textAlign: "right", width: 90 }}>Total</th>
@@ -364,7 +364,7 @@ export default function Dashboard({ user }) {
                       color: "var(--app-text-muted)",
                     }}
                   >
-                    Memuat...
+                    Loading...
                   </td>
                 </tr>
               ) : datasets.length === 0 ? (
@@ -377,7 +377,7 @@ export default function Dashboard({ user }) {
                       color: "var(--app-text-muted)",
                     }}
                   >
-                    Belum ada dataset
+                    No datasets yet
                   </td>
                 </tr>
               ) : (

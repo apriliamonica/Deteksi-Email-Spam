@@ -12,16 +12,16 @@ export default function RiwayatPreprocessingPage() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 10; // ⚙️ PAGINATION: Ubah angka ini untuk mengatur jumlah dataset per halaman (daftar utama)
   const [detailPage, setDetailPage] = useState(1);
-  const detailItemsPerPage = 10;
+  const detailItemsPerPage = 10; // ⚙️ PAGINATION: Ubah angka ini untuk mengatur jumlah baris data per halaman (di dalam modal detail)
 
   const fetchHistory = async () => {
     try {
       const res = await modelAPI.listDatasets();
       setHistory(res.data);
     } catch (err) {
-      console.error("Gagal mengambil riwayat:", err);
+      console.error("Failed to fetch history:", err);
     } finally {
       setLoading(false);
     }
@@ -32,12 +32,12 @@ export default function RiwayatPreprocessingPage() {
   }, []);
 
   const handleDelete = async (id) => {
-    if (window.confirm("Hapus dataset ini dari database?")) {
+    if (window.confirm("Delete this dataset from database?")) {
       try {
         await modelAPI.deleteDataset(id);
         setHistory(history.filter(h => h.id !== id));
       } catch (err) {
-        alert("Gagal menghapus dataset: " + (err.response?.data?.detail || err.message));
+        alert("Failed to delete dataset: " + (err.response?.data?.detail || err.message));
       }
     }
   };
@@ -50,8 +50,8 @@ export default function RiwayatPreprocessingPage() {
       const res = await modelAPI.getDatasetRows(dataset.id);
       setDetailRows(res.data.rows || res.data);
     } catch (err) {
-      console.error("Gagal ambil detail dataset:", err);
-      alert("Gagal mengambil detail dataset.");
+      console.error("Failed to load dataset detail:", err);
+      alert("Failed to load dataset detail.");
     } finally {
       setDetailLoading(false);
     }
@@ -96,8 +96,8 @@ export default function RiwayatPreprocessingPage() {
         }
       `}</style>
       <div className="page-header" style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: 8 }}>Riwayat Pre-Processing</h1>
-        <p style={{ color: 'var(--gray-500)' }}>Daftar seluruh dataset yang telah dibersihkan dan siap digunakan untuk pelatihan model.</p>
+        <h1 style={{ fontSize: '2rem', marginBottom: 8 }}>Preprocessing History</h1>
+        <p style={{ color: 'var(--gray-500)' }}>List of all datasets that have been cleaned and are ready to be used for model training.</p>
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -105,8 +105,8 @@ export default function RiwayatPreprocessingPage() {
           <table style={{ margin: 0 }}>
             <thead>
               <tr style={{ background: 'var(--gray-50)' }}>
-                <th><Calendar size={16} /> Tanggal</th>
-                <th>Nama Dataset</th>
+                <th><Calendar size={16} /> Date</th>
+                <th>Dataset Name</th>
                 <th>Total Data</th>
                 <th>Spam</th>
                 <th>Ham</th>
@@ -119,13 +119,13 @@ export default function RiwayatPreprocessingPage() {
                 <tr>
                   <td colSpan="7" style={{ textAlign: 'center', padding: '40px 0' }}>
                     <Loader2 size={24} className="spinner" style={{ margin: '0 auto 8px auto', color: 'var(--gray-400)' }} />
-                    <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem' }}>Memuat riwayat...</p>
+                    <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem' }}>Loading history...</p>
                   </td>
                 </tr>
               ) : history.length === 0 ? (
                 <tr>
                   <td colSpan="7" style={{ textAlign: 'center', padding: '40px 0' }}>
-                    <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem' }}>Belum ada riwayat dataset.</p>
+                    <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem' }}>No dataset history yet.</p>
                   </td>
                 </tr>
               ) : (
@@ -140,18 +140,18 @@ export default function RiwayatPreprocessingPage() {
                     <td style={{ color: '#10b981' }}>{(item.ham_count || 0).toLocaleString()}</td>
                     <td>
                       <span className="badge badge-ham" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <CheckCircle size={12} /> {item.status || 'Selesai'}
+                        <CheckCircle size={12} /> {item.status || 'Completed'}
                       </span>
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                        <button className="btn btn-outline btn-sm" title="Gunakan Dataset"><Database size={14} /></button>
-                        {item.status === 'Selesai' && (
-                          <button className="btn btn-outline btn-sm" onClick={() => handleShowDetail(item)} title="Lihat Detail Preprocessing">
+                        <button className="btn btn-outline btn-sm" title="Use Dataset"><Database size={14} /></button>
+                        {(item.status === 'Selesai' || item.status === 'Completed') && (
+                          <button className="btn btn-outline btn-sm" onClick={() => handleShowDetail(item)} title="View Preprocessing Detail">
                             <FileText size={14} />
                           </button>
                         )}
-                        <button className="btn btn-outline btn-sm" onClick={() => handleDelete(item.id)} style={{ color: '#ef4444', borderColor: '#ef4444' }} title="Hapus"><Trash2 size={14} /></button>
+                        <button className="btn btn-outline btn-sm" onClick={() => handleDelete(item.id)} style={{ color: '#ef4444', borderColor: '#ef4444' }} title="Delete"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -176,7 +176,7 @@ export default function RiwayatPreprocessingPage() {
           <div className="card" style={{ background: 'white', padding: 0, width: '90%', maxWidth: 1200, maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--gray-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--gray-50)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><FileText size={20} /> Detail Preprocessing – {selectedDataset.name}</h3>
+                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><FileText size={20} /> Preprocessing Detail – {selectedDataset.name}</h3>
                 <div className="tooltip-container" style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'help' }}>
                   <Info size={16} style={{ color: 'var(--gray-500)' }} />
                   <div className="tooltip-content" style={{
@@ -184,12 +184,12 @@ export default function RiwayatPreprocessingPage() {
                     width: 320, background: '#1e293b', color: 'white', padding: '16px', borderRadius: '8px', 
                     fontSize: '0.8rem', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)', zIndex: 100, pointerEvents: 'none'
                   }}>
-                    <h4 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: '#94a3b8', borderBottom: '1px solid #334155', paddingBottom: 6 }}>Aturan Preprocessing</h4>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: '#94a3b8', borderBottom: '1px solid #334155', paddingBottom: 6 }}>Preprocessing Rules</h4>
                     <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 6, lineHeight: 1.4 }}>
-                      <li><strong>Masking:</strong> Link 🌐 diubah menjadi <code>[URL]</code> dan email ✉️ menjadi <code>[EMAIL]</code>.</li>
-                      <li><strong>Pembersihan Simbol:</strong> Karakter khusus (#, @, &, dll) dihapus, hanya menyisakan huruf, angka, dan tanda baca dasar (?, !, .).</li>
-                      <li><strong>Normalisasi Spasi:</strong> Spasi berlebih dirapikan menjadi satu spasi.</li>
-                      <li><strong>Batas Teks:</strong> Teks dipotong maksimal <strong>512 karakter</strong> agar sesuai dengan kapasitas memori token <em>IndoBERT</em>.</li>
+                      <li><strong>Masking:</strong> Links 🌐 are replaced with <code>[URL]</code> and emails ✉️ with <code>[EMAIL]</code>.</li>
+                      <li><strong>Symbol Cleaning:</strong> Special characters (#, @, &, etc.) are removed, only keeping letters, numbers, and basic punctuation (?, !, .).</li>
+                      <li><strong>Space Normalization:</strong> Extra spaces are trimmed to a single space.</li>
+                      <li><strong>Text Limit:</strong> Text is truncated to a maximum of <strong>512 characters</strong> to fit the token memory capacity of <em>IndoBERT</em>.</li>
                     </ul>
                     <div style={{ position: 'absolute', top: '-4px', left: '10%', transform: 'translateX(-50%)', borderBottom: '5px solid #1e293b', borderLeft: '5px solid transparent', borderRight: '5px solid transparent' }} />
                   </div>
@@ -199,16 +199,16 @@ export default function RiwayatPreprocessingPage() {
             </div>
             <div style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
               {detailLoading ? (
-                <div style={{ textAlign: 'center', padding: 40, color: 'var(--gray-500)' }}>Memuat detail...</div>
+                <div style={{ textAlign: 'center', padding: 40, color: 'var(--gray-500)' }}>Loading details...</div>
               ) : (
                 <>
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ background: 'var(--gray-50)' }}>
                         <th style={{ width: 50, textAlign: 'center', border: '1px solid var(--gray-200)', padding: '12px 8px' }}>No</th>
-                        <th style={{ width: 180, border: '1px solid var(--gray-200)', padding: '12px 16px' }}>Pengirim (Sender)</th>
-                        <th style={{ width: '35%', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>Sebelum (Original)</th>
-                        <th style={{ width: '35%', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>Sesudah (Preprocessed)</th>
+                        <th style={{ width: 180, border: '1px solid var(--gray-200)', padding: '12px 16px' }}>Sender</th>
+                        <th style={{ width: '35%', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>Before (Original)</th>
+                        <th style={{ width: '35%', border: '1px solid var(--gray-200)', padding: '12px 16px' }}>After (Preprocessed)</th>
                         <th style={{ width: 70, textAlign: 'center', border: '1px solid var(--gray-200)', padding: '12px 8px' }}>Label</th>
                       </tr>
                     </thead>
@@ -219,15 +219,15 @@ export default function RiwayatPreprocessingPage() {
                             {detailStartIndex + idx + 1}
                           </td>
                           <td style={{ fontSize: '0.85rem', color: 'var(--gray-700)', border: '1px solid var(--gray-200)', padding: '16px', verticalAlign: 'top', wordBreak: 'break-all' }}>
-                            {row.sender || <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>Tidak diketahui</span>}
+                            {row.sender || <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>Unknown</span>}
                           </td>
                           <td style={{ fontSize: '0.85rem', lineHeight: 1.5, color: 'var(--gray-700)', maxWidth: 350, wordBreak: 'break-word', border: '1px solid var(--gray-200)', padding: '16px', verticalAlign: 'top' }}>
                             <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px dashed var(--gray-200)' }}>
-                              <span style={{ fontWeight: 600, color: 'var(--black)', display: 'block', marginBottom: 4, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subjek:</span>
-                              {row.subject ? row.subject : <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>Tidak ada subjek</span>}
+                              <span style={{ fontWeight: 600, color: 'var(--black)', display: 'block', marginBottom: 4, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subject:</span>
+                              {row.subject ? row.subject : <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>No subject</span>}
                             </div>
                             <div>
-                              <span style={{ fontWeight: 600, color: 'var(--black)', display: 'block', marginBottom: 4, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Isi Pesan:</span>
+                              <span style={{ fontWeight: 600, color: 'var(--black)', display: 'block', marginBottom: 4, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Message Body:</span>
                               {row.original_text || row.text || row.body || <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>-</span>}
                             </div>
                           </td>
@@ -235,16 +235,16 @@ export default function RiwayatPreprocessingPage() {
                             {row.processed_text || row.processed_body ? (
                               <>
                                 <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px dashed var(--gray-200)' }}>
-                                  <span style={{ fontWeight: 600, color: 'var(--black)', display: 'block', marginBottom: 4, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subjek (Bersih):</span>
-                                  {row.subject ? renderWithBadges(row.subject) : <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>Tidak ada subjek</span>}
+                                  <span style={{ fontWeight: 600, color: 'var(--black)', display: 'block', marginBottom: 4, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subject (Cleaned):</span>
+                                  {row.subject ? renderWithBadges(row.subject) : <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>No subject</span>}
                                 </div>
                                 <div>
-                                  <span style={{ fontWeight: 600, color: 'var(--black)', display: 'block', marginBottom: 4, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Isi Pesan (Gabungan Bersih):</span>
+                                  <span style={{ fontWeight: 600, color: 'var(--black)', display: 'block', marginBottom: 4, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Message Body (Cleaned Combined):</span>
                                   <span style={{ color: '#334155' }}>{renderWithBadges(row.processed_text || row.processed_body)}</span>
                                 </div>
                               </>
                             ) : (
-                              <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>Belum diproses</span>
+                              <span style={{ color: 'var(--gray-400)', fontStyle: 'italic' }}>Not yet processed</span>
                             )}
                           </td>
                           <td style={{ textAlign: 'center', border: '1px solid var(--gray-200)', padding: '16px 8px', verticalAlign: 'top' }}>

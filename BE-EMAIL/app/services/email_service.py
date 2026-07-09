@@ -84,9 +84,18 @@ class EmailService:
 
     @staticmethod
     def get_latest_training(db: Session) -> Optional[TrainingHistory]:
-        """Ambil riwayat training terakhir."""
+        """Ambil riwayat training terakhir (dipakai di dashboard & statistik)."""
         return (
             db.query(TrainingHistory)
             .order_by(TrainingHistory.created_at.desc())
+            .first()
+        )
+
+    @staticmethod
+    def get_best_training(db: Session) -> Optional[TrainingHistory]:
+        """Ambil riwayat training dengan akurasi TERTINGGI (dipakai untuk model aktif otomatis)."""
+        return (
+            db.query(TrainingHistory)
+            .order_by(TrainingHistory.accuracy.desc())
             .first()
         )

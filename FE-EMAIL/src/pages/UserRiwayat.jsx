@@ -1,4 +1,4 @@
-// UserRiwayat.jsx — Halaman Riwayat Deteksi untuk User Biasa
+// UserRiwayat.jsx — Detection History Page for Regular Users
 import { useState, useEffect } from "react";
 import {
   ShieldAlert,
@@ -40,18 +40,18 @@ export default function UserRiwayat() {
       {/* Header */}
       <div>
         <h1 style={{ fontSize: "1.3rem", fontWeight: 700, margin: 0, color: "var(--app-text)" }}>
-          Riwayat Deteksi Saya
+          My Detection History
         </h1>
         <p style={{ fontSize: "0.82rem", color: "var(--app-text-muted)", margin: 0 }}>
-          Semua email yang pernah Anda periksa sebelumnya.
+          All emails you have previously checked.
         </p>
       </div>
 
       {/* Tab switcher */}
       <div style={{ display: "flex", gap: 8, borderBottom: "1px solid var(--app-border)", paddingBottom: 0 }}>
         {[
-          { key: "manual", label: "✉️ Email Manual", icon: <Mail size={14} /> },
-          { key: "batch", label: "📁 Upload Batch", icon: <FileText size={14} /> },
+          { key: "manual", label: "✉️ Manual Email", icon: <Mail size={14} /> },
+          { key: "batch", label: "📁 Batch Upload", icon: <FileText size={14} /> },
         ].map((t) => (
           <button
             key={t.key}
@@ -87,7 +87,7 @@ export default function UserRiwayat() {
 }
 
 // ════════════════════════════════════════════════════
-// TAB: Email Manual
+// TAB: Manual Email
 // ════════════════════════════════════════════════════
 function ManualTab({ userId }) {
   const [history, setHistory] = useState([]);
@@ -96,7 +96,7 @@ function ManualTab({ userId }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(null);
-  const perPage = 12;
+  const perPage = 12; // ⚙️ PAGINATION: Ubah angka ini untuk mengatur jumlah riwayat email manual per halaman
 
   const fetchHistory = async (p = page, s = search) => {
     setLoading(true);
@@ -121,12 +121,12 @@ function ManualTab({ userId }) {
 
   const handleDelete = async (e, id) => {
     e.stopPropagation();
-    if (!window.confirm("Hapus riwayat ini?")) return;
+    if (!window.confirm("Delete this history?")) return;
     try {
       await emailAPI.deleteClassifyItem(id);
       if (selected?.id === id) setSelected(null);
       await fetchHistory(page, search);
-    } catch { alert("Gagal menghapus."); }
+    } catch { alert("Failed to delete."); }
   };
 
   const totalPages = Math.ceil(total / perPage);
@@ -142,7 +142,7 @@ function ManualTab({ userId }) {
             <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--app-text-muted)" }} />
             <input
               type="text"
-              placeholder="Cari email..."
+              placeholder="Search emails..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{ paddingLeft: 34, borderRadius: 999, border: "1.5px solid var(--app-border)", padding: "8px 14px 8px 34px", fontSize: "0.82rem", width: "100%", background: "var(--app-surface)", color: "var(--app-text)", outline: "none" }}
@@ -155,12 +155,12 @@ function ManualTab({ userId }) {
 
         <div style={{ borderRadius: 14, background: "var(--app-surface)", border: "1px solid var(--app-border)", overflow: "hidden" }}>
           {loading ? (
-            <div style={{ padding: 40, textAlign: "center", color: "var(--app-text-muted)", fontSize: "0.85rem" }}>Memuat...</div>
+            <div style={{ padding: 40, textAlign: "center", color: "var(--app-text-muted)", fontSize: "0.85rem" }}>Loading...</div>
           ) : history.length === 0 ? (
             <div style={{ padding: 48, textAlign: "center" }}>
               <Mail size={36} color="var(--app-text-muted)" style={{ margin: "0 auto 12px" }} />
               <div style={{ color: "var(--app-text-muted)", fontSize: "0.85rem" }}>
-                {search ? "Tidak ada hasil yang cocok." : "Belum ada riwayat deteksi manual."}
+                {search ? "No matching results." : "No manual detection history yet."}
               </div>
             </div>
           ) : (
@@ -180,7 +180,7 @@ function ManualTab({ userId }) {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: "0.82rem", color: "var(--app-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {item.subject || item.body?.slice(0, 50) || "(Tanpa subjek)"}
+                      {item.subject || item.body?.slice(0, 50) || "(No subject)"}
                     </div>
                     <div style={{ fontSize: "0.72rem", color: "var(--app-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.body?.slice(0, 70) || "—"}</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, fontSize: "0.68rem", color: "var(--app-text-muted)" }}>
@@ -192,7 +192,7 @@ function ManualTab({ userId }) {
                   </div>
                   <button
                     onClick={(e) => handleDelete(e, item.id)}
-                    title="Hapus Riwayat Ini"
+                    title="Delete This History"
                     style={{ background: "var(--app-surface)", border: "1px solid var(--app-border)", cursor: "pointer", color: "#f87171", padding: 6, borderRadius: 6, flexShrink: 0, opacity: 0.8, display: "flex", alignItems: "center" }}
                     onMouseEnter={(e) => (e.currentTarget.style.opacity = 1)}
                     onMouseLeave={(e) => (e.currentTarget.style.opacity = 0.8)}
@@ -215,7 +215,7 @@ function ManualTab({ userId }) {
       <div style={{ position: "sticky", top: 16 }}>
         {selected ? <DetailPanel item={selected} /> : (
           <div style={{ padding: 32, borderRadius: 14, background: "var(--app-surface)", border: "1px dashed var(--app-border)", textAlign: "center", color: "var(--app-text-muted)", fontSize: "0.82rem" }}>
-            Klik salah satu riwayat untuk melihat detailnya.
+            Click on a history to view its details.
           </div>
         )}
       </div>
@@ -224,7 +224,7 @@ function ManualTab({ userId }) {
 }
 
 // ════════════════════════════════════════════════════
-// TAB: Upload Batch (Terkelompok)
+// TAB: Batch Upload (Grouped)
 // ════════════════════════════════════════════════════
 function BatchTab({ userId }) {
   const [batches, setBatches] = useState([]);
@@ -272,13 +272,13 @@ function BatchTab({ userId }) {
 
   const handleDeleteBatch = async (e, batchId) => {
     e.stopPropagation();
-    if (!window.confirm("Hapus seluruh riwayat upload batch ini dari database?")) return;
+    if (!window.confirm("Delete all batch upload history from database?")) return;
     try {
       await emailAPI.deleteBatchHistory(batchId);
       if (expandedBatchId === batchId) setExpandedBatchId(null);
       await fetchBatches();
     } catch {
-      alert("Gagal menghapus batch.");
+      alert("Failed to delete batch.");
     }
   };
 
@@ -293,11 +293,11 @@ function BatchTab({ userId }) {
       </div>
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: "center", color: "var(--app-text-muted)", fontSize: "0.85rem" }}>Memuat...</div>
+        <div style={{ padding: 40, textAlign: "center", color: "var(--app-text-muted)", fontSize: "0.85rem" }}>Loading...</div>
       ) : batches.length === 0 ? (
         <div style={{ padding: 48, textAlign: "center", borderRadius: 14, background: "var(--app-surface)", border: "1px dashed var(--app-border)" }}>
           <FileText size={36} color="var(--app-text-muted)" style={{ margin: "0 auto 12px" }} />
-          <div style={{ color: "var(--app-text-muted)", fontSize: "0.85rem" }}>Belum ada riwayat upload batch.</div>
+          <div style={{ color: "var(--app-text-muted)", fontSize: "0.85rem" }}>No batch upload history yet.</div>
         </div>
       ) : (
         batches.map((batch) => {
@@ -307,7 +307,7 @@ function BatchTab({ userId }) {
           const isLoadingEmails = batchEmailLoading[batch.batch_id];
           const pieData = [
             { name: "Spam", value: batch.spam_count },
-            { name: "Aman", value: batch.ham_count },
+            { name: "Safe", value: batch.ham_count },
           ];
 
           return (
@@ -324,18 +324,18 @@ function BatchTab({ userId }) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--app-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    📁 {batch.batch_name || "File Batch"}
+                    📁 {batch.batch_name || "Batch File"}
                   </div>
                   <div style={{ fontSize: "0.72rem", color: "var(--app-text-muted)", marginTop: 2 }}>
-                    {fmtDate(batch.created_at)} · Total: <strong>{batch.total}</strong> email ·
+                    {fmtDate(batch.created_at)} · Total: <strong>{batch.total}</strong> emails ·
                     <span style={{ color: SPAM_COLOR, fontWeight: 700 }}> {batch.spam_count} Spam</span> ·
-                    <span style={{ color: HAM_COLOR, fontWeight: 700 }}> {batch.ham_count} Aman</span>
+                    <span style={{ color: HAM_COLOR, fontWeight: 700 }}> {batch.ham_count} Safe</span>
                   </div>
                 </div>
 
                 <button
                   onClick={(e) => handleDeleteBatch(e, batch.batch_id)}
-                  title="Hapus Seluruh Batch"
+                  title="Delete Entire Batch"
                   style={{ background: "var(--app-surface)", border: "1px solid var(--app-border)", cursor: "pointer", color: "#f87171", padding: 6, borderRadius: 6, flexShrink: 0, opacity: 0.8, display: "flex", alignItems: "center" }}
                   onMouseEnter={(e) => (e.currentTarget.style.opacity = 1)}
                   onMouseLeave={(e) => (e.currentTarget.style.opacity = 0.8)}
@@ -355,7 +355,7 @@ function BatchTab({ userId }) {
                       onClick={() => setShowChart((prev) => ({ ...prev, [batch.batch_id]: !prev[batch.batch_id] }))}
                       style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 14px", borderRadius: 999, background: isChartVisible ? "#4f5fd4" : "var(--app-surface)", border: "1.5px solid var(--app-border)", color: isChartVisible ? "white" : "#4f5fd4", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer" }}
                     >
-                      <BarChart2 size={13} /> {isChartVisible ? "Sembunyikan Grafik" : "Tampilkan Grafik"}
+                      <BarChart2 size={13} /> {isChartVisible ? "Hide Chart" : "Show Chart"}
                     </button>
                   </div>
 
@@ -377,7 +377,7 @@ function BatchTab({ userId }) {
 
                   {/* Daftar email */}
                   {isLoadingEmails ? (
-                    <div style={{ padding: 24, textAlign: "center", color: "var(--app-text-muted)", fontSize: "0.82rem" }}>Memuat detail email...</div>
+                    <div style={{ padding: 24, textAlign: "center", color: "var(--app-text-muted)", fontSize: "0.82rem" }}>Loading email details...</div>
                   ) : (
                     <div style={{ maxHeight: 360, overflowY: "auto" }}>
                       {emails.map((item, i) => {
@@ -389,10 +389,10 @@ function BatchTab({ userId }) {
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--app-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                {item.subject || item.body?.slice(0, 60) || "(Tanpa subjek)"}
+                                {item.subject || item.body?.slice(0, 60) || "(No subject)"}
                               </div>
                               {item.sender && (
-                                <div style={{ fontSize: "0.68rem", color: "var(--app-text-muted)" }}>Dari: {item.sender}</div>
+                                <div style={{ fontSize: "0.68rem", color: "var(--app-text-muted)" }}>From: {item.sender}</div>
                               )}
                             </div>
                             <span style={{ padding: "2px 10px", borderRadius: 999, background: isSpam ? "#fce7f3" : "#ecfdf5", color: isSpam ? "#db2777" : "#065f46", fontWeight: 700, fontSize: "0.65rem", textTransform: "uppercase", flexShrink: 0 }}>
@@ -417,7 +417,7 @@ function BatchTab({ userId }) {
 }
 
 // ════════════════════════════════════════════════════
-// PANEL DETAIL (Manual)
+// DETAIL PANEL (Manual)
 // ════════════════════════════════════════════════════
 function DetailPanel({ item }) {
   const isSpam = item.label === "spam";
@@ -428,7 +428,7 @@ function DetailPanel({ item }) {
       <div style={{ padding: "14px 18px", background: isSpam ? "#fef2f2" : "#ecfdf5", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid var(--app-border)" }}>
         {isSpam ? <ShieldAlert size={20} color="#991b1b" /> : <ShieldCheck size={20} color="#065f46" />}
         <span style={{ fontWeight: 800, fontSize: "0.95rem", color: isSpam ? "#991b1b" : "#065f46" }}>
-          {isSpam ? "SPAM" : "AMAN (Non-Spam)"}
+          {isSpam ? "SPAM" : "SAFE (Non-Spam)"}
         </span>
         <span style={{ marginLeft: "auto", fontWeight: 700, fontSize: "0.85rem", color: isSpam ? "#ec4899" : "#4f5fd4" }}>
           {(conf * 100).toFixed(1)}%
@@ -438,7 +438,7 @@ function DetailPanel({ item }) {
         <div style={{ height: 6, borderRadius: 999, background: "var(--lav-ghost)", overflow: "hidden" }}>
           <div style={{ width: `${conf * 100}%`, height: "100%", background: isSpam ? "linear-gradient(90deg,#f97316,#ec4899)" : "linear-gradient(90deg,#4f5fd4,#10b981)", borderRadius: 999 }} />
         </div>
-        {[{ label: "Pengirim", value: item.sender }, { label: "Subjek", value: item.subject }].map(({ label, value }) =>
+        {[{ label: "Sender", value: item.sender }, { label: "Subject", value: item.subject }].map(({ label, value }) =>
           value ? (
             <div key={label}>
               <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--app-text-muted)", textTransform: "uppercase", marginBottom: 2 }}>{label}</div>
@@ -447,7 +447,7 @@ function DetailPanel({ item }) {
           ) : null
         )}
         <div>
-          <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--app-text-muted)", textTransform: "uppercase", marginBottom: 4 }}>Isi Email</div>
+          <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--app-text-muted)", textTransform: "uppercase", marginBottom: 4 }}>Email Body</div>
           <div style={{ fontSize: "0.82rem", color: "var(--app-text)", background: "var(--lav-ghost)", borderRadius: 10, padding: "10px 12px", lineHeight: 1.6, maxHeight: 200, overflowY: "auto" }}>
             {item.body || "—"}
           </div>

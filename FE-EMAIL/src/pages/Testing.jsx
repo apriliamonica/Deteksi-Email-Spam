@@ -55,7 +55,7 @@ export default function Testing() {
   // History pagination & search
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const perPage = 10;
+  const perPage = 10; // ⚙️ PAGINATION: Ubah angka ini untuk mengatur jumlah riwayat email per halaman
 
   // ── Fetch active model ───────────
   useEffect(() => {
@@ -155,7 +155,7 @@ export default function Testing() {
       await modelAPI.activateModel(id);
       await refreshModel();
     } catch {
-      alert("Gagal mengubah model aktif.");
+      alert("Failed to change active model.");
     } finally {
       setIsActivating(false);
     }
@@ -193,7 +193,7 @@ export default function Testing() {
       setPage(1);
       await fetchGroupedHistory();
     } catch {
-      alert("Gagal prediksi. Pastikan backend aktif & model sudah dilatih.");
+      alert("Failed to predict. Ensure backend is active & model is trained.");
     } finally {
       setLoading(false);
     }
@@ -216,7 +216,7 @@ export default function Testing() {
       setColSubject(find("subject_id", "subject"));
       setColSender(find("sender"));
     } catch (err) {
-      alert(err.response?.data?.detail || "Gagal membaca file.");
+      alert(err.response?.data?.detail || "Failed to read file.");
       setBatchFile(null);
     } finally {
       setColumnsLoading(false);
@@ -245,7 +245,7 @@ export default function Testing() {
       }
     } catch (err) {
       if (!cancelBatchRef.current) {
-        alert(`Error: ${err.response?.data?.detail || "Gagal menguji file"}`);
+        alert(`Error: ${err.response?.data?.detail || "Failed to test file"}`);
       }
     } finally {
       setBatchLoading(false);
@@ -286,19 +286,19 @@ export default function Testing() {
   // ── Delete handlers ──────────────
   const handleDeleteItem = async (e, itemId) => {
     e.stopPropagation();
-    if (!window.confirm("Hapus riwayat klasifikasi ini?")) return;
+    if (!window.confirm("Delete this classification history?")) return;
     try {
       await emailAPI.deleteClassifyItem(itemId);
       if (activeResult?.id === itemId) setActiveResult(null);
       await fetchGroupedHistory();
     } catch {
-      alert("Gagal menghapus riwayat.");
+      alert("Failed to delete history.");
     }
   };
 
   const handleDeleteBatch = async (e, batchId) => {
     e.stopPropagation();
-    if (!window.confirm("Hapus seluruh hasil batch ini dari riwayat?")) return;
+    if (!window.confirm("Delete all batch results from history?")) return;
     try {
       await emailAPI.deleteBatchHistory(batchId);
       if (expandedBatch === batchId) {
@@ -308,14 +308,14 @@ export default function Testing() {
       if (activeResult?.batchId === batchId) setActiveResult(null);
       await fetchGroupedHistory();
     } catch {
-      alert("Gagal menghapus batch.");
+      alert("Failed to delete batch.");
     }
   };
 
   const handleDeleteAll = async () => {
     if (
       !window.confirm(
-        `Hapus semua riwayat klasifikasi? Tindakan ini tidak dapat dibatalkan.`,
+        `Delete all classification history? This action cannot be undone.`,
       )
     )
       return;
@@ -327,7 +327,7 @@ export default function Testing() {
       setPage(1);
       await fetchGroupedHistory();
     } catch {
-      alert("Gagal menghapus semua riwayat.");
+      alert("Failed to delete all history.");
     }
   };
 
@@ -370,7 +370,7 @@ export default function Testing() {
             margin: 0,
           }}
         >
-          Uji model IndoBERT + GAT dengan teks manual atau file batch.
+          Test IndoBERT + GAT model with manual text or batch file.
         </p>
       </div>
 
@@ -395,11 +395,11 @@ export default function Testing() {
             color: "var(--app-text-muted)",
           }}
         >
-          Testing dengan Model Terbaik:
+          Testing with Best Model:
         </span>
         {modelLoading ? (
           <span style={{ fontSize: "0.8rem", color: "var(--app-text-muted)" }}>
-            Memuat...
+            Loading...
           </span>
         ) : activeModel ? (
           <>
@@ -423,7 +423,7 @@ export default function Testing() {
                   padding: "2px 10px",
                 }}
               >
-                Akurasi {(activeModel.accuracy * 100).toFixed(2)}%
+                Accuracy {(activeModel.accuracy * 100).toFixed(2)}%
               </span>
             )}
             <span
@@ -433,12 +433,12 @@ export default function Testing() {
                 marginLeft: "auto",
               }}
             >
-              Model Terbaik
+              Best Model
             </span>
           </>
         ) : (
           <span style={{ fontSize: "0.8rem", color: "#dc2626" }}>
-            ⚠️ Belum ada model aktif. Silakan latih model terlebih dahulu.
+            ⚠️ No active model. Please train a model first.
           </span>
         )}
       </div>
@@ -472,7 +472,7 @@ export default function Testing() {
         >
           {/* Manual Test */}
           <Card
-            title="Uji Teks Manual"
+            title="Manual Text Test"
             icon={<FileText size={16} color="#4f5fd4" />}
           >
             <form
@@ -488,14 +488,14 @@ export default function Testing() {
               >
                 <input
                   type="text"
-                  placeholder="Pengirim (opsional)"
+                  placeholder="Sender (optional)"
                   value={sender}
                   onChange={(e) => setSender(e.target.value)}
                   style={inputStyle}
                 />
                 <input
                   type="text"
-                  placeholder="Subjek (opsional)"
+                  placeholder="Subject (optional)"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   style={inputStyle}
@@ -503,7 +503,7 @@ export default function Testing() {
               </div>
               <textarea
                 rows={4}
-                placeholder="Isi email... (wajib)"
+                placeholder="Email body... (required)"
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 required
@@ -523,11 +523,11 @@ export default function Testing() {
                       size={14}
                       style={{ animation: "spin 1s linear infinite" }}
                     />
-                    Memproses...
+                    Processing...
                   </>
                 ) : (
                   <>
-                    <Send size={14} /> Periksa Email
+                    <Send size={14} /> Check Email
                   </>
                 )}
               </button>
@@ -536,7 +536,7 @@ export default function Testing() {
 
           {/* Batch Upload */}
           <Card
-            title="Pengujian Batch (CSV/Excel)"
+            title="Batch Testing (CSV/Excel)"
             icon={<Upload size={16} color="#4f5fd4" />}
           >
             <input
@@ -556,14 +556,13 @@ export default function Testing() {
                     marginBottom: 10,
                   }}
                 >
-                  Upload file berisi daftar email, lalu pilih kolom yang
-                  digunakan.
+                  Upload a file containing a list of emails, then select the columns used.
                 </p>
                 <button
                   onClick={() => fileRef.current?.click()}
                   style={btnOutline}
                 >
-                  <Upload size={14} /> Pilih File Dataset
+                  <Upload size={14} /> Select Dataset File
                 </button>
               </>
             )}
@@ -582,7 +581,7 @@ export default function Testing() {
                   style={{ animation: "spin 1s linear infinite" }}
                 />
                 <div style={{ fontSize: "0.8rem", marginTop: 6 }}>
-                  Membaca kolom...
+                  Reading columns...
                 </div>
               </div>
             )}
@@ -617,25 +616,25 @@ export default function Testing() {
                         color: "var(--app-text-muted)",
                       }}
                     >
-                      {batchMetrics.total_rows?.toLocaleString()} baris
+                      {batchMetrics.total_rows?.toLocaleString()} rows
                     </div>
                   </div>
 
                   <ColumnSelect
-                    label="Kolom Isi Email"
+                    label="Email Body Column"
                     required
                     value={colText}
                     onChange={setColText}
                     options={batchColumns}
                   />
                   <ColumnSelect
-                    label="Kolom Subject (opsional)"
+                    label="Subject Column (optional)"
                     value={colSubject}
                     onChange={setColSubject}
                     options={batchColumns}
                   />
                   <ColumnSelect
-                    label="Kolom Pengirim (opsional)"
+                    label="Sender Column (optional)"
                     value={colSender}
                     onChange={setColSender}
                     options={batchColumns}
@@ -646,7 +645,7 @@ export default function Testing() {
                       onClick={resetBatch}
                       style={{ ...btnOutline, flex: 1 }}
                     >
-                      Ganti File
+                      Change File
                     </button>
                     <button
                       disabled={!colText}
@@ -657,7 +656,7 @@ export default function Testing() {
                         opacity: !colText ? 0.5 : 1,
                       }}
                     >
-                      <Send size={13} /> Mulai Testing
+                      <Send size={13} /> Start Testing
                     </button>
                   </div>
                 </div>
@@ -681,7 +680,7 @@ export default function Testing() {
                   style={{ animation: "spin 1s linear infinite" }}
                 />
                 <div style={{ fontSize: "0.8rem" }}>
-                  Memproses & mengklasifikasi email...
+                  Processing & classifying emails...
                 </div>
                 <button
                   onClick={handleCancelBatch}
@@ -697,7 +696,7 @@ export default function Testing() {
                     cursor: "pointer",
                   }}
                 >
-                  Batalkan Proses
+                  Cancel Process
                 </button>
               </div>
             )}
@@ -705,7 +704,7 @@ export default function Testing() {
 
           {/* History Grouped */}
           <Card
-            title="Hasil Pengujian"
+            title="Test Results"
             right={
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ position: "relative" }}>
@@ -721,7 +720,7 @@ export default function Testing() {
                   />
                   <input
                     type="text"
-                    placeholder="Cari manual..."
+                    placeholder="Search manual..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     style={{
@@ -750,7 +749,7 @@ export default function Testing() {
                     }}
                   >
                     <Trash2 size={12} style={{ marginRight: 4 }} />
-                    Hapus Semua
+                    Delete All
                   </button>
                 )}
               </div>
@@ -766,7 +765,7 @@ export default function Testing() {
                   fontSize: "0.82rem",
                 }}
               >
-                Memuat...
+                Loading...
               </div>
             ) : batchGroups.length === 0 && testHistory.length === 0 ? (
               <div
@@ -777,7 +776,7 @@ export default function Testing() {
                   fontSize: "0.82rem",
                 }}
               >
-                Belum ada data pengujian.
+                No test data yet.
               </div>
             ) : (
               <div>
@@ -796,7 +795,7 @@ export default function Testing() {
                         letterSpacing: 0.5,
                       }}
                     >
-                      Hasil Batch File ({batchGroups.length})
+                      Batch File Results ({batchGroups.length})
                     </div>
                     {batchGroups.map((bg) => {
                       const isOpen = expandedBatch === bg.batch_id;
@@ -871,7 +870,7 @@ export default function Testing() {
                                   marginTop: 2,
                                 }}
                               >
-                                {bg.total} email &nbsp;·&nbsp;
+                                {bg.total} emails &nbsp;·&nbsp;
                                 <span style={{ color: "#ef4444" }}>
                                   {bg.spam_count} spam
                                 </span>{" "}
@@ -932,7 +931,7 @@ export default function Testing() {
                                       animation: "spin 1s linear infinite",
                                     }}
                                   />{" "}
-                                  Memuat detail...
+                                  Loading details...
                                 </div>
                               ) : (
                                 batchDetailItems.map((item, idx) => (
@@ -1034,7 +1033,7 @@ export default function Testing() {
                         letterSpacing: 0.5,
                       }}
                     >
-                      Uji Manual
+                      Manual Test
                     </div>
                     {testHistory.map((it, i) => (
                       <div
@@ -1166,7 +1165,7 @@ export default function Testing() {
             }}
           >
             <div style={{ fontSize: "1.2rem", marginBottom: 8 }}>
-              ⚠️ Batalkan Proses?
+              ⚠️ Cancel Process?
             </div>
             <p
               style={{
@@ -1175,8 +1174,7 @@ export default function Testing() {
                 marginBottom: 20,
               }}
             >
-              Email yang <strong>sudah terklasifikasi</strong> akan tetap
-              tersimpan di riwayat. Proses baru akan dihentikan.
+              Emails that are <strong>already classified</strong> will remain saved in history. The new process will be stopped.
             </p>
             <div style={{ display: "flex", gap: 10 }}>
               <button
@@ -1192,7 +1190,7 @@ export default function Testing() {
                   fontSize: "0.85rem",
                 }}
               >
-                Lanjutkan Proses
+                Continue Process
               </button>
               <button
                 onClick={confirmKeepProgress}
@@ -1208,7 +1206,7 @@ export default function Testing() {
                   fontSize: "0.85rem",
                 }}
               >
-                Hentikan & Simpan Yg Sudah Ada
+                Stop & Save Processed Items
               </button>
             </div>
           </div>
@@ -1249,7 +1247,7 @@ function BatchSummaryDetail({ result }) {
             marginBottom: 4,
           }}
         >
-          📂 Hasil Batch
+          📂 Batch Result
         </div>
         <div
           style={{
@@ -1285,9 +1283,9 @@ function BatchSummaryDetail({ result }) {
           marginBottom: 14,
         }}
       >
-        <SummaryRow label="Total Diuji" value={result.total} color="#4f5fd4" />
+        <SummaryRow label="Total Tested" value={result.total} color="#4f5fd4" />
         <SummaryRow label="Spam" value={result.spam} color="#ef4444" />
-        <SummaryRow label="Ham (Aman)" value={result.ham} color="#10b981" />
+        <SummaryRow label="Ham (Safe)" value={result.ham} color="#10b981" />
       </div>
       {/* Mini bar chart */}
       <div
@@ -1299,7 +1297,7 @@ function BatchSummaryDetail({ result }) {
           marginBottom: 6,
         }}
       >
-        Distribusi
+        Distribution
       </div>
       <div
         style={{
@@ -1346,7 +1344,7 @@ function BatchSummaryDetail({ result }) {
           color: "var(--app-text-muted)",
         }}
       >
-        Klik salah satu email di dalam grup untuk melihat detail prediksinya.
+        Click on any email in the group to view its prediction details.
       </div>
     </DetailCard>
   );
@@ -1389,7 +1387,7 @@ function ManualDetail({ result }) {
               textTransform: "uppercase",
             }}
           >
-            Prediksi
+            Prediction
           </div>
           <div
             style={{
@@ -1398,7 +1396,7 @@ function ManualDetail({ result }) {
               color: isSpam ? "#991b1b" : "#065f46",
             }}
           >
-            {isSpam ? "TERDETEKSI SPAM" : "EMAIL AMAN"}
+            {isSpam ? "SPAM DETECTED" : "SAFE EMAIL"}
           </div>
         </div>
       </div>
@@ -1552,7 +1550,7 @@ function BatchDetail({ result }) {
             textTransform: "uppercase",
           }}
         >
-          Detail Batch
+          Batch Detail
         </div>
         <div
           style={{
@@ -1575,7 +1573,7 @@ function BatchDetail({ result }) {
         }}
       >
         <SummaryRow
-          label="Total Diuji"
+          label="Total Tested"
           value={result.results.length}
           color="#4f5fd4"
         />
@@ -1592,7 +1590,7 @@ function BatchDetail({ result }) {
           marginBottom: 6,
         }}
       >
-        Daftar Hasil
+        Result List
       </div>
       <div
         style={{
@@ -1678,8 +1676,7 @@ function EmptyDetail() {
           margin: "0 auto",
         }}
       >
-        Pilih hasil dari tabel atau lakukan uji manual/batch untuk melihat
-        detail.
+        Select a result from the table or run a manual/batch test to view details.
       </p>
     </div>
   );
@@ -1699,7 +1696,7 @@ function Banner({ type, model }) {
           style={{ animation: "spin 1s linear infinite" }}
         />
         <span style={{ fontSize: "0.82rem", color: "var(--app-text-muted)" }}>
-          Memeriksa model aktif...
+          Checking active model...
         </span>
       </div>
     );
@@ -1716,10 +1713,10 @@ function Banner({ type, model }) {
         <ShieldAlert size={20} color="#92400e" />
         <div>
           <div style={{ fontWeight: 700, fontSize: "0.85rem" }}>
-            Tidak Ada Model Aktif
+            No Active Model
           </div>
           <div style={{ fontSize: "0.72rem", color: "#92400e" }}>
-            Latih model baru atau aktifkan model di halaman Riwayat Model.
+            Train a new model or activate a model on the Model History page.
           </div>
         </div>
       </div>
@@ -1754,7 +1751,7 @@ function Banner({ type, model }) {
         </div>
         <div>
           <div style={{ fontWeight: 700, fontSize: "0.85rem" }}>
-            Model Aktif
+            Active Model
           </div>
           <div style={{ fontSize: "0.72rem", color: "#065f46" }}>
             {model?.model_name}
@@ -1770,7 +1767,7 @@ function Banner({ type, model }) {
               textTransform: "uppercase",
             }}
           >
-            Akurasi
+            Accuracy
           </div>
           <div style={{ fontSize: "1rem", fontWeight: 800, color: "#10b981" }}>
             {(model?.accuracy * 100).toFixed(2)}%
@@ -1870,7 +1867,7 @@ function ColumnSelect({ label, value, onChange, options, required }) {
         onChange={(e) => onChange(e.target.value)}
         style={selectStyle}
       >
-        <option value="">-- Pilih kolom --</option>
+        <option value="">-- Select column --</option>
         {options.map((c) => (
           <option key={c} value={c}>
             {c}
